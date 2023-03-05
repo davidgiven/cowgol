@@ -1,21 +1,66 @@
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
+from os.path import *
 import argparse
 import functools
 import inspect
-import os.path
 import re
 import sys
+import copy
 
 defaultGlobals = {}
 targets = {}
-cwd = "."
+cwd = ""
 unmaterialisedTargets = set()
 emitter = None
+currentVars = None
 
 
 class ABException(BaseException):
     pass
 
+
+class ParameterList(Sequence):
+    def __init__(self, parent=[]):
+        self.data = parent
+
+    def __getitem__(self, i):
+        return self.data[i]
+
+    def __len__(self):
+        return len(self.data)
+
+    def __str__(self):
+        return " ".join(self.data)
+
+    def __add__(self, other):
+        newdata = self.data.copy() + other
+        return ParameterList(newdata)
+
+    def __repr__(self):
+        return f"<PList: {self.data}>"
+
+
+def Vars(parent=None):
+    data = {}
+
+    class VarsImpl:
+        def __setattr__(self, k, v):
+            data[k] = v
+
+        def __getattr__(self, k):
+            if k in data:
+                return data[k]
+            if parent:
+                return getattr(parent, k)
+            return ParameterList()
+
+        def __repr__(self):
+            return f"<Vars-{id(self)}: {data} -> {parent}>"
+
+        __setitem__ = __setattr__
+        __getitem__ = __getattr__
+
+    return VarsImpl()
 
 class Invocation:
     name = None
@@ -24,6 +69,8 @@ class Invocation:
     ins = []
     outs = []
     rawArgs = {}
+    vars = None
+    varsettings = None
 
     def materialise(self):
         if self in unmaterialisedTargets:
@@ -34,9 +81,33 @@ class Invocation:
                     v = t.convert(v)
                 self.args[k] = v
 
+            global currentVars
+            self.vars = Vars(self.callerVars)
+            oldVars = currentVars
+            currentVars = self.vars
+
+            if self.varsettings:
+                for k, v in self.varsettings.items():
+                    if k.startswith("+"):
+                        k = k[1:]
+                        self.vars[k] = self.vars[k] + flatten(v)
+                    else:
+                        self.vars[k] = ParameterList(v)
+
             self.callback.__globals__["self"] = self
-            self.callback(**self.args)
+            newInvocation = self.callback(**self.args)
+            newInvocation = newInvocation or self
+            if newInvocation != self:
+                for k in dir(newInvocation):
+                    if not k.startswith("_"):
+                        setattr(self, k, getattr(newInvocation, k))
+                self.materialise()
+
+            currentVars = oldVars
             unmaterialisedTargets.remove(self)
+
+    def __str__(self):
+        return "<Invocation %s>" % self.fullname
 
 
 class Type:
@@ -128,9 +199,11 @@ def unmake(ss):
 def templateexpand(s, invocation):
     class Converter:
         def __getitem__(self, key):
+            if key == "vars":
+                return invocation.vars
             f = filenamesof(invocation.args[key])
-            if type(f) is list:
-                return " ".join(f)
+            if isinstance(f, Sequence):
+                f = ParameterList(f)
             return f
 
     return eval("f%r" % s, invocation.callback.__globals__, Converter())
@@ -145,18 +218,18 @@ class MakeEmitter:
 
     def var(self, name, value):
         # Don't let emit insert spaces.
-        emit(name+"="+value)
+        emit(name+"="+unmake(value))
 
     def rule(self, name, ins, outs):
         if outs:
             emit(".PHONY:", name)
-            emit(name, ":", outs)
-            emit(outs, "&:", ins)
+            emit(name, ":", unmake(outs))
+            emit(outs, "&:", unmake(ins))
         else:
-            emit(name, ":", ins)
+            emit(name, ":", unmake(ins))
 
     def exec(self, command):
-        emit("\t$(hide)", command)
+        emit("\t$(hide)", unmake(command))
 
 
 class NinjaEmitter:
@@ -180,21 +253,29 @@ class NinjaEmitter:
 def Rule(func):
     name = func.__name__
     sig = inspect.signature(func)
+    if "self" in func.__globals__:
+        os.exit()
 
     @functools.wraps(func)
     def wrapper(*, name, **kwargs):
-        bound = sig.bind(name=name, **kwargs)
-        bound.apply_defaults()
-
         i = Invocation()
+        i.cwd = cwd
         i.fullname = cwd + "+" + name
         i.name = name
-        i.rawArgs = bound.arguments
         i.types = func.__annotations__
         i.callback = func
+        i.callerVars = currentVars
+        i.varsettings = kwargs.get("vars", None)
+        if i.varsettings:
+            kwargs.pop("vars")
+
+        bound = sig.bind(name=name, **kwargs)
+        bound.apply_defaults()
+        i.rawArgs = bound.arguments
 
         targets[i.fullname] = i
         unmaterialisedTargets.add(i)
+        return i
 
     defaultGlobals[name] = wrapper
     return wrapper
@@ -204,17 +285,63 @@ def Rule(func):
 def simplerule(
         name=None,
         ins: Targets() = [],
-        outs: Strings() = [],
+        outs=[],
         deps: Targets() = [],
         commands: Strings() = [],
         label="RULE"):
-
     self.ins = ins
     self.outs = outs
     emitter.rule(self.fullname, filenamesof(ins, deps), outs)
-    emitter.exec(templateexpand("@echo {label} {ins}", self))
+    emitter.exec(templateexpand("echo {label} {ins}", self))
+
+    for out in filenamesof(outs):
+        dir = dirname(out)
+        if dir:
+            emitter.exec("mkdir -p "+dir)
+
     for c in commands:
         emitter.exec(templateexpand(c, self))
+
+
+@Rule
+def normalrule(
+        name=None,
+        ins: Targets() = [],
+        deps: Targets() = [],
+        outleaves=[],
+        label="RULE",
+        objdir=None,
+        commands=[]):
+    objdir = objdir or join("$(OBJ)", self.cwd, name)
+
+    return simplerule(
+        name=name,
+        ins=ins,
+        deps=deps,
+        outs=[join(objdir, f) for f in outleaves],
+        label=label,
+        commands=commands)
+
+
+@Rule
+def installable(
+        name=None,
+        items={}):
+
+    emitter.rule(self.fullname, filenamesof(items.values()), items.keys())
+    emitter.exec(templateexpand("echo EXPORT {name}", self))
+
+    for dest, src in items.items():
+        dir = dirname(dest)
+        if dir:
+            emitter.exec("mkdir -p "+dir)
+
+        srcs = filenamesof(src)
+        if len(srcs) != 1:
+            raise ABException(
+                "a dependency of an installable must have exactly one output file")
+
+        emitter.exec("cp %s %s" % (srcs[0], dest))
 
 
 def loadbuildfile(filename):
@@ -223,9 +350,7 @@ def loadbuildfile(filename):
         code = compile(fp.read(), filename,
                        mode="exec")
         oldCwd = cwd
-        cwd = os.path.dirname(filename)
-        if cwd == "":
-            cwd = "."
+        cwd = dirname(filename)
         exec(code, dict(defaultGlobals, CWD=cwd))
         cwd = oldCwd
 
@@ -244,12 +369,22 @@ def main():
         emitter = NinjaEmitter()
     emitter.begin()
 
+    global currentVars
+    currentVars = Vars()
+
+    for k in ("Rule", "Targets"):
+        defaultGlobals[k] = globals()[k]
+    defaultGlobals["print"] = debug
+
     for f in args.files:
         loadbuildfile(f)
 
     while unmaterialisedTargets:
-        debug(len(unmaterialisedTargets))
+        total = len(targets)
+        finished = total - len(unmaterialisedTargets)
+        sys.stderr.write("%d/%d\r" % (finished, total))
         next(iter(unmaterialisedTargets)).materialise()
+    sys.stderr.write("%d/%d\n" % (total, total))
 
     emitter.end()
 

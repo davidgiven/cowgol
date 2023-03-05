@@ -1,19 +1,15 @@
-simplerule(
-    name="main",
-    ins=["README.md"],
-    outs=["x"],
-    commands=[
-        "cp {ins} {outs}"
-    ]
-)
+from os.path import *
 
-simplerule(
-    name="y",
-    ins=["+main"],
-    outs=["y"],
-    commands=[
-        "cp {ins} {outs}"
-    ],
-    label="Y"
-)
+installable(
+    name="all",
+    items={
+        "bbctube.o": "tools/tubeemu+bbctube",
+    })
 
+cfile(
+    name="cfile",
+    srcs=["tools/tubeemu/bbctube.c"],
+    vars={
+        "+cflags": ["-Ithird_party/lib6502"]
+    }
+)
