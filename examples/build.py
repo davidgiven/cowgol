@@ -1,4 +1,5 @@
-from src.build import TOOLCHAINS, cowgol
+from src.build import cowgol
+from src.toolchains import TOOLCHAINS
 from build.ab2 import export
 
 PROGRAMS = [

@@ -1,5 +1,6 @@
 from build.ab2 import normalrule
-from src.build import TOOLCHAINS, cowgol
+from src.build import cowgol
+from src.toolchains import TOOLCHAINS
 
 ARCHS = ["tlcs90"]
 
