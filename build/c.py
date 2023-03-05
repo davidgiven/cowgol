@@ -62,9 +62,7 @@ def cxxfile(
     commands=["$(CXX) -c -o {outs[0]} {ins[0]} {vars.cxxflags}"],
     label="CXX",
 ):
-    cfileimpl(
-        self, name, srcs, deps, suffix, commands, label, "cxxfile", "cxxflags"
-    )
+    cfileimpl(self, name, srcs, deps, suffix, commands, label, "cxxfile", "cxxflags")
 
 
 def findsources(name, srcs, deps):

@@ -131,9 +131,7 @@ class Invocation:
 
             self.callback(**self.args)
             if not self.outs:
-                raise ABException(
-                    f"{self.name} didn't set self.outs"
-                )
+                raise ABException(f"{self.name} didn't set self.outs")
 
             # Destack the variable and invocation frame.
 
