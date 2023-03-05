@@ -1,4 +1,4 @@
-from build.ab2 import normalrule
+from build.ab2 import normalrule, export
 from src.build import TOOLCHAINS, cowgol
 from tools.newgen.build import newgencowgol
 
@@ -30,10 +30,12 @@ for arch in ARCHS:
         srcs=["src/cowbe/arch" + arch + ".cow.ng"] + extras.get(arch, []),
     )
 
+items = {}
 for toolchain in TOOLCHAINS:
     for arch in ARCHS:
-        cowgol(
-            name="cowbe-for-" + arch + "-with-" + toolchain.localname,
+        name = "cowbe-for-" + arch + "-with-" + toolchain.localname
+        items["bin/" + name] = cowgol(
+            name=name,
             toolchain=toolchain,
             srcs=[
                 "+gen-" + arch,
@@ -53,3 +55,5 @@ for toolchain in TOOLCHAINS:
                 "./utils.coh",
             ],
         )
+
+export(name="cowbe", items=items)

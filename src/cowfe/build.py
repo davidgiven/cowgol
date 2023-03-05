@@ -1,4 +1,4 @@
-from build.ab2 import normalrule
+from build.ab2 import normalrule, export
 from src.build import TOOLCHAINS, cowgol
 from third_party.lemon.build import lemoncowgol
 
@@ -24,9 +24,11 @@ for arch in ARCHS:
         label="COPY",
     )
 
+items = {}
 for toolchain in TOOLCHAINS:
     for arch in ARCHS:
-        cowgol(
+        name="cowfe-for-" + arch + "-with-" + toolchain.localname
+        items[name] = cowgol(
             name="cowfe-for-" + arch + "-with-" + toolchain.localname,
             toolchain=toolchain,
             srcs=[
@@ -49,3 +51,5 @@ for toolchain in TOOLCHAINS:
                 "src+midcodesfecoh",
             ],
         )
+
+

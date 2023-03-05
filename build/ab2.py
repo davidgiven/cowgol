@@ -17,6 +17,7 @@ import builtins
 defaultGlobals = {}
 targets = {}
 unmaterialisedTargets = set()
+materialisingStack = []
 outputFp = None
 emitter = None
 currentVars = None
@@ -99,16 +100,25 @@ class Invocation:
     types = None
     ins = None
     outs = None
-    rawArgs = None
+    binding = None
     vars = None
     varsettings = None
 
-    def materialise(self):
+    def materialise(self, replacing=False):
         if self in unmaterialisedTargets:
+            if not replacing and (self in materialisingStack):
+                print("Found dependency cycle:")
+                for i in materialisingStack:
+                    print(f"  {i.name}")
+                print(f"  {self.name}")
+                sys.exit(1)
+
+            materialisingStack.append(self)
+
             # Perform type conversion to the declared rule parameter types.
 
             self.args = {}
-            for k, v in self.rawArgs.items():
+            for k, v in self.binding.arguments.items():
                 t = self.types.get(k, None)
                 if t:
                     v = t.convert(v, self)
@@ -131,7 +141,12 @@ class Invocation:
 
             # Actually call the callback.
 
-            self.callback(**self.args)
+            try:
+                self.callback(**self.args)
+            except BaseException as e:
+                print(f"Error materialising {self} ({id(self)}): {self.callback}")
+                print(f"Arguments: {self.args}")
+                raise e
             if not self.outs:
                 raise ABException(f"{self.name} didn't set self.outs")
 
@@ -141,8 +156,61 @@ class Invocation:
             if self in unmaterialisedTargets:
                 unmaterialisedTargets.remove(self)
 
+            materialisingStack.pop()
+
     def __repr__(self):
         return "<Invocation %s>" % self.name
+
+
+def Rule(func):
+    sig = inspect.signature(func)
+
+    @functools.wraps(func)
+    def wrapper(*, name=None, replaces=None, **kwargs):
+        callername = inspect.stack()[1][0].f_globals["__name__"]
+        cwd = dirname(callername.replace(".", "/"))
+
+        if name:
+            if ("+" in name) and not name.startswith("+"):
+                (cwd, target) = name.split("+", 1)
+
+            i = Invocation()
+            if name.startswith("./"):
+                name = join(cwd, name)
+            elif "+" not in name:
+                name = cwd + "+" + name
+
+            i.name = name
+            i.localname = name.split("+")[-1]
+
+            if name in targets:
+                raise ABException(f"target {i.name} has already been defined")
+            targets[name] = i
+        elif replaces:
+            i = replaces
+            name = i.name
+        else:
+            raise ABException("you must supply either name or replaces")
+
+        i.cwd = cwd
+        i.types = func.__annotations__
+        i.callback = func
+        i.callerVars = currentVars
+        i.varsettings = kwargs.get("vars", None)
+        setattr(i, func.__name__, SimpleNamespace())
+
+        kwargs.pop("vars", None)
+
+        i.binding = sig.bind(name=name, self=i, **kwargs)
+        i.binding.apply_defaults()
+
+        unmaterialisedTargets.add(i)
+        if replaces:
+            i.materialise(replacing=True)
+        return i
+
+    defaultGlobals[func.__name__] = wrapper
+    return wrapper
 
 
 class Type:
@@ -348,58 +416,6 @@ class NinjaEmitter:
             emit("build", unmake(outs), ": build", unmake(ins))
         else:
             emit("build", name, ": phony", unmake(ins))
-
-
-def Rule(func):
-    sig = inspect.signature(func)
-
-    @functools.wraps(func)
-    def wrapper(*, name=None, replaces=None, **kwargs):
-        callername = inspect.stack()[1][0].f_globals["__name__"]
-        cwd = dirname(callername.replace(".", "/"))
-
-        if name:
-            if ("+" in name) and not name.startswith("+"):
-                (cwd, target) = name.split("+", 1)
-
-            i = Invocation()
-            if name.startswith("./"):
-                name = join(cwd, name)
-            elif "+" not in name:
-                name = cwd + "+" + name
-
-            i.name = name
-            i.localname = name.split("+")[-1]
-
-            if name in targets:
-                raise ABException(f"target {i.name} has already been defined")
-            targets[name] = i
-        elif replaces:
-            i = replaces
-            name = i.name
-        else:
-            raise ABException("you must supply either name or replaces")
-
-        i.cwd = cwd
-        i.types = func.__annotations__
-        i.callback = func
-        i.callerVars = currentVars
-        i.varsettings = kwargs.get("vars", None)
-        setattr(i, func.__name__, SimpleNamespace())
-
-        kwargs.pop("vars", None)
-
-        bound = sig.bind(name=name, self=i, **kwargs)
-        bound.apply_defaults()
-        i.rawArgs = bound.arguments
-
-        unmaterialisedTargets.add(i)
-        if replaces:
-            i.materialise()
-        return i
-
-    defaultGlobals[func.__name__] = wrapper
-    return wrapper
 
 
 @Rule
