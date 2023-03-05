@@ -13,7 +13,7 @@ cprogram(
 
 
 @Rule
-def lemon(self, name, src: Target() = None):
+def lemon(self, name, src: Target = None):
     normalrule(
         replaces=self,
         ins=["third_party/lemon+lemon", "third_party/lemon/lempar.c", src],
@@ -24,7 +24,7 @@ def lemon(self, name, src: Target() = None):
 
 
 @Rule
-def lemoncowgol(self, name, src: Target() = None):
+def lemoncowgol(self, name, src: Target = None):
     normalrule(
         replaces=self,
         ins=["third_party/lemon+lemon-cowgol", "src/cowfe/lempar.coh", src],

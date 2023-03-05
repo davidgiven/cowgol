@@ -51,7 +51,7 @@ TESTS = [
 
 
 @Rule
-def testsuite(self, name, toolchain: Target() = None):
+def testsuite(self, name, toolchain: Target = None):
     tests = []
     if toolchain.tester:
         for test in TESTS:

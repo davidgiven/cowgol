@@ -2,7 +2,7 @@ from build.ab2 import normalrule, Rule, Targets, filenameof
 
 
 @Rule
-def nasm(self, name, srcs: Targets() = []):
+def nasm(self, name, srcs: Targets = []):
     normalrule(
         replaces=self,
         ins=srcs,

@@ -13,7 +13,6 @@ import sys
 import types
 import pathlib
 import builtins
-import cProfile
 
 defaultGlobals = {}
 targets = {}
@@ -125,7 +124,7 @@ class Invocation:
             for k, v in self.binding.arguments.items():
                 t = self.types.get(k, None)
                 if t:
-                    v = t.convert(v, self)
+                    v = t(v).convert(self)
                 self.args[k] = v
 
             # Create a new variable frame and set any variables.
@@ -223,25 +222,13 @@ def Rule(func):
 
 
 class Type:
-    pass
-
-
-class String(Type):
-    def convert(self, value, invocation):
-        if type(value) != "string":
-            raise ABException("rule wanted a String, but got a " + type(value))
-        return value
-
-
-class Strings(Type):
-    def convert(self, value, invocation):
-        if type(value) == "string":
-            value = [value]
-        return value
+    def __init__(self, value):
+        self.value = value
 
 
 class Targets(Type):
-    def convert(self, value, invocation):
+    def convert(self, invocation):
+        value = self.value
         if type(value) is str:
             value = [value]
         if type(value) is list:
@@ -250,14 +237,16 @@ class Targets(Type):
 
 
 class Target(Type):
-    def convert(self, value, invocation):
+    def convert(self, invocation):
+        value = self.value
         if not value:
             return None
         return targetof(value, cwd=invocation.cwd)
 
 
 class TargetsMap(Type):
-    def convert(self, value, invocation):
+    def convert(self, invocation):
+        value = self.value
         if type(value) is dict:
             return {
                 targetof(k, cwd=invocation.cwd): targetof(v, cwd=invocation.cwd)
@@ -417,10 +406,10 @@ class NinjaEmitter:
 def simplerule(
     self,
     name,
-    ins: Targets() = [],
+    ins: Targets = [],
     outs=[],
-    deps: Targets() = [],
-    commands: Strings() = [],
+    deps: Targets = [],
+    commands=[],
     label="RULE",
 ):
     self.ins = ins
@@ -441,8 +430,8 @@ def simplerule(
 def normalrule(
     self,
     name=None,
-    ins: Targets() = [],
-    deps: Targets() = [],
+    ins: Targets = [],
+    deps: Targets = [],
     outs=[],
     label="RULE",
     objdir=None,
@@ -461,7 +450,7 @@ def normalrule(
 
 
 @Rule
-def export(self, name=None, items: TargetsMap() = {}, deps: Targets() = []):
+def export(self, name=None, items: TargetsMap = {}, deps: Targets = []):
     emitter.rule(
         self.name,
         flatten(items.values()),
@@ -539,4 +528,3 @@ def main():
 
 
 main()
-# cProfile.run("main()", sort="tottime")

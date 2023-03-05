@@ -2,7 +2,7 @@ from build.ab2 import normalrule, Rule, Targets
 
 
 @Rule
-def yacc(self, name, srcs: Targets() = []):
+def yacc(self, name, srcs: Targets = []):
     normalrule(
         replaces=self,
         ins=srcs,
@@ -13,7 +13,7 @@ def yacc(self, name, srcs: Targets() = []):
 
 
 @Rule
-def flex(self, name, srcs: Targets() = []):
+def flex(self, name, srcs: Targets = []):
     normalrule(
         replaces=self,
         ins=srcs,

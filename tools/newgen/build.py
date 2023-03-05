@@ -23,7 +23,7 @@ cprogram(
 
 
 @Rule
-def newgencowgol(self, name, srcs: Targets() = []):
+def newgencowgol(self, name, srcs: Targets = []):
     preprocessed = gpp(name=name + "/preprocessed", srcs=srcs)
 
     normalrule(

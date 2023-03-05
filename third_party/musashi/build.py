@@ -13,7 +13,7 @@ normalrule(
 
 
 @Rule
-def musashilib(self, name, m68kconf: Target() = None):
+def musashilib(self, name, m68kconf: Target = None):
     clibrary(
         replaces=self,
         srcs=[
