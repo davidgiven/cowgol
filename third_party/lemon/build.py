@@ -16,7 +16,7 @@ cprogram(
 def lemon(self, name, src: Target() = None):
     normalrule(
         replaces=self,
-        ins=["+lemon", "./lempar.c", src],
+        ins=["third_party/lemon+lemon", "third_party/lemon/lempar.c", src],
         outs=[self.localname + ".c", self.localname + ".h"],
         commands=["{ins[0]} -T{ins[1]} -d{dirname(outs[0])} {ins[2]}"],
         label="LEMON",
@@ -27,7 +27,7 @@ def lemon(self, name, src: Target() = None):
 def lemoncowgol(self, name, src: Target() = None):
     normalrule(
         replaces=self,
-        ins=["+lemon-cowgol", "src/cowfe/lempar.coh", src],
+        ins=["third_party/lemon+lemon-cowgol", "src/cowfe/lempar.coh", src],
         outs=[self.localname + ".coh", self.localname + ".tokens.coh"],
         commands=["{ins[0]} -T{ins[1]} -d{dirname(outs[0])} {ins[2]}"],
         label="LEMON-COWGOL",
