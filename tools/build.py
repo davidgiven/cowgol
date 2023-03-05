@@ -21,3 +21,14 @@ def objectify(self, name, src: Target() = None, symbol=None):
         commands=["lua {ins[0]} " + symbol + " < {ins[1]} > {outs}"],
         label="OBJECTIFY",
     )
+
+
+@Rule
+def tocpm(self, name, src: Target() = None):
+    normalrule(
+        replaces=self,
+        ins=["tools/tocpm.lua", src],
+        outs=[self.localname + ".txt"],
+        commands=["lua {ins[0]} < {ins[1]} > {outs}"],
+        label="TOCPM",
+    )
