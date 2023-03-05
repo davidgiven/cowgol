@@ -32,7 +32,9 @@ def new_import(name, *args, **kwargs):
             sys.stderr.write(f"loading {path}\n")
             loader = importlib.machinery.SourceFileLoader(name, path)
 
-            spec = importlib.util.spec_from_loader(name, loader, origin="built-in")
+            spec = importlib.util.spec_from_loader(
+                name, loader, origin="built-in"
+            )
             module = importlib.util.module_from_spec(spec)
             sys.modules[name] = module
             spec.loader.exec_module(module)
@@ -480,7 +482,9 @@ def load(filename):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-m", "--mode", choices=["make", "ninja"], default="make")
+    parser.add_argument(
+        "-m", "--mode", choices=["make", "ninja"], default="make"
+    )
     parser.add_argument("-o", "--output")
     parser.add_argument("files", nargs="+")
     args = parser.parse_args()

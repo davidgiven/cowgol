@@ -16,5 +16,5 @@ export(
         "bin/lx68kemu": "tools/lx68kemu",
         "bin/fuzix6303emu": "tools/fuzix6303emu",
     },
-    deps=["third_party/djlink+djlink-programs", "src+toolchains"],
+    deps=["third_party/djlink+djlink-programs", "src+toolchains", "examples"],
 )

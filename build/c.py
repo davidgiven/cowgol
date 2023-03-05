@@ -49,7 +49,9 @@ def cfile(
     commands=["$(CC) -c -o {outs[0]} {ins[0]} {vars.cflags}"],
     label="CC",
 ):
-    cfileimpl(self, name, srcs, deps, suffix, commands, label, "cfile", "cflags")
+    cfileimpl(
+        self, name, srcs, deps, suffix, commands, label, "cfile", "cflags"
+    )
 
 
 @Rule
@@ -62,7 +64,9 @@ def cxxfile(
     commands=["$(CXX) -c -o {outs[0]} {ins[0]} {vars.cxxflags}"],
     label="CXX",
 ):
-    cfileimpl(self, name, srcs, deps, suffix, commands, label, "cxxfile", "cxxflags")
+    cfileimpl(
+        self, name, srcs, deps, suffix, commands, label, "cxxfile", "cxxflags"
+    )
 
 
 def findsources(name, srcs, deps):
@@ -71,7 +75,9 @@ def findsources(name, srcs, deps):
         if f.endswith(".c") or f.endswith(".cc") or f.endswith(".cpp"):
             ins += [
                 cfile(
-                    name=name + "/" + basename(filenamesof(f)[0]), srcs=[f], deps=deps
+                    name=name + "/" + basename(filenamesof(f)[0]),
+                    srcs=[f],
+                    deps=deps,
                 )
             ]
     return ins
