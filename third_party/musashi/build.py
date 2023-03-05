@@ -6,7 +6,7 @@ cprogram(name="m68kmake", srcs=["./m68kmake.c"])
 normalrule(
     name="m68kops",
     ins=["+m68kmake", "./m68k_in.c"],
-    outleaves=["m68kops.c", "m68kops.h"],
+    outs=["m68kops.c", "m68kops.h"],
     commands=["{ins[0]} {dirname(outs[0])} {ins[1]} > /dev/null"],
     label="MUSASHILIB",
 )

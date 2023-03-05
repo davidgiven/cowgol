@@ -426,7 +426,7 @@ def normalrule(
     name=None,
     ins: Targets() = [],
     deps: Targets() = [],
-    outleaves=[],
+    outs=[],
     label="RULE",
     objdir=None,
     commands=[],
@@ -437,7 +437,7 @@ def normalrule(
         replaces=self,
         ins=ins,
         deps=deps,
-        outs=[join(objdir, f) for f in outleaves],
+        outs=[join(objdir, f) for f in outs],
         label=label,
         commands=commands,
     )
