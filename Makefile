@@ -7,6 +7,8 @@ export CFLAGS = -g -O0
 export LDFLAGS = -g
 export NINJAFLAGS =
 
+export PYTHONHASHSEED = 1
+
 #all: $(OBJ)/build.mk
 #	@+make -f $(OBJ)/build.mk +all
 
