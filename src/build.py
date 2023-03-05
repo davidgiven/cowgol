@@ -91,14 +91,14 @@ def buildnasm(self, name, srcs: Targets() = None):
     djlink(replaces=self, srcs=[o])
 
 
-def testimpl(self, runner):
+def testimpl(self, dep, command):
     goodfile = self.args["goodfile"]
     normalrule(
         replaces=self,
-        ins=[self.args["exe"]],
+        ins=dep + [self.args["exe"]],
         outs=[self.localname + ".bad"],
         commands=[
-            "timeout 5s " + runner + " {ins} > {outs}; true",
+            "timeout 5s " + command + " > {outs}; true",
             "diff -u -w {outs[0]} " + filenameof(goodfile),
         ],
         label="TEST",
@@ -107,21 +107,32 @@ def testimpl(self, runner):
 
 @Rule
 def nativetest(self, name, goodfile: Target() = None, exe: Target() = None):
-    testimpl(self, "")
+    testimpl(self, [], "{ins[0]}")
 
 
 @Rule
 def tubeemutest(self, name, goodfile: Target() = None, exe: Target() = None):
-    normalrule(
-        replaces=self,
-        ins=["tools/tubeemu", self.args["exe"], goodfile],
-        outs=[self.localname + ".bad"],
-        commands=[
-            "timeout 5s {ins[0]} -l 0x400 -e 0x400 -f {ins[1]} > {outs}; true",
-            "diff -u -w {outs[0]} " + filenameof(goodfile),
-        ],
-        label="TEST",
-    )
+    testimpl(self, ["tools/tubeemu"], "{ins[0]} -l 0x400 -e 0x400 -f {ins[1]}")
+
+
+@Rule
+def cpmtest(self, name, goodfile: Target() = None, exe: Target() = None):
+    testimpl(self, ["tools/cpmemu"], "{ins[0]} {ins[1]}")
+
+
+@Rule
+def apouttest(self, name, goodfile: Target() = None, exe: Target() = None):
+    testimpl(self, ["third_party/apout"], "{ins[0]} {ins[1]}")
+
+
+@Rule
+def fuzix6303test(self, name, goodfile: Target() = None, exe: Target() = None):
+    testimpl(self, ["tools/fuzix6303emu"], "{ins[0]} -f {ins[1]}")
+
+
+@Rule
+def ataritostest(self, name, goodfile: Target() = None, exe: Target() = None):
+    testimpl(self, ["tools/ataritosemu"], "{ins[0]} {ins[1]}")
 
 
 @Rule
@@ -291,6 +302,7 @@ TOOLCHAINS.append(
         asmext=".asm",
         binext=".com",
         assembler=zmac,
+        tester=cpmtest,
     )
 )
 
@@ -305,6 +317,7 @@ TOOLCHAINS.append(
         asmext=".z80",
         binext=".com",
         assembler=zmac,
+        tester=cpmtest,
     )
 )
 
@@ -423,6 +436,7 @@ TOOLCHAINS.append(
         asmext=".asm",
         binext=".exe",
         assembler=buildcowasmpdp11,
+        tester=apouttest,
     )
 )
 
@@ -437,6 +451,7 @@ TOOLCHAINS.append(
         asmext=".asm",
         binext=".exe",
         assembler=buildcowasm6303,
+        tester=fuzix6303test,
     )
 )
 
@@ -467,6 +482,7 @@ if config.has_gccataritos:
             asmext=".asm",
             binext=".tos",
             assembler=buildgasataritos,
+            tester=ataritostest
         )
     )
 
