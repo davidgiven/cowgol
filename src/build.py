@@ -1,4 +1,12 @@
-from build.ab2 import Rule, Target, Targets, export, normalrule, filenamesof
+from build.ab2 import (
+    Rule,
+    Target,
+    Targets,
+    export,
+    normalrule,
+    filenamesof,
+    filenameof,
+)
 from build.c import cprogram
 from os.path import *
 from third_party.zmac.build import zmac
@@ -83,6 +91,39 @@ def buildnasm(self, name, srcs: Targets() = None):
     djlink(replaces=self, srcs=[o])
 
 
+def testimpl(self, runner):
+    goodfile = self.args["goodfile"]
+    normalrule(
+        replaces=self,
+        ins=[self.args["exe"]],
+        outs=[self.localname + ".bad"],
+        commands=[
+            "timeout 5s " + runner + " {ins} > {outs}; true",
+            "diff -u -w {outs[0]} " + filenameof(goodfile),
+        ],
+        label="TEST",
+    )
+
+
+@Rule
+def nativetest(self, name, goodfile: Target() = None, exe: Target() = None):
+    testimpl(self, "")
+
+
+@Rule
+def tubeemutest(self, name, goodfile: Target() = None, exe: Target() = None):
+    normalrule(
+        replaces=self,
+        ins=["tools/tubeemu", self.args["exe"], goodfile],
+        outs=[self.localname + ".bad"],
+        commands=[
+            "timeout 5s {ins[0]} -l 0x400 -e 0x400 -f {ins[1]} > {outs}; true",
+            "diff -u -w {outs[0]} " + filenameof(goodfile),
+        ],
+        label="TEST",
+    )
+
+
 @Rule
 def toolchain(
     self,
@@ -95,6 +136,7 @@ def toolchain(
     asmext=None,
     binext=None,
     assembler=None,
+    tester=None,
 ):
     id = self.localname
 
@@ -234,6 +276,7 @@ TOOLCHAINS.append(
         asmext=".c",
         binext=".exe",
         assembler=cgen,
+        tester=nativetest,
     )
 )
 
@@ -337,6 +380,7 @@ if config.has_tass64:
             asmext=".asm",
             binext=".bin",
             assembler=buildtass64,
+            tester=tubeemutest,
         )
     )
     TOOLCHAINS.append(
@@ -350,6 +394,7 @@ if config.has_tass64:
             asmext=".asm",
             binext=".bin",
             assembler=buildtass64,
+            tester=tubeemutest,
         )
     )
     TOOLCHAINS.append(
@@ -363,6 +408,7 @@ if config.has_tass64:
             asmext=".asm",
             binext=".bin",
             assembler=buildtass64,
+            tester=tubeemutest,
         )
     )
 

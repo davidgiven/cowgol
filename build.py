@@ -4,7 +4,7 @@ from os.path import *
 export(
     name="all",
     items={
-        "bin/bbctube": "tools/tubeemu+bbctube",
+        "bin/tubeemu": "tools/tubeemu",
         "bin/obpemu": "tools/obpemu",
         "bin/mkadfs": "tools+mkadfs",
         "bin/mkdfs": "tools+mkdfs",
@@ -16,5 +16,5 @@ export(
         "bin/lx68kemu": "tools/lx68kemu",
         "bin/fuzix6303emu": "tools/fuzix6303emu",
     },
-    deps=["third_party/djlink+djlink-programs", "examples"],
+    deps=["third_party/djlink+djlink-programs", "examples", "tests"],
 )
