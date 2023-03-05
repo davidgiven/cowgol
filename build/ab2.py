@@ -13,6 +13,7 @@ import sys
 import types
 import pathlib
 import builtins
+import cProfile
 
 defaultGlobals = {}
 targets = {}
@@ -21,6 +22,7 @@ materialisingStack = []
 outputFp = None
 emitter = None
 currentVars = None
+cwdStack = [""]
 
 sys.path += ["."]
 old_import = builtins.__import__
@@ -38,7 +40,9 @@ def new_import(name, *args, **kwargs):
             )
             module = importlib.util.module_from_spec(spec)
             sys.modules[name] = module
+            cwdStack.append(dirname(path))
             spec.loader.exec_module(module)
+            cwdStack.pop()
 
     return old_import(name, *args, **kwargs)
 
@@ -142,7 +146,9 @@ class Invocation:
             # Actually call the callback.
 
             try:
+                cwdStack.append(self.cwd)
                 self.callback(**self.args)
+                cwdStack.pop()
             except BaseException as e:
                 print(
                     f"Error materialising {self} ({id(self)}): {self.callback}"
@@ -169,13 +175,14 @@ def Rule(func):
 
     @functools.wraps(func)
     def wrapper(*, name=None, replaces=None, **kwargs):
-        callername = inspect.stack()[1][0].f_globals["__name__"]
-        cwd = dirname(callername.replace(".", "/"))
-
+        cwd = None
         if name:
             if ("+" in name) and not name.startswith("+"):
-                (cwd, target) = name.split("+", 1)
+                (cwd, _) = name.split("+", 1)
+        if not cwd:
+            cwd = cwdStack[-1]
 
+        if name:
             i = Invocation()
             if name.startswith("./"):
                 name = join(cwd, name)
@@ -268,20 +275,6 @@ def flatten(*xs):
                 yield x
 
     return list(recurse(xs))
-
-
-def massagefilename(s):
-    callername = inspect.stack()[1][0].f_globals["__name__"]
-    cwd = dirname(callername.replace(".", "/"))
-
-    if ("+" in name) and not name.startswith("+"):
-        (cwd, target) = name.split("+", 1)
-
-    i = Invocation()
-    if name.startswith("./"):
-        name = join(cwd, name)
-    elif "+" not in name:
-        name = cwd + "+" + name
 
 
 def fileinvocation(s):
@@ -546,3 +539,4 @@ def main():
 
 
 main()
+#cProfile.run("main()", sort="tottime")
