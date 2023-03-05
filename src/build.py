@@ -136,6 +136,31 @@ def ataritostest(self, name, goodfile: Target() = None, exe: Target() = None):
 
 
 @Rule
+def qemuarmtest(self, name, goodfile: Target() = None, exe: Target() = None):
+    testimpl(self, [], "qemu-arm {ins[0]}")
+
+
+@Rule
+def qemu386test(self, name, goodfile: Target() = None, exe: Target() = None):
+    testimpl(self, [], "qemu-i386 {ins[0]}")
+
+
+@Rule
+def qemu68ktest(self, name, goodfile: Target() = None, exe: Target() = None):
+    testimpl(self, [], "qemu-m68k {ins[0]}")
+
+
+@Rule
+def qemuppctest(self, name, goodfile: Target() = None, exe: Target() = None):
+    testimpl(self, [], "qemu-ppc {ins[0]}")
+
+
+@Rule
+def msdostest(self, name, goodfile: Target() = None, exe: Target() = None):
+    testimpl(self, ["third_party/emu2"], "{ins[0]} {ins[1]}")
+
+
+@Rule
 def toolchain(
     self,
     name,
@@ -333,6 +358,7 @@ if config.has_gccthumb2:
             asmext=".s",
             binext=".exe",
             assembler=buildgasarm,
+            tester=qemuarmtest if config.has_qemuarm else None,
         )
     )
 
@@ -348,6 +374,7 @@ if config.has_gcc386:
             asmext=".s",
             binext=".exe",
             assembler=buildgas386,
+            tester=qemu386test if config.has_qemu386 else None,
         )
     )
 
@@ -363,6 +390,7 @@ if config.has_gcc68k:
             asmext=".s",
             binext=".exe",
             assembler=buildgas68k,
+            tester=qemu68ktest if config.has_qemu68k else None,
         )
     )
 
@@ -378,6 +406,7 @@ if config.has_gccpowerpc:
             asmext=".s",
             binext=".exe",
             assembler=buildgasppc,
+            tester=qemuppctest if config.has_qemuppc else None,
         )
     )
 
@@ -467,6 +496,7 @@ if config.has_nasm:
             asmext=".asm",
             binext=".exe",
             assembler=buildnasm,
+            tester=msdostest,
         )
     )
 
@@ -482,7 +512,7 @@ if config.has_gccataritos:
             asmext=".asm",
             binext=".tos",
             assembler=buildgasataritos,
-            tester=ataritostest
+            tester=ataritostest,
         )
     )
 
