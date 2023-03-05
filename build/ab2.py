@@ -318,15 +318,15 @@ class MakeEmitter:
         # Don't let emit insert spaces.
         emit(name + "=" + unmake(value))
 
-    def rule(self, name, ins, outs):
+    def rule(self, name, ins, outs, deps=[]):
         ins = filenamesof(ins)
         if outs:
             outs = filenamesof(outs)
             emit(".PHONY:", name)
-            emit(name, ":", unmake(outs))
-            emit(outs, "&:", unmake(ins))
+            emit(name, ":", unmake(outs), unmake(deps))
+            emit(outs, "&:", unmake(ins), unmake(deps))
         else:
-            emit(name, ":", unmake(ins))
+            emit(name, ":", unmake(ins), unmake(deps))
 
     def exec(self, command):
         emit("\t$(hide)", unmake(command))
@@ -452,7 +452,10 @@ def normalrule(
 @Rule
 def export(self, name=None, items: TargetsMap() = {}, deps: Targets() = []):
     emitter.rule(
-        self.name, flatten(items.values(), deps), filenamesof(items.keys())
+        self.name,
+        flatten(items.values()),
+        filenamesof(items.keys()),
+        filenamesof(deps),
     )
     emitter.exec(f"echo EXPORT {self.name}")
 
