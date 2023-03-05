@@ -28,8 +28,8 @@ def cfileimpl(self, name, srcs, deps, suffix, commands, label, kind, flags):
 
     outleaf = stripext(basename(name)) + suffix
 
-    return normalrule(
-        name=name + "/" + kind,
+    normalrule(
+        replaces=self,
         ins=srcs,
         deps=deps,
         outleaves=[outleaf],
@@ -49,7 +49,7 @@ def cfile(
     commands=["$(CC) -c -o {outs[0]} {ins[0]} {vars.cflags}"],
     label="CC",
 ):
-    return cfileimpl(self, name, srcs, deps, suffix, commands, label, "cfile", "cflags")
+    cfileimpl(self, name, srcs, deps, suffix, commands, label, "cfile", "cflags")
 
 
 @Rule
@@ -62,7 +62,7 @@ def cxxfile(
     commands=["$(CXX) -c -o {outs[0]} {ins[0]} {vars.cxxflags}"],
     label="CXX",
 ):
-    return cfileimpl(
+    cfileimpl(
         self, name, srcs, deps, suffix, commands, label, "cxxfile", "cxxflags"
     )
 
@@ -93,19 +93,16 @@ def clibrary(
         if f.endswith(".h"):
             deps += [f]
 
-    r = normalrule(
-        name=name + "/clibrary",
+    normalrule(
+        replaces=self,
         ins=findsources(name, srcs, deps),
         outleaves=[basename(name) + ".a"],
         label=label,
         commands=commands,
     )
-    r.materialise()
 
     dirs = set([dirname(f) for f in filenamesof(hdrs)])
 
-    self.ins = [r]
-    self.outs = r.outs
     self.clibrary.hdrs = hdrs
     self.clibrary.dirs = dirs
 
@@ -117,8 +114,8 @@ def programimpl(self, name, srcs, deps, commands, label, filerule, kind):
         if f.endswith(".h"):
             deps += [f]
 
-    return normalrule(
-        name=name + "/" + kind,
+    normalrule(
+        replaces=self,
         ins=findsources(name, srcs, deps),
         outleaves=[basename(name)],
         label=label,
@@ -136,7 +133,7 @@ def cprogram(
     commands=["$(CC) -o {outs[0]} {ins} {vars.ldflags}"],
     label="CLINK",
 ):
-    return programimpl(self, name, srcs, deps, commands, label, cfile, "cprogram")
+    programimpl(self, name, srcs, deps, commands, label, cfile, "cprogram")
 
 
 @Rule
@@ -148,4 +145,4 @@ def cxxprogram(
     commands=["$(CXX) -o {outs[0]} {ins} {vars.ldflags}"],
     label="CXXLINK",
 ):
-    return programimpl(self, name, srcs, deps, commands, label, cxxfile, "cxxprogram")
+    programimpl(self, name, srcs, deps, commands, label, cxxfile, "cxxprogram")
