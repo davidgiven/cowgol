@@ -29,7 +29,8 @@ include "fileio.coh";
 	@asm "lwz 8, ", pos, "@l(8)";
 	@asm "li 0, 0xb3"; # pread64
 	@asm "sc";
-	@asm "bsol ", _fix_errno;
+	@asm "bns . + 4";
+	@asm "bl ", _fix_errno;
 	@asm "lis 4, ", i, "@ha";
 	@asm "stw 3, ", i, "@l(4)";
 
@@ -58,7 +59,8 @@ end sub;
 	@asm "lwz 8, ", pos, "@l(8)";
 	@asm "li 0, 0xb4"; # pwrite64
 	@asm "sc";
-	@asm "bsol ", _fix_errno;
+	@asm "bns . + 4";
+	@asm "bl ", _fix_errno;
 	@asm "lis 4, ", i, "@ha";
 	@asm "stw 3, ", i, "@l(4)";
 
@@ -78,7 +80,8 @@ sub fcb_i_open(fcb: [FCB], filename: [uint8], flags: uint32): (errno: uint8) is
 	@asm "li 5, ", 0o666; # umask
 	@asm "li 0, 0x05"; # open
 	@asm "sc";
-	@asm "bsol ", _fix_errno;
+	@asm "bns . + 4";
+	@asm "bl ", _fix_errno;
 	@asm "lis 4, ", fd, "@ha";
 	@asm "stw 3, ", fd, "@l(4)";
 	if fd < 0 then

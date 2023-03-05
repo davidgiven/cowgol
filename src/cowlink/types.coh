@@ -4,6 +4,7 @@ const COO_REFS_SIZE := 16;
 record References is
 	next: [References];
 	calls: [Subroutine][COO_REFS_SIZE];
+	is_tailcall: uint8[COO_REFS_SIZE];
 end record;
 
 const SUB_USED           := 0b01;

@@ -1,0 +1,6 @@
+simple-tailrec: yes
+does-not-smash-stack: yes
+mutual-tailrec: yes
+double-tailrec: yes
+triple-tailrec: yes
+indirect-tailrec: yes

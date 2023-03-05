@@ -289,12 +289,29 @@
 		E_nl();
 	end sub;
 
+	sub E_tailcall(subr: [Subroutine]) is
+		E_push(REG_R5);
+		R_flushall();
+		E_tab();
+		E("JMP\t");
+		E_subref(subr);
+		E_nl();
+	end sub;
+
 	sub E_callreg(reg: RegId) is
 		R_flushall();
 		E_tab();
 		E_insn16("call");
 		E(" @");
 		E_reg(reg);
+		E_nl();
+	end sub;
+
+	sub E_jmpreg(reg: RegId) is	
+		R_flushall();
+		E_insn16("MOV ");
+		E_reg(reg);
+		E(", PC");
 		E_nl();
 	end sub;
 
@@ -861,7 +878,7 @@
 			EmitterDeclareExternalSubroutine(e.id, name);
 		end if;
 
-		EmitterReferenceSubroutineById(current_subr.id, e.id);
+		EmitterReferenceSubroutineById(current_subr.id, e.id, 0);
 
 		R_flushall();
 		E("\tCALL\t");
@@ -1151,8 +1168,17 @@ gen RETURN() uses all
 		E_call(addr.subr);
 	end sub;
 
+	sub Tailcall(addr: [MidcodeSubref]) is
+		E_tailcall(addr.subr);
+	end sub;
+
 	sub CallR2() is
 		E_callreg(REG_R2);
+	end sub;
+
+	sub TailcallR2() is
+		E_push(REG_R5);
+		E_jmpreg(REG_R2);
 	end sub;
 %}
 
@@ -1161,10 +1187,23 @@ gen         CALL(  ARG1(param, r0b),  SUBREF():a) uses all { Call(&$a); }
 gen         CALL(  ARG2(param, r0),   SUBREF():a) uses all { Call(&$a); }
 gen         CALL(  ARG4(param, r0r1), SUBREF():a) uses all { Call(&$a); }
 
+gen     TAILCALL(       param,        SUBREF():a) uses all { Tailcall(&$a); }
+gen     TAILCALL(  ARG1(param, r0b),  SUBREF():a) uses all { Tailcall(&$a); }
+gen     TAILCALL(  ARG2(param, r0),   SUBREF():a) uses all { Tailcall(&$a); }
+gen     TAILCALL(  ARG4(param, r0r1), SUBREF():a) uses all { Tailcall(&$a); }
+
 gen         CALL(       param,        r2) uses all { CallR2(); }
 gen         CALL(  ARG1(param, r0b),  r2) uses all { CallR2(); }
 gen         CALL(  ARG2(param, r0),   r2) uses all { CallR2(); }
 gen         CALL(  ARG4(param, r0r1), r2) uses all { CallR2(); }
+
+gen     TAILCALL(       param,        r2) uses all { TailcallR2(); }
+gen     TAILCALL(  ARG1(param, r0b),  r2) uses all { TailcallR2(); }
+gen     TAILCALL(  ARG2(param, r0),   r2) uses all { TailcallR2(); }
+gen     TAILCALL(  ARG4(param, r0r1), r2) uses all { TailcallR2(); }
+
+
+gen PREPARETAIL() {E_pop(REG_R5); };
 
 gen param := END();
 

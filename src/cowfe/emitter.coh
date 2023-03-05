@@ -163,14 +163,15 @@ sub EmitterDeclareExternalSubroutine(id: uint16, external: string) is
 	E_countedstring(external);
 end sub;
 
-sub EmitterReferenceSubroutineById(user: uint16, used: uint16) is
+sub EmitterReferenceSubroutineById(user: uint16, used: uint16, tailcall: uint8) is
 	E_b8('R');
 	E_b16(user);
 	E_b16(used);
+	E_b8(tailcall);
 end sub;
 
-sub EmitterReferenceSubroutine(user: [Subroutine], used: [Subroutine]) is
-	EmitterReferenceSubroutineById(user.id, used.id);
+sub EmitterReferenceSubroutine(user: [Subroutine], used: [Subroutine], tailcall: uint8) is
+	EmitterReferenceSubroutineById(user.id, used.id, tailcall);
 end sub;
 
 sub EmitterDeclareWorkspace(subr: [Subroutine], wid: uint8, workspace: Size) is

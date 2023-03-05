@@ -124,7 +124,8 @@ end sub;
 sub ReadR() is
 	var user := FindSubr(I_b16());
 	var used := FindSubr(I_b16());
-	EmitterReferenceSubroutineById(user.id, used.id);
+	var tailcall := I_b8();
+	EmitterReferenceSubroutineById(user.id, used.id, tailcall);
 end sub;
 
 sub ReadF() is

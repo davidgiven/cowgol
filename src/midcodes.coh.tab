@@ -38,6 +38,11 @@ y 0 0 INIT(value: int32) = ("%d", $$.value)
 # arguments. Any return arguments are pushed onto the argument stack. subr
 # points at the real subroutine or the interface.
 - 2 0 CALL(subr: [Subroutine]) = ("%s", $$.subr.name)
+- 2 0 TAILCALL(subr: [Subroutine]) = ("$", $$.subr.name)
+
+# Performs any work necessary before TAILCALL begins evaluating its parameters.
+# This most often involves taking the return address off the stack.
+- 0 0 PREPARETAIL()
 
 # Represents an argument to a call. The LHS points at the next argument or an
 # END. The RHS is the value. The values are left-to-right, so that the first

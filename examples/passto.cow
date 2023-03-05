@@ -1,0 +1,15 @@
+#A simple passto example.
+include "cowgol.coh";
+
+sub countloop(n: uint32) is
+	if n > 0 then
+		print_i32(n);
+		print(", ");
+		passto countloop(n - 1);
+	else
+		print("lift-off!\n");
+	end if;
+end sub;
+
+print("T-minus ");
+countloop(10);

@@ -4104,7 +4104,7 @@ void ReportTable(
 
   in = tplt_open(lemp);
   if( in==0 ) return;
-  out = file_open(lemp,".c","wb");
+  out = file_open(lemp,".coh","wb");
   if( out==0 ){
     fclose(in);
     return;
@@ -4115,7 +4115,7 @@ void ReportTable(
   /* Generate the include code, if any */
   tplt_print(out,lemp,lemp->include,&lineno);
   if( mhflag ){
-    char *incName = file_makename(lemp, ".h");
+    char *incName = file_makename(lemp, ".tokens.coh");
     fprintf(out,"#include \"%s\"\n", incName); lineno++;
     free(incName);
   }
@@ -4625,22 +4625,7 @@ void ReportHeader(struct lemon *lemp)
 
   if( lemp->tokenprefix ) prefix = lemp->tokenprefix;
   else                    prefix = "";
-  in = file_open(lemp,".h","rb");
-  if( in ){
-    int nextChar;
-    for(i=1; i<lemp->nterminal && fgets(line,LINESIZE,in); i++){
-      lemon_sprintf(pattern,"const %s%s := %d;\n",
-                    prefix,lemp->symbols[i]->name,i);
-      if( strcmp(line,pattern) ) break;
-    }
-    nextChar = fgetc(in);
-    fclose(in);
-    if( i==lemp->nterminal && nextChar==EOF ){
-      /* No change in the file.  Don't rewrite it. */
-      return;
-    }
-  }
-  out = file_open(lemp,".h","wb");
+  out = file_open(lemp,".tokens.coh","wb");
   if( out ){
     for(i=1; i<lemp->nterminal; i++){
       fprintf(out,"const %s%s := %d;\n",prefix,lemp->symbols[i]->name,i);

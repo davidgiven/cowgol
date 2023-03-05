@@ -115,11 +115,12 @@ sub EmitterDeclareExternal(id: SubId, name: string) is
 	EmitterPopChunk('X');
 end sub;
 
-sub EmitterReferenceSubroutine(user: SubId, used: SubId) is
+sub EmitterReferenceSubroutine(user: SubId, used: SubId, tailcall: uint8) is
 	if user != used then
 		EmitterPushChunk();
 		E_b16(user);
 		E_b16(used);
+		E_b8(tailcall);
 		EmitterPopChunk('R');
 	end if;
 end sub;

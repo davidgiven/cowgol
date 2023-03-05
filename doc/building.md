@@ -9,7 +9,7 @@ dependencies.
 
   - the Ninja build tool
 
-  - Lua 5.1 (needed for the build)
+  - Python 3 and Lua 5.1 (needed for the build)
 
   - the Pasmo Z80 assembler (needed to build part of the CP/M emulator)
 
@@ -37,7 +37,7 @@ dependencies.
 If you're on a Debianish platform, you should be able to install them (after
 adding any custom package sources as above) with:
 
-    apt install ninja-build lua5.1 pasmo libz80ex-dev flex libbsd-dev libreadline-dev bison binutils-arm-linux-gnueabihf binutils-i686-linux-gnu binutils-powerpc-linux-gnu binutils-m68k-linux-gnu binutils-m68k-atari-mint qemu-user gpp 64tass nasm
+    apt install ninja-build lua5.1 libz80ex-dev flex libbsd-dev libreadline-dev bison binutils-arm-linux-gnueabihf binutils-i686-linux-gnu binutils-powerpc-linux-gnu binutils-m68k-linux-gnu binutils-m68k-atari-mint qemu-user gpp 64tass nasm python3
 
 Once done you can build the compiler itself with:
 
@@ -47,10 +47,10 @@ make
 ```
 
 You'll be left with a lot of stuff in the `bin` directory. The tools are all
-labeled as (name).(toolchain).(extension); however, several extensions also
-contain a dot.  So, `cowfe-65c02.ncpmz.z80.com` is cowfe, the main front-end
-compiler, targeting the 65c02, built with the `ncpmz` toolchain, which produced
-a `z80.com` executable.
+labeled as (name)-for-(toolchain)-with-(toolchain).  So,
+`cowfe-for-65c02-with-ncpmz.com` is cowfe, the main front-end compiler,
+targeting the 65c02, built with the `ncpmz` toolchain, which produced a `.com`
+executable.
 
 
 

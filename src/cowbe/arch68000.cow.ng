@@ -44,7 +44,7 @@
 			EmitterDeclareExternalSubroutine(e.id, name);
 		end if;
 
-		EmitterReferenceSubroutineById(current_subr.id, e.id);
+		EmitterReferenceSubroutineById(current_subr.id, e.id, 0);
 	end sub;
 
 	sub E_abssymref(sym: [Symbol], off: Size) is
@@ -485,16 +485,36 @@ gen areg := SUBREF():s
 		E_nl();
 	end sub;
 
+	sub Tailcall(addr: [MidcodeSubref]) is
+		E_pushl(REG_A5);
+		R_flushall();
+		E_insn("jmp");
+		E_subref(addr.subr);
+		E_nl();
+	end sub;
+
 	sub CallA5() is
 		R_flushall();
 		E("\tjsr (%a5)\n");
+	end sub;
+
+	sub TailcallA4() is
+		E_pushl(REG_A5);
+		R_flushall();
+		E("\tjmp (%a4)\n");
 	end sub;
 %}
 
 gen       CALL(  END(), SUBREF():a) uses all { Call(&$a); }
 gen       CALL(  d0, SUBREF():a) uses all { Call(&$a); }
+gen   TAILCALL(  END(), SUBREF():a) uses all { Tailcall(&$a); }
+gen   TAILCALL(  d0, SUBREF():a) uses all { Tailcall(&$a); }
 gen       CALL(  END(), a5) uses all { CallA5(); }
 gen       CALL(  d0, a5) uses all { CallA5(); }
+gen   TAILCALL(  END(), a4) uses all { TailcallA4(); }
+gen   TAILCALL(  d0, a4) uses all { TailcallA4(); }
+
+gen PREPARETAIL() {E_popl(REG_A5);}
 
 gen param := END();
 

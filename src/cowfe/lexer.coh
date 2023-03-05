@@ -163,6 +163,7 @@ var keyword_names: string[] := {
 	"var",
 	"when",
 	"while",
+	"passto"
 };
 
 const INCLUDE := 0xff; # This is special
@@ -205,7 +206,8 @@ var keyword_ids: uint8[] := {
 	TYPEDEF,
 	VAR,
 	WHEN,
-	WHILE
+	WHILE,
+	PASSTO
 };
 
 sub StartError() is

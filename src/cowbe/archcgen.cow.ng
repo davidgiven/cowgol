@@ -147,6 +147,8 @@ gen STARTSUB():s
 	E("\nvoid ");
 	E_subref(current_subr);
 	E("(void) {\n");
+	E("\ttframe_ptr->activated = tframe_ptr->tramp2function;\n");
+	E("\ttframe_ptr->tramp2function = 0;\n");
 }
 
 gen ENDSUB()
@@ -167,6 +169,19 @@ gen ENDSUB()
 		E_u16(pid);
 		E(")();\n");
 	end sub;
+
+	# subr here is the *interface*.
+	sub Tailcall(subrid: SubrId) is
+		var subr := FindSubr(subrid);
+		var pid := Pop();
+
+		# Call the subroutine itself.
+
+		E("\n\tTAILCALL(((void(*)(void))(intptr_t)v");
+		E_u16(pid);
+		E("));\n");
+	end sub;
+
 
 	sub PokeArg(width: uint8, sym: [Symbol]) is
 		var vid := Pop();
@@ -196,6 +211,9 @@ gen ENDSUB()
 %}
 
 gen       CALL(  param, v8):s { Call($s.subr.id); }
+gen   TAILCALL(  param, v8):s { Tailcall($s.subr.id); }
+
+gen PREPARETAIL();
 
 gen param := END();
 gen param := ARG1(param, v1):a { PokeArg(1, &$a.sym); }
