@@ -1,5 +1,6 @@
 from build.ab2 import Rule, export
 from os.path import *
+import config
 
 export(
     name="all",
@@ -19,5 +20,12 @@ export(
         "bin/cowbdmp": "src/cowbdmp+cowbdmp-with-nncgen",
         "bin/basicify": "src/misc+basicify-with-nncgen",
     },
-    deps=["third_party/djlink+djlink-programs", "examples", "tests"],
-)
+    deps=[
+        "third_party/djlink+djlink-programs",
+        "examples",
+        "tests",
+        "dist/cpmz",
+        "dist/cpm",
+    ]
+    + (["dist/msdos"] if config.has_nasm else [])
+    + (["dist/ataritos"] if config.has_gcc68k else []))
