@@ -26,4 +26,3 @@ has_lxppc = has_gccpowerpc
 has_bbct = has_tass64
 has_bbctiny = has_tass64
 has_bbct6502 = has_tass64
-
