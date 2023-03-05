@@ -13,6 +13,7 @@ PROGRAMS = [
 
 items = {}
 for toolchain in TOOLCHAINS:
+    toolchain.materialise()
     for prog in PROGRAMS:
         t = cowgol(
             name=prog + "-for-" + toolchain.localname,

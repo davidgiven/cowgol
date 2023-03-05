@@ -3,6 +3,7 @@ from build.c import cprogram
 from os.path import *
 from third_party.zmac.build import zmac
 from types import SimpleNamespace
+from build.tass64 import tass64
 
 
 @Rule
@@ -32,13 +33,20 @@ def buildgasarm(self, name, srcs: Targets() = None):
 def buildgas386(self, name, srcs: Targets() = None):
     buildgasimpl(self, "i686-linux-gnu")
 
+
 @Rule
 def buildgas68k(self, name, srcs: Targets() = None):
     buildgasimpl(self, "m68k-linux-gnu")
 
+
 @Rule
 def buildgasppc(self, name, srcs: Targets() = None):
     buildgasimpl(self, "powerpc-linux-gnu")
+
+
+@Rule
+def buildtass64(self, name, srcs: Targets() = None):
+    tass64(replaces=self, srcs=srcs)
 
 
 @Rule
@@ -152,16 +160,17 @@ def cowgol(
 
 
 @Rule
-def cowwrap(self, name, src: Target() = None, toolchain:Target()="src+ncgen"):
+def cowwrap(
+    self, name, src: Target() = None, toolchain: Target() = "src+ncgen"
+):
     self.cowlib = SimpleNamespace()
     normalrule(
         replaces=self,
         ins=[toolchain.cowwrap, src],
         outs=["cowgol.coo"],
-        label="COWWRAP-"+toolchain.localname.upper(),
-        commands=[
-            "scripts/quiet {ins[0]} {ins[1]} {outs}"
-        ])
+        label="COWWRAP-" + toolchain.localname.upper(),
+        commands=["scripts/quiet {ins[0]} {ins[1]} {outs}"],
+    )
 
 
 TOOLCHAINS = [
@@ -253,9 +262,40 @@ TOOLCHAINS = [
         binext=".exe",
         assembler=buildgasppc,
     ),
+    toolchain(
+        name="bbct",
+        cowfe="src/cowfe+cowfe-for-6502-with-nncgen",
+        cowbe="src/cowbe+cowbe-for-65c02-with-ncgen",
+        cowlink="src/cowlink+cowlink-for-bbct-with-ncgen",
+        cowwrap="src/cowwrap+cowwrap-with-ncgen",
+        runtime="rt/bbct",
+        asmext=".asm",
+        binext=".bin",
+        assembler=buildtass64,
+    ),
+    toolchain(
+        name="bbctiny",
+        cowfe="src/cowfe+cowfe-for-6502-with-nncgen",
+        cowbe="src/cowbe+cowbe-for-65c02-tiny-with-ncgen",
+        cowlink="src/cowlink+cowlink-for-bbct-with-ncgen",
+        cowwrap="src/cowwrap+cowwrap-with-ncgen",
+        runtime="rt/bbct",
+        asmext=".asm",
+        binext=".bin",
+        assembler=buildtass64,
+    ),
+    toolchain(
+        name="bbct6502",
+        cowfe="src/cowfe+cowfe-for-6502-with-nncgen",
+        cowbe="src/cowbe+cowbe-for-6502-with-ncgen",
+        cowlink="src/cowlink+cowlink-for-bbct-with-ncgen",
+        cowwrap="src/cowwrap+cowwrap-with-ncgen",
+        runtime="rt/bbct",
+        asmext=".asm",
+        binext=".bin",
+        assembler=buildtass64,
+    ),
 ]
-
-export(name="toolchains", deps=TOOLCHAINS)
 
 normalrule(
     name="midcodesfecoh",
