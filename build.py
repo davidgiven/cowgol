@@ -15,6 +15,9 @@ export(
         "bin/ataritosemu": "tools/ataritosemu",
         "bin/lx68kemu": "tools/lx68kemu",
         "bin/fuzix6303emu": "tools/fuzix6303emu",
+        "bin/cowdis-tlcs90": "src/cowdis+cowdis-for-tlcs90-with-nncgen",
+        "bin/cowbdmp": "src/cowbdmp+cowbdmp-with-nncgen",
+        "bin/basicify": "src/misc+basicify-with-nncgen",
     },
     deps=["third_party/djlink+djlink-programs", "examples", "tests"],
 )
