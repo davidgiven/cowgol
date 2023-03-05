@@ -11,7 +11,9 @@ installable(
         "bin/apout": "third_party/apout",
         "bin/emu2": "third_party/emu2",
         "bin/zmac": "third_party/zmac",
+        "bin/cpmemu": "tools/cpmemu",
+        "bin/ataritosemu": "tools/ataritosemu",
+        "bin/lx68kemu": "tools/lx68kemu",
     },
-    deps=[
-        "third_party/djlink+djlink-programs"
-    ])
+    deps=["third_party/djlink+djlink-programs"],
+)
