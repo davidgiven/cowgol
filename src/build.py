@@ -100,15 +100,15 @@ TOOLCHAINS = [
         cowfe="src/cowfe+cowfe-for-cgen-with-ncgen",
         cowbe="src/cowbe+cowbe-for-cgen-with-ncgen",
         cowlink="src/cowlink+cowlink-for-cgen-with-ncgen",
-        cowwrap="bootstrap+cowwrap",
+        cowwrap="src/cowwrap+cowwrap-with-ncgen",
         runtime="rt/cgen",
         asmext=".c",
         assembler=cgen,
     ),
-    #toolchain(
+    # toolchain(
     #    name="ncpm", cowfe="src/cowfe+cowfe-for-16bit-with-nncgen", runtime="rt/cpm",
     #    asmext=".asm",
-    #),
+    # ),
 ]
 
 export(name="toolchains", deps=TOOLCHAINS)
