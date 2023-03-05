@@ -1,4 +1,4 @@
-from build.ab2 import Rule, Target, Targets, installable, normalrule, filenamesof
+from build.ab2 import Rule, Target, Targets, export, normalrule, filenamesof
 from build.c import cprogram
 from os.path import *
 
@@ -35,7 +35,7 @@ def toolchain(
     if cowwrap:
         items["bin/cowwrap-" + id] = cowwrap
 
-    installable(replaces=self, items=items)
+    export(replaces=self, items=items)
 
 
 @Rule
@@ -111,7 +111,7 @@ TOOLCHAINS = [
     #),
 ]
 
-installable(name="toolchains", deps=TOOLCHAINS)
+export(name="toolchains", deps=TOOLCHAINS)
 
 normalrule(
     name="midcodesfecoh",

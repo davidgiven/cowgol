@@ -1,5 +1,5 @@
 from build.c import cxxprogram
-from build.ab2 import installable
+from build.ab2 import export
 
 cxxprogram(
     name="objdump",
@@ -41,7 +41,7 @@ cxxprogram(
     ],
 )
 
-installable(
+export(
     name="djlink-programs",
     items={
         "bin/objdump": "+objdump",

@@ -1,7 +1,7 @@
-from build.ab2 import Rule, installable
+from build.ab2 import Rule, export
 from os.path import *
 
-installable(
+export(
     name="all",
     items={
         "bin/bbctube": "tools/tubeemu+bbctube",
