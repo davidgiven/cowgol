@@ -4,17 +4,19 @@ export CFLAGS = -g -O0
 export LDFLAGS = -g
 export NINJAFLAGS =
 
-all: $(OBJ)/build.ninja
-	@ninja -f $(OBJ)/build.ninja $(NINJAFLAGS)
+all: $(OBJ)/build.mk
+	@make -f $(OBJ)/build.mk hide= y
 
 clean:
 	@echo CLEAN
 	@rm -rf $(OBJ) bin
 
-lua-files = $(shell find . -name 'build*.lua') $(wildcard build/*.lua) toolchains.lua
-$(OBJ)/build.ninja: mkninja.lua Makefile $(lua-files)
-	@echo MKNINJA
+build-files = $(shell find . -name 'build.py')
+$(OBJ)/build.mk: build/ab2.py Makefile $(build-files)
+	@echo ACKBUILDER
 	@mkdir -p $(OBJ)
-	@$(LUA) \
-		mkninja.lua \
+	@python3 \
+		build/ab2.py \
+		-m make \
+		build.py \
 		> $@
