@@ -52,7 +52,7 @@ export(
 
 
 @Rule
-def djlink(self, name, srcs: Targets() = []):
+def djlink(self, name, srcs: Targets = []):
     normalrule(
         replaces=self,
         ins=["third_party/djlink"] + srcs,

@@ -2,7 +2,7 @@ from build.ab2 import normalrule, Rule, Targets, filenameof
 
 
 @Rule
-def tass64(self, name, srcs: Targets() = []):
+def tass64(self, name, srcs: Targets = []):
     normalrule(
         replaces=self,
         ins=srcs,

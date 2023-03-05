@@ -3,7 +3,7 @@ from os.path import *
 
 
 @Rule
-def gpp(self, name, srcs: Targets() = []):
+def gpp(self, name, srcs: Targets = []):
     hdrs = set(["-I" + dirname(f) for f in filenamesof(srcs)])
 
     normalrule(

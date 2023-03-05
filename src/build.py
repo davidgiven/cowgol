@@ -18,7 +18,7 @@ import config
 
 
 @Rule
-def cgen(self, name, srcs: Targets() = []):
+def cgen(self, name, srcs: Targets = []):
     cprogram(replaces=self, srcs=srcs + ["rt/cgen/cowgol.h"])
 
 
@@ -36,32 +36,32 @@ def buildgasimpl(self, prefix):
 
 
 @Rule
-def buildgasarm(self, name, srcs: Targets() = None):
+def buildgasarm(self, name, srcs: Targets = None):
     buildgasimpl(self, "arm-linux-gnueabihf")
 
 
 @Rule
-def buildgas386(self, name, srcs: Targets() = None):
+def buildgas386(self, name, srcs: Targets = None):
     buildgasimpl(self, "i686-linux-gnu")
 
 
 @Rule
-def buildgas68k(self, name, srcs: Targets() = None):
+def buildgas68k(self, name, srcs: Targets = None):
     buildgasimpl(self, "m68k-linux-gnu")
 
 
 @Rule
-def buildgasppc(self, name, srcs: Targets() = None):
+def buildgasppc(self, name, srcs: Targets = None):
     buildgasimpl(self, "powerpc-linux-gnu")
 
 
 @Rule
-def buildgasataritos(self, name, srcs: Targets() = None):
+def buildgasataritos(self, name, srcs: Targets = None):
     buildgasimpl(self, "m68k-atari-mint")
 
 
 @Rule
-def buildtass64(self, name, srcs: Targets() = None):
+def buildtass64(self, name, srcs: Targets = None):
     tass64(replaces=self, srcs=srcs)
 
 
@@ -76,17 +76,17 @@ def buildcowasmimpl(self, asm):
 
 
 @Rule
-def buildcowasmpdp11(self, name, srcs: Targets() = None):
+def buildcowasmpdp11(self, name, srcs: Targets = None):
     buildcowasmimpl(self, "src/cowasm+cowasm-for-pdp11-with-ncgen")
 
 
 @Rule
-def buildcowasm6303(self, name, srcs: Targets() = None):
+def buildcowasm6303(self, name, srcs: Targets = None):
     buildcowasmimpl(self, "src/cowasm+cowasm-for-6303-with-ncgen")
 
 
 @Rule
-def buildnasm(self, name, srcs: Targets() = None):
+def buildnasm(self, name, srcs: Targets = None):
     o = nasm(name=name + "/obj", srcs=srcs)
     djlink(replaces=self, srcs=[o])
 
@@ -106,57 +106,57 @@ def testimpl(self, dep, command):
 
 
 @Rule
-def nativetest(self, name, goodfile: Target() = None, exe: Target() = None):
+def nativetest(self, name, goodfile: Target = None, exe: Target = None):
     testimpl(self, [], "{ins[0]}")
 
 
 @Rule
-def tubeemutest(self, name, goodfile: Target() = None, exe: Target() = None):
+def tubeemutest(self, name, goodfile: Target = None, exe: Target = None):
     testimpl(self, ["tools/tubeemu"], "{ins[0]} -l 0x400 -e 0x400 -f {ins[1]}")
 
 
 @Rule
-def cpmtest(self, name, goodfile: Target() = None, exe: Target() = None):
+def cpmtest(self, name, goodfile: Target = None, exe: Target = None):
     testimpl(self, ["tools/cpmemu"], "{ins[0]} {ins[1]}")
 
 
 @Rule
-def apouttest(self, name, goodfile: Target() = None, exe: Target() = None):
+def apouttest(self, name, goodfile: Target = None, exe: Target = None):
     testimpl(self, ["third_party/apout"], "{ins[0]} {ins[1]}")
 
 
 @Rule
-def fuzix6303test(self, name, goodfile: Target() = None, exe: Target() = None):
+def fuzix6303test(self, name, goodfile: Target = None, exe: Target = None):
     testimpl(self, ["tools/fuzix6303emu"], "{ins[0]} -f {ins[1]}")
 
 
 @Rule
-def ataritostest(self, name, goodfile: Target() = None, exe: Target() = None):
+def ataritostest(self, name, goodfile: Target = None, exe: Target = None):
     testimpl(self, ["tools/ataritosemu"], "{ins[0]} {ins[1]}")
 
 
 @Rule
-def qemuarmtest(self, name, goodfile: Target() = None, exe: Target() = None):
+def qemuarmtest(self, name, goodfile: Target = None, exe: Target = None):
     testimpl(self, [], "qemu-arm {ins[0]}")
 
 
 @Rule
-def qemu386test(self, name, goodfile: Target() = None, exe: Target() = None):
+def qemu386test(self, name, goodfile: Target = None, exe: Target = None):
     testimpl(self, [], "qemu-i386 {ins[0]}")
 
 
 @Rule
-def qemu68ktest(self, name, goodfile: Target() = None, exe: Target() = None):
+def qemu68ktest(self, name, goodfile: Target = None, exe: Target = None):
     testimpl(self, [], "qemu-m68k {ins[0]}")
 
 
 @Rule
-def qemuppctest(self, name, goodfile: Target() = None, exe: Target() = None):
+def qemuppctest(self, name, goodfile: Target = None, exe: Target = None):
     testimpl(self, [], "qemu-ppc {ins[0]}")
 
 
 @Rule
-def msdostest(self, name, goodfile: Target() = None, exe: Target() = None):
+def msdostest(self, name, goodfile: Target = None, exe: Target = None):
     testimpl(self, ["third_party/emu2"], "{ins[0]} {ins[1]}")
 
 
@@ -164,10 +164,10 @@ def msdostest(self, name, goodfile: Target() = None, exe: Target() = None):
 def toolchain(
     self,
     name,
-    cowfe: Target() = None,
-    cowbe: Target() = None,
-    cowlink: Target() = None,
-    cowwrap: Target() = None,
+    cowfe: Target = None,
+    cowbe: Target = None,
+    cowlink: Target = None,
+    cowwrap: Target = None,
     runtime=None,
     asmext=None,
     binext=None,
@@ -196,9 +196,9 @@ def toolchain(
 def cowlib(
     self,
     name,
-    srcs: Targets() = [],
-    deps: Targets() = [],
-    toolchain: Target() = None,
+    srcs: Targets = [],
+    deps: Targets = [],
+    toolchain: Target = None,
 ):
     srcs += [
         "rt/common-file.coh",
@@ -237,7 +237,7 @@ def cowlib(
 
 
 @Rule
-def cowlink(self, name, deps: Targets() = [], toolchain: Target() = None):
+def cowlink(self, name, deps: Targets = [], toolchain: Target = None):
     coos = []
     for d in deps:
         if hasattr(d, "cowlib"):
@@ -258,9 +258,9 @@ def cowlink(self, name, deps: Targets() = [], toolchain: Target() = None):
 def cowgol(
     self,
     name,
-    srcs: Targets() = [],
-    deps: Targets() = [],
-    toolchain: Target() = None,
+    srcs: Targets = [],
+    deps: Targets = [],
+    toolchain: Target = None,
 ):
     coo = cowlib(name=name + "/main", srcs=srcs, toolchain=toolchain)
 
@@ -272,9 +272,7 @@ def cowgol(
 
 
 @Rule
-def cowwrap(
-    self, name, src: Target() = None, toolchain: Target() = "src+ncgen"
-):
+def cowwrap(self, name, src: Target = None, toolchain: Target = "src+ncgen"):
     self.cowlib = SimpleNamespace()
     normalrule(
         replaces=self,

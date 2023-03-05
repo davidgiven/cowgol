@@ -43,8 +43,8 @@ def cfileimpl(self, name, srcs, deps, suffix, commands, label, kind, flags):
 def cfile(
     self,
     name,
-    srcs: Targets() = [],
-    deps: Targets() = [],
+    srcs: Targets = [],
+    deps: Targets = [],
     suffix=".o",
     commands=["$(CC) -c -o {outs[0]} {ins[0]} {vars.cflags}"],
     label="CC",
@@ -58,8 +58,8 @@ def cfile(
 def cxxfile(
     self,
     name,
-    srcs: Targets() = [],
-    deps: Targets() = [],
+    srcs: Targets = [],
+    deps: Targets = [],
     suffix=".o",
     commands=["$(CXX) -c -o {outs[0]} {ins[0]} {vars.cxxflags}"],
     label="CXX",
@@ -87,9 +87,9 @@ def findsources(name, srcs, deps):
 def clibrary(
     self,
     name,
-    srcs: Targets() = [],
-    deps: Targets() = [],
-    hdrs: Targets() = [],
+    srcs: Targets = [],
+    deps: Targets = [],
+    hdrs: Targets = [],
     commands=["$(AR) cqs {outs[0]} {ins}"],
     label="AR",
 ):
@@ -132,8 +132,8 @@ def programimpl(self, name, srcs, deps, commands, label, filerule, kind):
 def cprogram(
     self,
     name,
-    srcs: Targets() = [],
-    deps: Targets() = [],
+    srcs: Targets = [],
+    deps: Targets = [],
     commands=["$(CC) -o {outs[0]} {ins} {vars.ldflags}"],
     label="CLINK",
 ):
@@ -144,8 +144,8 @@ def cprogram(
 def cxxprogram(
     self,
     name,
-    srcs: Targets() = [],
-    deps: Targets() = [],
+    srcs: Targets = [],
+    deps: Targets = [],
     commands=["$(CXX) -o {outs[0]} {ins} {vars.ldflags}"],
     label="CXXLINK",
 ):

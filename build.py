@@ -28,4 +28,6 @@ export(
         "dist/cpm",
     ]
     + (["dist/msdos"] if config.has_nasm else [])
-    + (["dist/ataritos"] if config.has_gcc68k else []))
+    + (["dist/ataritos"] if config.has_gcc68k else [])
+    + (["dist/bbct"] if config.has_tass64 else []),
+)

@@ -18,7 +18,7 @@ cprogram(
 
 
 @Rule
-def zmac(self, name, srcs: Targets() = []):
+def zmac(self, name, srcs: Targets = []):
     filename, ext = splitext(filenameof(srcs))
     archflag = "-z" if (ext == ".z80") else "-8"
 
