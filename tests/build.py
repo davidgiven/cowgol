@@ -38,7 +38,6 @@ TESTS = [
     "mul-8bit-u",
     "nested-calls",
     "outputparams",
-    "passto",
     "pointers",
     "rangetypes",
     "recordinitialisers",

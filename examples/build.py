@@ -4,7 +4,6 @@ from build.ab2 import export
 
 PROGRAMS = [
     "argv",
-    "cowcalc",
     "file",
     "filetester",
     "helloworld",
