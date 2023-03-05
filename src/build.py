@@ -6,6 +6,7 @@ from types import SimpleNamespace
 from build.tass64 import tass64
 from build.nasm import nasm
 from third_party.djlink.build import djlink
+import config
 
 
 @Rule
@@ -206,7 +207,9 @@ def cowwrap(
     )
 
 
-TOOLCHAINS = [
+TOOLCHAINS = []
+
+TOOLCHAINS.append(
     toolchain(
         name="ncgen",
         cowfe="bootstrap+cowfe",
@@ -217,7 +220,10 @@ TOOLCHAINS = [
         asmext=".c",
         binext=".exe",
         assembler=cgen,
-    ),
+    )
+)
+
+TOOLCHAINS.append(
     toolchain(
         name="nncgen",
         cowfe="src/cowfe+cowfe-for-cgen-with-ncgen",
@@ -228,7 +234,10 @@ TOOLCHAINS = [
         asmext=".c",
         binext=".exe",
         assembler=cgen,
-    ),
+    )
+)
+
+TOOLCHAINS.append(
     toolchain(
         name="ncpm",
         cowfe="src/cowfe+cowfe-for-16bit-with-nncgen",
@@ -239,7 +248,10 @@ TOOLCHAINS = [
         asmext=".asm",
         binext=".com",
         assembler=zmac,
-    ),
+    )
+)
+
+TOOLCHAINS.append(
     toolchain(
         name="ncpmz",
         cowfe="src/cowfe+cowfe-for-16bit-with-nncgen",
@@ -250,84 +262,111 @@ TOOLCHAINS = [
         asmext=".z80",
         binext=".com",
         assembler=zmac,
-    ),
-    toolchain(
-        name="lxthumb2",
-        cowfe="src/cowfe+cowfe-for-32bita-with-nncgen",
-        cowbe="src/cowbe+cowbe-for-thumb2-with-ncgen",
-        cowlink="src/cowlink+cowlink-for-lxthumb2-with-ncgen",
-        cowwrap="src/cowwrap+cowwrap-with-ncgen",
-        runtime="rt/lxthumb2",
-        asmext=".s",
-        binext=".exe",
-        assembler=buildgasarm,
-    ),
-    toolchain(
-        name="lx386",
-        cowfe="src/cowfe+cowfe-for-80386-with-nncgen",
-        cowbe="src/cowbe+cowbe-for-80386-with-ncgen",
-        cowlink="src/cowlink+cowlink-for-lx386-with-ncgen",
-        cowwrap="src/cowwrap+cowwrap-with-ncgen",
-        runtime="rt/lx386",
-        asmext=".s",
-        binext=".exe",
-        assembler=buildgas386,
-    ),
-    toolchain(
-        name="lx68k",
-        cowfe="src/cowfe+cowfe-for-32bita2-with-nncgen",
-        cowbe="src/cowbe+cowbe-for-68000-with-ncgen",
-        cowlink="src/cowlink+cowlink-for-lx68k-with-ncgen",
-        cowwrap="src/cowwrap+cowwrap-with-ncgen",
-        runtime="rt/lx68k",
-        asmext=".s",
-        binext=".exe",
-        assembler=buildgas68k,
-    ),
-    toolchain(
-        name="lxppc",
-        cowfe="src/cowfe+cowfe-for-32bita-with-nncgen",
-        cowbe="src/cowbe+cowbe-for-powerpc-with-ncgen",
-        cowlink="src/cowlink+cowlink-for-lxppc-with-ncgen",
-        cowwrap="src/cowwrap+cowwrap-with-ncgen",
-        runtime="rt/lxppc",
-        asmext=".s",
-        binext=".exe",
-        assembler=buildgasppc,
-    ),
-    toolchain(
-        name="bbct",
-        cowfe="src/cowfe+cowfe-for-6502-with-nncgen",
-        cowbe="src/cowbe+cowbe-for-65c02-with-ncgen",
-        cowlink="src/cowlink+cowlink-for-bbct-with-ncgen",
-        cowwrap="src/cowwrap+cowwrap-with-ncgen",
-        runtime="rt/bbct",
-        asmext=".asm",
-        binext=".bin",
-        assembler=buildtass64,
-    ),
-    toolchain(
-        name="bbctiny",
-        cowfe="src/cowfe+cowfe-for-6502-with-nncgen",
-        cowbe="src/cowbe+cowbe-for-65c02-tiny-with-ncgen",
-        cowlink="src/cowlink+cowlink-for-bbct-with-ncgen",
-        cowwrap="src/cowwrap+cowwrap-with-ncgen",
-        runtime="rt/bbct",
-        asmext=".asm",
-        binext=".bin",
-        assembler=buildtass64,
-    ),
-    toolchain(
-        name="bbct6502",
-        cowfe="src/cowfe+cowfe-for-6502-with-nncgen",
-        cowbe="src/cowbe+cowbe-for-6502-with-ncgen",
-        cowlink="src/cowlink+cowlink-for-bbct-with-ncgen",
-        cowwrap="src/cowwrap+cowwrap-with-ncgen",
-        runtime="rt/bbct",
-        asmext=".asm",
-        binext=".bin",
-        assembler=buildtass64,
-    ),
+    )
+)
+
+if config.has_gccthumb2:
+    TOOLCHAINS.append(
+        toolchain(
+            name="lxthumb2",
+            cowfe="src/cowfe+cowfe-for-32bita-with-nncgen",
+            cowbe="src/cowbe+cowbe-for-thumb2-with-ncgen",
+            cowlink="src/cowlink+cowlink-for-lxthumb2-with-ncgen",
+            cowwrap="src/cowwrap+cowwrap-with-ncgen",
+            runtime="rt/lxthumb2",
+            asmext=".s",
+            binext=".exe",
+            assembler=buildgasarm,
+        )
+    )
+
+if config.has_gcc386:
+    TOOLCHAINS.append(
+        toolchain(
+            name="lx386",
+            cowfe="src/cowfe+cowfe-for-80386-with-nncgen",
+            cowbe="src/cowbe+cowbe-for-80386-with-ncgen",
+            cowlink="src/cowlink+cowlink-for-lx386-with-ncgen",
+            cowwrap="src/cowwrap+cowwrap-with-ncgen",
+            runtime="rt/lx386",
+            asmext=".s",
+            binext=".exe",
+            assembler=buildgas386,
+        )
+    )
+
+if config.has_gcc68k:
+    TOOLCHAINS.append(
+        toolchain(
+            name="lx68k",
+            cowfe="src/cowfe+cowfe-for-32bita2-with-nncgen",
+            cowbe="src/cowbe+cowbe-for-68000-with-ncgen",
+            cowlink="src/cowlink+cowlink-for-lx68k-with-ncgen",
+            cowwrap="src/cowwrap+cowwrap-with-ncgen",
+            runtime="rt/lx68k",
+            asmext=".s",
+            binext=".exe",
+            assembler=buildgas68k,
+        )
+    )
+
+if config.has_gccpowerpc:
+    TOOLCHAINS.append(
+        toolchain(
+            name="lxppc",
+            cowfe="src/cowfe+cowfe-for-32bita-with-nncgen",
+            cowbe="src/cowbe+cowbe-for-powerpc-with-ncgen",
+            cowlink="src/cowlink+cowlink-for-lxppc-with-ncgen",
+            cowwrap="src/cowwrap+cowwrap-with-ncgen",
+            runtime="rt/lxppc",
+            asmext=".s",
+            binext=".exe",
+            assembler=buildgasppc,
+        )
+    )
+
+if config.has_tass64:
+    TOOLCHAINS.append(
+        toolchain(
+            name="bbct",
+            cowfe="src/cowfe+cowfe-for-6502-with-nncgen",
+            cowbe="src/cowbe+cowbe-for-65c02-with-ncgen",
+            cowlink="src/cowlink+cowlink-for-bbct-with-ncgen",
+            cowwrap="src/cowwrap+cowwrap-with-ncgen",
+            runtime="rt/bbct",
+            asmext=".asm",
+            binext=".bin",
+            assembler=buildtass64,
+        )
+    )
+    TOOLCHAINS.append(
+        toolchain(
+            name="bbctiny",
+            cowfe="src/cowfe+cowfe-for-6502-with-nncgen",
+            cowbe="src/cowbe+cowbe-for-65c02-tiny-with-ncgen",
+            cowlink="src/cowlink+cowlink-for-bbct-with-ncgen",
+            cowwrap="src/cowwrap+cowwrap-with-ncgen",
+            runtime="rt/bbct",
+            asmext=".asm",
+            binext=".bin",
+            assembler=buildtass64,
+        )
+    )
+    TOOLCHAINS.append(
+        toolchain(
+            name="bbct6502",
+            cowfe="src/cowfe+cowfe-for-6502-with-nncgen",
+            cowbe="src/cowbe+cowbe-for-6502-with-ncgen",
+            cowlink="src/cowlink+cowlink-for-bbct-with-ncgen",
+            cowwrap="src/cowwrap+cowwrap-with-ncgen",
+            runtime="rt/bbct",
+            asmext=".asm",
+            binext=".bin",
+            assembler=buildtass64,
+        )
+    )
+
+TOOLCHAINS.append(
     toolchain(
         name="unixv7",
         cowfe="src/cowfe+cowfe-for-pdp11-with-nncgen",
@@ -338,7 +377,10 @@ TOOLCHAINS = [
         asmext=".asm",
         binext=".exe",
         assembler=buildcowasmpdp11,
-    ),
+    )
+)
+
+TOOLCHAINS.append(
     toolchain(
         name="fuzix6303",
         cowfe="src/cowfe+cowfe-for-16bit-with-nncgen",
@@ -349,30 +391,38 @@ TOOLCHAINS = [
         asmext=".asm",
         binext=".exe",
         assembler=buildcowasm6303,
-    ),
-    toolchain(
-        name="msdos",
-        cowfe="src/cowfe+cowfe-for-16bit-with-nncgen",
-        cowbe="src/cowbe+cowbe-for-8086-with-ncgen",
-        cowlink="src/cowlink+cowlink-for-msdos-with-ncgen",
-        cowwrap="src/cowwrap+cowwrap-with-ncgen",
-        runtime="rt/msdos",
-        asmext=".asm",
-        binext=".exe",
-        assembler=buildnasm,
-    ),
-    toolchain(
-        name="ataritos",
-        cowfe="src/cowfe+cowfe-for-32bita2-with-nncgen",
-        cowbe="src/cowbe+cowbe-for-68000-with-ncgen",
-        cowlink="src/cowlink+cowlink-for-ataritos-with-ncgen",
-        cowwrap="src/cowwrap+cowwrap-with-ncgen",
-        runtime="rt/ataritos",
-        asmext=".asm",
-        binext=".tos",
-        assembler=buildgasataritos,
-    ),
-]
+    )
+)
+
+if config.has_nasm:
+    TOOLCHAINS.append(
+        toolchain(
+            name="msdos",
+            cowfe="src/cowfe+cowfe-for-16bit-with-nncgen",
+            cowbe="src/cowbe+cowbe-for-8086-with-ncgen",
+            cowlink="src/cowlink+cowlink-for-msdos-with-ncgen",
+            cowwrap="src/cowwrap+cowwrap-with-ncgen",
+            runtime="rt/msdos",
+            asmext=".asm",
+            binext=".exe",
+            assembler=buildnasm,
+        )
+    )
+
+if config.has_gccataritos:
+    TOOLCHAINS.append(
+        toolchain(
+            name="ataritos",
+            cowfe="src/cowfe+cowfe-for-32bita2-with-nncgen",
+            cowbe="src/cowbe+cowbe-for-68000-with-ncgen",
+            cowlink="src/cowlink+cowlink-for-ataritos-with-ncgen",
+            cowwrap="src/cowwrap+cowwrap-with-ncgen",
+            runtime="rt/ataritos",
+            asmext=".asm",
+            binext=".tos",
+            assembler=buildgasataritos,
+        )
+    )
 
 normalrule(
     name="midcodesfecoh",

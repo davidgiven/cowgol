@@ -11,8 +11,12 @@ clean:
 	@echo CLEAN
 	@rm -rf $(OBJ) bin
 
-build-files = $(shell find . -name 'build.py') build/*.py
+build-files = $(shell find . -name 'build.py') build/*.py config.py
 $(OBJ)/build.mk: Makefile $(build-files)
 	@echo ACKBUILDER
 	@mkdir -p $(OBJ)
 	@python3 -X pycache_prefix=$(OBJ) build/ab2.py -m make -t +all -o $@ build.py
+
+.DELETE_ON_ERROR:
+.SECONDARY:
+
