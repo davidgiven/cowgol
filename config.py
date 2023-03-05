@@ -16,3 +16,14 @@ has_qemuarm = enable_if("qemu-arm")
 has_qemu386 = enable_if("qemu-i386")
 has_qemuppc = enable_if("qemu-ppc")
 has_qemu68k = enable_if("qemu-m68k")
+
+has_ataritos = has_gccataritos
+has_msdos = has_nasm
+has_lx386 = has_gcc386
+has_lxthumb2 = has_gccthumb2
+has_lx68k = has_gcc68k
+has_lxppc = has_gccpowerpc
+has_bbct = has_tass64
+has_bbctiny = has_tass64
+has_bbct6502 = has_tass64
+
