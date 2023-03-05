@@ -1,8 +1,11 @@
-from src.build import TOOLCHAINS, cowgol
+from src.build import cowgol, export
+from src.toolchains import TOOLCHAINS
 
+items = {}
 for toolchain in TOOLCHAINS:
-    cowgol(
-        name="cowwrap-with-" + toolchain.localname,
+    name = "cowwrap-with-" + toolchain.localname
+    items[name] = cowgol(
+        name=name,
         toolchain=toolchain,
         srcs=[
             "include/coodecls.coh",
@@ -11,3 +14,5 @@ for toolchain in TOOLCHAINS:
             "./reader.coh",
         ],
     )
+
+export(name="cowwrap", items=items)

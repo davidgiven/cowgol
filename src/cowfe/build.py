@@ -1,5 +1,6 @@
 from build.ab2 import normalrule, export
-from src.build import TOOLCHAINS, cowgol
+from src.build import cowgol
+from src.toolchains import TOOLCHAINS
 from third_party.lemon.build import lemoncowgol
 
 ARCHS = [
@@ -51,3 +52,5 @@ for toolchain in TOOLCHAINS:
                 "src+midcodesfecoh",
             ],
         )
+
+export(name="cowfe", items=items)

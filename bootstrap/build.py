@@ -1,4 +1,4 @@
-from src.build import cgen
+from src.toolchains import cgen
 
 cgen(name="cowfe", srcs=["./cowfe-cgen.bootstrap.c"])
 cgen(name="cowbe", srcs=["./cowbe-cgen.bootstrap.c"])

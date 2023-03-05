@@ -1,5 +1,6 @@
-from build.ab2 import normalrule
-from src.build import TOOLCHAINS, cowgol
+from build.ab2 import normalrule, export
+from src.build import cowgol
+from src.toolchains import TOOLCHAINS
 
 ARCHS = [
     "8080",
@@ -27,9 +28,11 @@ for arch in ARCHS:
         label="COPY",
     )
 
+items = {}
 for toolchain in TOOLCHAINS:
     for arch in ARCHS:
-        cowgol(
+        name = "cowlink-for-" + arch + "-with-" + toolchain.localname
+        items[name] = cowgol(
             name="cowlink-for-" + arch + "-with-" + toolchain.localname,
             toolchain=toolchain,
             srcs=[
@@ -45,3 +48,4 @@ for toolchain in TOOLCHAINS:
                 "./utils.coh",
             ],
         )
+export(name="cowlink", items=items)

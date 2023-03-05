@@ -21,11 +21,16 @@ export(
         "bin/basicify": "src/misc+basicify-with-nncgen",
     },
     deps=[
-        "third_party/djlink+djlink-programs",
-        "examples",
-        "tests",
-        "dist/cpmz",
         "dist/cpm",
+        "dist/cpmz",
+        "examples",
+        "src/cowasm",
+        "src/cowbe",
+        "src/cowfe",
+        "src/cowlink",
+        "src/cowwrap",
+        "tests",
+        "third_party/djlink+djlink-programs",
     ]
     + (["dist/msdos"] if config.has_msdos else [])
     + (["dist/ataritos"] if config.has_ataritos else [])
