@@ -13,6 +13,7 @@ import sys
 import types
 import pathlib
 import builtins
+import os
 
 defaultGlobals = {}
 targets = {}
@@ -340,10 +341,6 @@ def emit(*args):
     outputFp.write("\n")
 
 
-def unmake(ss):
-    return ss
-
-
 def templateexpand(s, invocation):
     class Converter:
         def __getitem__(self, key):
@@ -368,38 +365,56 @@ class MakeEmitter:
 
     def var(self, name, value):
         # Don't let emit insert spaces.
-        emit(name + "=" + unmake(value))
+        emit(name + "=" + value)
 
     def rule(self, name, ins, outs, deps=[]):
         ins = filenamesof(ins)
         if outs:
             outs = filenamesof(outs)
             emit(".PHONY:", name)
-            emit(name, ":", unmake(outs), unmake(deps))
-            emit(outs, "&:", unmake(ins), unmake(deps))
+            emit(name, ":", outs, deps)
+            emit(outs, "&:", ins, deps)
         else:
-            emit(name, ":", unmake(ins), unmake(deps))
+            emit(name, ":", ins, deps)
 
-    def exec(self, command):
-        emit("\t$(hide)", unmake(command))
+    def label(self, s):
+        emit("\t$(hide)echo", s)
+
+    def exec(self, cs):
+        for c in cs:
+            emit("\t$(hide)", c)
+
+
+def unmake(*ss):
+    return [
+        re.sub(r"\$\(([^)]*)\)", r"$\1", s) for s in flatten(filenamesof(ss))
+    ]
 
 
 class NinjaEmitter:
     def begin(self):
-        emit("rule build\n")
-        emit("  command = $command\n")
-        emit("\n")
+        emit("rule build")
+        emit(" command = $command")
+
+    def end(self):
+        pass
 
     def var(self, name, value):
         # Don't let emit insert spaces.
-        emit(name + "=" + unmake(value))
+        emit(name + "=" + unmake(value)[0])
 
-    def rule(self, name, ins, outs):
+    def rule(self, name, ins, outs, deps=[]):
         if outs:
-            emit("build", name, ": phony", unmake(outs))
+            emit("build", name, ": phony", unmake(outs, deps))
             emit("build", unmake(outs), ": build", unmake(ins))
         else:
-            emit("build", name, ": phony", unmake(ins))
+            emit("build", name, ": phony", unmake(ins, deps))
+
+    def label(self, s):
+        emit(" description=", s)
+
+    def exec(self, cs):
+        emit(" command=", " && ".join(unmake(cs)))
 
 
 @Rule
@@ -415,15 +430,17 @@ def simplerule(
     self.ins = ins
     self.outs = outs
     emitter.rule(self.name, filenamesof(ins, deps), outs)
-    emitter.exec(templateexpand("echo {label} {name}", self))
+    emitter.label(templateexpand("{label} {name}", self))
+    cs = []
 
     for out in filenamesof(outs):
         dir = dirname(out)
         if dir:
-            emitter.exec("mkdir -p " + dir)
+            cs += ["mkdir -p " + dir]
 
     for c in commands:
-        emitter.exec(templateexpand(c, self))
+        cs += [templateexpand(c, self)]
+    emitter.exec(cs)
 
 
 @Rule
@@ -457,15 +474,16 @@ def export(self, name=None, items: TargetsMap = {}, deps: Targets = []):
         filenamesof(items.keys()),
         filenamesof(deps),
     )
-    emitter.exec(f"echo EXPORT {self.name}")
+    emitter.label(f"EXPORT {self.name}")
 
+    cs = []
     self.ins = items.values()
     self.outs = filenamesof(deps)
     for dest, src in items.items():
         destf = filenameof(dest)
         dir = dirname(destf)
         if dir:
-            emitter.exec("mkdir -p " + dir)
+            cs += ["mkdir -p " + dir]
 
         srcs = filenamesof(src)
         if len(srcs) != 1:
@@ -473,8 +491,10 @@ def export(self, name=None, items: TargetsMap = {}, deps: Targets = []):
                 "a dependency of an export must have exactly one output file"
             )
 
-        emitter.exec("cp %s %s" % (srcs[0], destf))
+        cs += ["cp %s %s" % (srcs[0], destf)]
         self.outs += [destf]
+
+    emitter.exec(cs)
 
 
 def loadbuildfile(filename):
@@ -496,7 +516,8 @@ def main():
     )
     parser.add_argument("-o", "--output")
     parser.add_argument("files", nargs="+")
-    parser.add_argument("-t", "--targets", nargs="+")
+    parser.add_argument("-t", "--targets", action="append")
+    parser.add_argument("-v", "--vars", action="append")
     args = parser.parse_args()
 
     global outputFp
@@ -508,6 +529,11 @@ def main():
     else:
         emitter = NinjaEmitter()
     emitter.begin()
+
+    for v in flatten([a.split(",") for a in args.vars]):
+        e = os.getenv(v)
+        if e:
+            emitter.var(v, e)
 
     global currentVars
     currentVars = Vars()
@@ -522,7 +548,7 @@ def main():
     for f in args.files:
         loadbuildfile(f)
 
-    for t in args.targets:
+    for t in flatten([a.split(",") for a in args.targets]):
         targets[t].materialise()
     emitter.end()
 
