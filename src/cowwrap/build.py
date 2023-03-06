@@ -4,7 +4,7 @@ from src.toolchains import TOOLCHAINS
 items = {}
 for toolchain in TOOLCHAINS:
     name = "cowwrap-with-" + toolchain.localname
-    items[name] = cowgol(
+    items["bin/" + name] = cowgol(
         name=name,
         toolchain=toolchain,
         srcs=[

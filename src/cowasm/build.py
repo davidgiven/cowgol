@@ -10,7 +10,7 @@ for toolchain in TOOLCHAINS:
     toolchain.materialise()
     for arch in ARCHS:
         name = "cowasm-for-" + arch + "-with-" + toolchain.localname
-        items[name] = cowgol(
+        items["bin/" + name] = cowgol(
             name=name,
             toolchain=toolchain,
             srcs=[
