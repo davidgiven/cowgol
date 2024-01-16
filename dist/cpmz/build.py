@@ -13,6 +13,6 @@ export(
         "bin/dist/cpmz/cowgol.coo": "rt/cpmz+cowgolcoo",
         "bin/dist/cpmz/cowfe.com": "src/cowfe+cowfe-for-16bit-with-ncpmz",
         "bin/dist/cpmz/cowbe.com": "src/cowbe+cowbe-for-z80-with-ncpmz",
-        "bin/dist/cpmz/cowlink.com": "src/cowlink+cowlink-for-8080-with-ncpmz",
+        "bin/dist/cpmz/cowlink.com": "src/cowlink+cowlink-for-ncpmz-with-ncpmz",
     },
 )

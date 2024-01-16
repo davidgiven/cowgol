@@ -3,7 +3,6 @@ from src.build import cowgol
 from src.toolchains import TOOLCHAINS
 
 ARCHS = [
-    "8080",
     "ataritos",
     "basic",
     "bbct",
@@ -15,6 +14,8 @@ ARCHS = [
     "lxppc",
     "lxthumb2",
     "msdos",
+    "ncpm",
+    "ncpmz",
     "rt11",
     "v7unix",
 ]
