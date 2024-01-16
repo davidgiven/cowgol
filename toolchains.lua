@@ -38,11 +38,11 @@ toolchain_ncpm = {
 	name = "ncpm",
 	cowfe = "bin/cowfe-16bit.nncgen.exe",
 	cowbe = "bin/cowbe-8080.nncgen.exe",
-	linker = "bin/cowlink-8080.nncgen.exe",
+	linker = "bin/cowlink-ncpm.nncgen.exe",
 	assembler = buildcowasm8080,
 	runtime = "rt/cpm",
 	asmext = ".asm",
-	binext = ".8080.com",
+	binext = ".ncpm.com",
 	tester = cpmtest,
 }
 
@@ -50,11 +50,11 @@ toolchain_ncpmz = {
 	name = "ncpmz",
 	cowfe = "bin/cowfe-16bit.nncgen.exe",
 	cowbe = "bin/cowbe-z80.nncgen.exe",
-	linker = "bin/cowlink-8080.nncgen.exe",
+	linker = "bin/cowlink-ncpmz.nncgen.exe",
 	assembler = buildzmac,
 	runtime = "rt/cpmz",
 	asmext = ".z80",
-	binext = ".z80.com",
+	binext = ".ncpmz.com",
 	tester = cpmtest,
 }
 
@@ -116,7 +116,7 @@ toolchain_bbct = {
 	asmext = ".asm",
 	binext = ".bbct",
 	tester = tubeemutest,
-	archs = { "8080" }
+	archs = { "cpm" }
 }
 
 toolchain_bbctiny = {
@@ -141,7 +141,7 @@ toolchain_bbct6502 = {
 	asmext = ".asm",
 	binext = ".bbct6502",
 	tester = tubeemutest,
-	archs = { "8080" },
+	archs = { "cpm" },
 }
 
 toolchain_unixv7 = {

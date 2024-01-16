@@ -1,10 +1,11 @@
 local ARCHS = {
-	"8080",
 	"ataritos",
 	"basic",
 	"bbct",
 	"bbctn",
 	"cgen",
+	"ncpm",
+	"ncpmz",
 	"fuzix6303",
 	"lx386",
 	"lx68k",

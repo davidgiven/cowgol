@@ -43,22 +43,22 @@ copy {
 }
 
 copy {
-	ins = { "bin/cowfe-16bit.ncpm.8080.com" },
+	ins = { "bin/cowfe-16bit.ncpm.ncpm.com" },
 	outs = { "$OBJ/dist/cpm/cowfe.com" }
 }
 
 copy {
-	ins = { "bin/cowbe-8080.ncpm.8080.com" },
+	ins = { "bin/cowbe-8080.ncpm.ncpm.com" },
 	outs = { "$OBJ/dist/cpm/cowbe.com" }
 }
 
 copy {
-	ins = { "bin/cowlink-8080.ncpm.8080.com" },
+	ins = { "bin/cowlink-ncpm.ncpm.ncpm.com" },
 	outs = { "$OBJ/dist/cpm/cowlink.com" }
 }
 
 copy {
-	ins = { "bin/cowasm-8080.ncpm.8080.com" },
+	ins = { "bin/cowasm-8080.ncpm.ncpm.com" },
 	outs = { "$OBJ/dist/cpm/cowasm.com" }
 }
 
