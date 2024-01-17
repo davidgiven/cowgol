@@ -36,6 +36,7 @@ casts1();
 sub castu2() is
 	var one: uint16 := 1;
 	var mone: uint16 := -1;
+	var twohundred: uint16 := 200;
 
 	print("castu2\n");
 	print("one as uint8"); if (one as uint8) == 1 then yes(); else no(); end if;
@@ -46,12 +47,17 @@ sub castu2() is
 	print("mone as uint32"); if (mone as uint32) == 0xffff then yes(); else no(); end if;
 	print("mone as int8"); if (mone as int8) == -1 then yes(); else no(); end if;
 	print("mone as int32"); if (mone as int32) == 0xffff then yes(); else no(); end if;
+	print("twohundred as uint8"); if (twohundred as uint8) == 200 then yes(); else no(); end if;
+	print("twohundred as uint32"); if (twohundred as uint32) == 200 then yes(); else no(); end if;
+	print("twohundred as int8"); if (twohundred as int8) == 200 then yes(); else no(); end if;
+	print("twohundred as int32"); if (twohundred as int32) == 200 then yes(); else no(); end if;
 end sub;
 castu2();
 
 sub casts2() is
 	var one: int16 := 1;
 	var mone: int16 := -1;
+	var twohundred: int16 := 200;
 
 	print("casts2\n");
 	print("one as uint8"); if (one as uint8) == 1 then yes(); else no(); end if;
@@ -62,6 +68,10 @@ sub casts2() is
 	print("mone as uint32"); if (mone as uint32) == 0xffffffff then yes(); else no(); end if;
 	print("mone as int8"); if (mone as int8) == -1 then yes(); else no(); end if;
 	print("mone as int32"); if (mone as int32) == -1 then yes(); else no(); end if;
+	print("twohundred as uint8"); if (twohundred as uint8) == 200 then yes(); else no(); end if;
+	print("twohundred as uint32"); if (twohundred as uint32) == 200 then yes(); else no(); end if;
+	print("twohundred as int8"); if (twohundred as int8) == 200 then yes(); else no(); end if;
+	print("twohundred as int32"); if (twohundred as int32) == 200 then yes(); else no(); end if;
 end sub;
 casts2();
 

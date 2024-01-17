@@ -1881,7 +1881,7 @@ gen hlhl := CAST24(hl, sext==0)
 
 gen hlhl := CAST24(hl, sext!=0) uses a
 {
-	E_mov(REG_A, REG_L);
+	E_mov(REG_A, REG_H);
 	E_add(REG_A, REG_A);
 	E_sbc(REG_A, REG_A);
 	E_exx();

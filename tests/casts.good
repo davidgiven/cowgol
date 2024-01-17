@@ -25,6 +25,10 @@ mone as uint8: yes
 mone as uint32: yes
 mone as int8: yes
 mone as int32: yes
+twohundred as uint8: yes
+twohundred as uint32: yes
+twohundred as int8: yes
+twohundred as int32: yes
 casts2
 one as uint8: yes
 one as uint32: yes
@@ -34,6 +38,10 @@ mone as uint8: yes
 mone as uint32: yes
 mone as int8: yes
 mone as int32: yes
+twohundred as uint8: yes
+twohundred as uint32: yes
+twohundred as int8: yes
+twohundred as int32: yes
 castu4
 one as uint8: yes
 one as uint16: yes
