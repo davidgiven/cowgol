@@ -249,10 +249,9 @@
 
 	sub E_ldax(ptr: RegId) is
 		R_flush(REG_A);
-		E("\tld (");
+		E("\tld a, (");
 		E_reg(ptr);
-		E("), a\n");
-		E_nl();
+		E(")\n");
 	end sub;
 
 	sub E_lda(sym: [Symbol], off: Size) is
