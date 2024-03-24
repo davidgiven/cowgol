@@ -1423,16 +1423,16 @@ gen hl := SUB2(hl:lhs, bc|de:rhs)
 
 %}
 
-gen bc := DIVU2(bc, de) uses a
+gen bc := DIVU2(bc, de) uses a|hl
 		{ E_dvrmu2(); }
 
 gen hl := REMU2(bc, de) uses a
 		{ E_dvrmu2(); }
 
-gen bc := DIVS2(bc, de) uses a
+gen bc := DIVS2(bc, de) uses a|hl
 		{ E_dvrms2(); }
 
-gen de := REMS2(bc, de) uses a
+gen de := REMS2(bc, de) uses a|hl
 		{ E_dvrms2(); }
 
 gen hl := MUL2(de, bc) uses a
@@ -1550,7 +1550,7 @@ gen hlhl := REMU4(bcbc, dede) uses a
 gen bcbc := DIVS4(bcbc, dede) uses a|hlhl
         { E_callhelper("_dvrms4"); }
 
-gen dede := REMS4(bcbc, dede) uses a
+gen dede := REMS4(bcbc, dede) uses a|hlhl
         { E_callhelper("_dvrms4"); }
 
 gen hlhl := AND4(dede, hlhl) uses a
