@@ -1,6 +1,6 @@
 from build.c import cprogram
+from build.utils import objectify
 from third_party.zmac.build import zmac
-from tools.build import objectify
 
 zmac(name="biosbdos", srcs=["./biosbdos.z80"])
 

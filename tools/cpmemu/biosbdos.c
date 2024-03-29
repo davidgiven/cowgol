@@ -85,9 +85,10 @@ static void set_result(uint16_t result)
 	z80ex_set_reg(z80, regBC, bc);
 }
 
+#include "biosbdos.cim.h"
 void bios_coldboot(void)
 {
-	memcpy(&ram[FBASE], biosbdosdata_data, biosbdosdata_len);
+	memcpy(&ram[FBASE], biosbdosdata, biosbdosdata_len);
 	z80ex_set_reg(z80, regPC, COLDSTART);
 }
 
