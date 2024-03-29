@@ -7,9 +7,7 @@ Building it
 To build, you'll need a Unixish machine (I develop on Linux) with some
 dependencies.
 
-  - the Ninja build tool
-
-  - Python 3 and Lua 5.1 (needed for the build)
+  - chronic, Python 3 and Lua 5.1 (needed for the build)
 
   - the Pasmo Z80 assembler (needed to build part of the CP/M emulator)
 
@@ -21,7 +19,7 @@ dependencies.
 
   - a C compiler and these GNU binutils packages:
 
-    - i686-linux-gnu
+  - i686-linux-gnu
 	- arm-linux-gnueabihf
 	- m68k-linux-gnu
 	- m68k-atari-mint
@@ -37,13 +35,13 @@ dependencies.
 If you're on a Debianish platform, you should be able to install them (after
 adding any custom package sources as above) with:
 
-    apt install ninja-build lua5.1 libz80ex-dev flex libbsd-dev libreadline-dev bison binutils-arm-linux-gnueabihf binutils-i686-linux-gnu binutils-powerpc-linux-gnu binutils-m68k-linux-gnu binutils-m68k-atari-mint qemu-user gpp 64tass nasm python3
+    apt install chronic lua5.1 libz80ex-dev flex libbsd-dev libreadline-dev bison binutils-arm-linux-gnueabihf binutils-i686-linux-gnu binutils-powerpc-linux-gnu binutils-m68k-linux-gnu binutils-m68k-atari-mint qemu-user gpp 64tass nasm python3
 
 Once done you can build the compiler itself with:
 
 
 ```
-make
+make -j<something>
 ```
 
 You'll be left with a lot of stuff in the `bin` directory. The tools are all

@@ -14,5 +14,5 @@ jobs:
     - name: apt
       run: sudo apt install chronic lua5.1 libz80ex-dev flex libbsd-dev libreadline-dev bison binutils-arm-linux-gnueabihf binutils-i686-linux-gnu binutils-powerpc-linux-gnu binutils-m68k-atari-mint binutils-m68k-linux-gnu qemu-user gpp 64tass libfl-dev nasm
     - name: make
-      run: make NINJAFLAGS=-k1
+      run: make -j$(nproc)
 
