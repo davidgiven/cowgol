@@ -1,4 +1,4 @@
-from build.ab2 import Rule, Target, normalrule
+from build.ab import Rule, Target, normalrule
 from build.c import cprogram
 
 cprogram(

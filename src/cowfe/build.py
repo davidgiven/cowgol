@@ -1,4 +1,4 @@
-from build.ab2 import normalrule, export
+from build.ab import normalrule, export
 from src.build import cowgol
 from src.toolchains import TOOLCHAINS
 from third_party.lemon.build import lemoncowgol
@@ -33,8 +33,8 @@ for toolchain in TOOLCHAINS:
             name="cowfe-for-" + arch + "-with-" + toolchain.localname,
             toolchain=toolchain,
             srcs=[
-                "+arch-" + arch,
-                "+parser",
+                ".+arch-" + arch,
+                ".+parser",
                 "./allocator.coh",
                 "./codegen.coh",
                 "./emitter.coh",

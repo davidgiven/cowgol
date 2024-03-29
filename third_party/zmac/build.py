@@ -1,6 +1,6 @@
 from build.yacc import yacc
 from build.c import cprogram
-from build.ab2 import Rule, Targets, normalrule, filenameof
+from build.ab import Rule, Targets, normalrule, filenameof
 from os.path import *
 
 yacc(
@@ -10,10 +10,9 @@ yacc(
 
 cprogram(
     name="zmac",
-    srcs=["+parser", "./mio.c", "./zi80dis.cpp", "./zi80dis.h"],
-    vars={
-        "+cflags": ["-Ithird_party/zmac"],
-    },
+    srcs=[".+parser", "./mio.c", "./zi80dis.cpp", "./zi80dis.h"],
+    cflags=
+        ["-Ithird_party/zmac"],
 )
 
 

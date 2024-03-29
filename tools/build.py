@@ -1,5 +1,5 @@
 from build.c import cprogram
-from build.ab2 import Rule, Target, Targets, normalrule, flatten, filenamesof
+from build.ab import Rule, Target, Targets, normalrule, flatten, filenamesof
 
 cprogram(
     name="mkadfs",

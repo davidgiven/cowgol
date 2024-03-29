@@ -1,5 +1,5 @@
 from build.c import cxxprogram
-from build.ab2 import export, Rule, Targets, normalrule
+from build.ab import export, Rule, Targets, normalrule
 
 cxxprogram(
     name="objdump",
@@ -44,9 +44,9 @@ cxxprogram(
 export(
     name="djlink-programs",
     items={
-        "bin/objdump": "+objdump",
-        "bin/bindiff": "+bindiff",
-        "bin/djlink": "+djlink",
+        "bin/objdump": ".+objdump",
+        "bin/bindiff": ".+bindiff",
+        "bin/djlink": ".+djlink",
     },
 )
 

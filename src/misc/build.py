@@ -1,4 +1,4 @@
-from build.ab2 import normalrule
+from build.ab import normalrule
 from src.build import cowgol
 from src.toolchains import TOOLCHAINS
 

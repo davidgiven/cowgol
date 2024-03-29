@@ -1,4 +1,4 @@
-from build.ab2 import normalrule, export
+from build.ab import normalrule, export
 from src.build import cowgol
 from src.toolchains import TOOLCHAINS
 
@@ -38,7 +38,7 @@ for toolchain in TOOLCHAINS:
             toolchain=toolchain,
             srcs=[
                 "include/coodecls.coh",
-                "+arch-" + arch,
+                ".+arch-" + arch,
                 "./main.cow",
                 "./asmwrite.coh",
                 "./cooread.coh",

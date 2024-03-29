@@ -1,6 +1,6 @@
 from src.build import cowgol
 from src.toolchains import TOOLCHAINS
-from build.ab2 import export
+from build.ab import export
 
 PROGRAMS = [
     "argv",

@@ -14,5 +14,5 @@ cprogram(
         "./sim.h",
         "third_party/musashi/m68k.h",
     ],
-    deps=["+musashi"],
+    deps=[".+musashi"],
 )

@@ -1,4 +1,4 @@
-from build.ab2 import (
+from build.ab import (
     Rule,
     Target,
     Targets,
@@ -70,7 +70,7 @@ def buildcowasmimpl(self, asm):
         replaces=self,
         ins=[asm] + self.args["srcs"],
         outs=[self.localname + ".bin"],
-        commands=["scripts/quiet {ins[0]} -o {outs[0]} {ins[1]}"],
+        commands=["chronic {ins[0]} -o {outs[0]} {ins[1]}"],
         label="ASM",
     )
 
