@@ -1,11 +1,11 @@
-from build.ab2 import Rule, Target, normalrule
+from build.ab import Rule, Target, normalrule
 from build.c import clibrary, cprogram
 
 cprogram(name="m68kmake", srcs=["./m68kmake.c"])
 
 normalrule(
     name="m68kops",
-    ins=["+m68kmake", "./m68k_in.c"],
+    ins=[".+m68kmake", "./m68k_in.c"],
     outs=["m68kops.c", "m68kops.h"],
     commands=["{ins[0]} {dirname(outs[0])} {ins[1]} > /dev/null"],
     label="MUSASHILIB",

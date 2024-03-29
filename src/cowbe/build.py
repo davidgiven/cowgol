@@ -1,4 +1,4 @@
-from build.ab2 import normalrule, export
+from build.ab import normalrule, export
 from src.build import cowgol
 from src.toolchains import TOOLCHAINS
 from tools.newgen.build import newgencowgol
@@ -39,7 +39,7 @@ for toolchain in TOOLCHAINS:
             name=name,
             toolchain=toolchain,
             srcs=[
-                "+gen-" + arch,
+                ".+gen-" + arch,
                 "include/coodecls.coh",
                 "src+midcodesbecoh",
                 "src+cobincoh",

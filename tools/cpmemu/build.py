@@ -1,10 +1,10 @@
 from build.c import cprogram
+from build.utils import objectify
 from third_party.zmac.build import zmac
-from tools.build import objectify
 
 zmac(name="biosbdos", srcs=["./biosbdos.z80"])
 
-objectify(name="biosbdosdata", src="+biosbdos", symbol="biosbdosdata")
+objectify(name="biosbdosdata", src=".+biosbdos", symbol="biosbdosdata")
 
 cprogram(
     name="cpmemu",
@@ -13,7 +13,7 @@ cprogram(
         "./emulator.c",
         "./fileio.c",
         "./biosbdos.c",
-        "+biosbdosdata",
+        ".+biosbdosdata",
     ],
-    vars={"+ldflags": ["-lz80ex", "-lz80ex_dasm", "-lreadline"]},
+    ldflags= ["-lz80ex", "-lz80ex_dasm", "-lreadline"],
 )

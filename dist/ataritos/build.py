@@ -1,4 +1,4 @@
-from build.ab2 import export
+from build.ab import export
 from tools.build import tocpm
 
 tocpm(name="demosub", src="./demo.sub")

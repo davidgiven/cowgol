@@ -1,4 +1,4 @@
-from build.ab2 import Rule, export
+from build.ab import Rule, export
 from os.path import *
 import config
 

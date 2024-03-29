@@ -1,13 +1,11 @@
-from build.ab2 import (
+from build.ab import (
     Rule,
     Target,
     Targets,
-    export,
     normalrule,
     filenamesof,
-    filenameof,
+    targetswithtraitsof,
 )
-from build.c import cprogram
 from os.path import *
 from types import SimpleNamespace
 import config
@@ -41,7 +39,7 @@ def cowlib(
         ins=[toolchain.cowfe, cow] + srcs,
         outs=[self.localname + ".cob"],
         commands=[
-            "scripts/quiet {ins[0]} "
+            "chronic {ins[0]} "
             + (" ".join(flags))
             + " {ins[1]} {outs[0]}"
         ],
@@ -52,23 +50,20 @@ def cowlib(
         replaces=self,
         ins=[toolchain.cowbe, cob],
         outs=[self.localname + ".coo"],
-        commands=["scripts/quiet {ins[0]} {ins[1]} {outs}"],
+        commands=["chronic {ins[0]} {ins[1]} {outs}"],
         label="COWBE-" + toolchain.localname.upper(),
     )
 
 
 @Rule
 def cowlink(self, name, deps: Targets = [], toolchain: Target = None):
-    coos = []
-    for d in deps:
-        if hasattr(d, "cowlib"):
-            coos += filenamesof(d)
+    coos = filenamesof(targetswithtraitsof(deps, "cowlib"))
 
     asm = normalrule(
         name=name + "/cowlink",
         ins=[toolchain.cowlink] + [coos],
         outs=[self.localname + toolchain.asmext],
-        commands=["scripts/quiet {ins[0]} -o {outs} {' '.join(ins[1:])}"],
+        commands=["chronic {ins[0]} -o {outs} {filenamesof(ins[1:])}"],
         label="COWLINK-" + toolchain.localname.upper(),
     )
 
@@ -94,13 +89,13 @@ def cowgol(
 
 @Rule
 def cowwrap(self, name, src: Target = None, toolchain: Target = "src+ncgen"):
-    self.cowlib = SimpleNamespace()
+    self.traits.add("cowlib")
     normalrule(
         replaces=self,
         ins=[toolchain.cowwrap, src],
         outs=["cowgol.coo"],
         label="COWWRAP-" + toolchain.localname.upper(),
-        commands=["scripts/quiet {ins[0]} {ins[1]} {outs}"],
+        commands=["chronic {ins[0]} {ins[1]} {outs}"],
     )
 
 

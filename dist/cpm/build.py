@@ -1,4 +1,4 @@
-from build.ab2 import export
+from build.ab import export
 from tools.build import tocpm
 
 tocpm(name="demosub", src="./demo.sub")
@@ -6,7 +6,7 @@ tocpm(name="demosub", src="./demo.sub")
 export(
     name="cpm",
     items={
-        "bin/dist/cpm/demo.sub": "+demosub",
+        "bin/dist/cpm/demo.sub": ".+demosub",
         "bin/dist/cpm/mandel.cow": "examples/mandel.cow",
         "bin/dist/cpm/cowgol.coh": "rt/cpm/cowgol.coh",
         "bin/dist/cpm/common.coh": "rt/common.coh",

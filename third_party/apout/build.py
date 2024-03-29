@@ -21,9 +21,8 @@ cprogram(
         "./v1trap.c",
         "./v7trap.c",
     ],
-    vars={
-        "+ldflags": ["-lm"],
-        "+cflags": [
+    ldflags=["-lm"],
+    cflags=[
             "-DEMUV1",
             "-DNATIVES",
             "-DRUN_V1_RAW",
@@ -31,6 +30,5 @@ cprogram(
             "-DZERO_MEMORY",
             "-DWRITEBASE",
             "-DHEX",
-        ],
-    },
+        ]
 )

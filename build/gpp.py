@@ -1,4 +1,4 @@
-from build.ab2 import Rule, normalrule, Targets, filenamesof
+from build.ab import Rule, normalrule, Targets, filenamesof
 from os.path import *
 
 

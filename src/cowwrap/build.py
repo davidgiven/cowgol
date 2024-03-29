@@ -1,4 +1,5 @@
-from src.build import cowgol, export
+from build.ab import export
+from src.build import cowgol
 from src.toolchains import TOOLCHAINS
 
 items = {}

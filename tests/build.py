@@ -1,4 +1,4 @@
-from build.ab2 import normalrule, Rule, Target, export
+from build.ab import normalrule, Rule, Target, export
 from src.build import cowgol
 from src.toolchains import TOOLCHAINS
 

@@ -1,4 +1,4 @@
-from build.ab2 import Rule, Targets, normalrule
+from build.ab import Rule, Targets, normalrule
 from build.c import cprogram
 from build.yacc import flex
 from build.gpp import gpp
@@ -14,11 +14,11 @@ cprogram(
         "./main.c",
         "./utils.c",
         "./globals.h",
-        "+parser",
-        "+lexer",
+        ".+parser",
+        ".+lexer",
         "src+iburgcodes",
     ],
-    vars={"+cflags": ["-DCOWGOL"], "+ldflags": ["-lfl"]},
+    cflags=["-DCOWGOL"], ldflags=["-lfl"],
 )
 
 
