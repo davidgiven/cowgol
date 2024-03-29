@@ -35,7 +35,10 @@ dependencies.
 If you're on a Debianish platform, you should be able to install them (after
 adding any custom package sources as above) with:
 
-    apt install chronic lua5.1 libz80ex-dev flex libbsd-dev libreadline-dev bison binutils-arm-linux-gnueabihf binutils-i686-linux-gnu binutils-powerpc-linux-gnu binutils-m68k-linux-gnu binutils-m68k-atari-mint qemu-user gpp 64tass nasm python3
+    apt install moreutils lua5.1 libz80ex-dev flex libbsd-dev libreadline-dev \
+      bison binutils-arm-linux-gnueabihf binutils-i686-linux-gnu \
+      binutils-powerpc-linux-gnu binutils-m68k-linux-gnu binutils-m68k-atari-mint \
+      qemu-user gpp 64tass nasm python3
 
 Once done you can build the compiler itself with:
 
