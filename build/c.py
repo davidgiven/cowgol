@@ -1,4 +1,3 @@
-from os.path import basename, join
 from build.ab import (
     ABException,
     List,
@@ -16,6 +15,26 @@ from build.ab import (
 )
 from os.path import *
 from types import SimpleNamespace
+
+
+class Toolchain:
+    label = ""
+    cfile = ["$(CC) -c -o {outs[0]} {ins[0]} $(CFLAGS) {cflags}"]
+    cxxfile = ["$(CXX) -c -o {outs[0]} {ins[0]} $(CFLAGS) {cflags}"]
+    clibrary = ["$(AR) cqs {outs[0]} {ins}"]
+    cxxlibrary = ["$(AR) cqs {outs[0]} {ins}"]
+    cprogram = ["$(CC) -o {outs[0]} {ins} {ldflags} $(LDFLAGS)"]
+    cxxprogram = ["$(CXX) -o {outs[0]} {ins} {ldflags} $(LDFLAGS)"]
+
+
+class HostToolchain:
+    label = "HOST "
+    cfile = ["$(HOSTCC) -c -o {outs[0]} {ins[0]} $(HOSTCFLAGS) {cflags}"]
+    cxxfile = ["$(HOSTCXX) -c -o {outs[0]} {ins[0]} $(HOSTCFLAGS) {cflags}"]
+    clibrary = ["$(HOSTAR) cqs {outs[0]} {ins}"]
+    cxxlibrary = ["$(HOSTAR) cqs {outs[0]} {ins}"]
+    cprogram = ["$(HOSTCC) -o {outs[0]} {ins} {ldflags} $(HOSTLDFLAGS)"]
+    cxxprogram = ["$(HOSTCXX) -o {outs[0]} {ins} {ldflags} $(HOSTLDFLAGS)"]
 
 
 def cfileimpl(self, name, srcs, deps, suffix, commands, label, kind, cflags):
@@ -40,9 +59,14 @@ def cfile(
     deps: Targets = None,
     cflags: List = [],
     suffix=".o",
-    commands=["$(CC) -c -o {outs[0]} {ins[0]} $(CFLAGS) {cflags}"],
-    label="CC",
+    toolchain=Toolchain,
+    commands=None,
+    label=None,
 ):
+    if not label:
+        label = toolchain.label + "CC"
+    if not commands:
+        commands = toolchain.cfile
     cfileimpl(self, name, srcs, deps, suffix, commands, label, "cfile", cflags)
 
 
@@ -54,18 +78,23 @@ def cxxfile(
     deps: Targets = None,
     cflags: List = [],
     suffix=".o",
-    commands=["$(CXX) -c -o {outs[0]} {ins[0]} $(CFLAGS) {cflags}"],
-    label="CXX",
+    toolchain=Toolchain,
+    commands=None,
+    label=None,
 ):
+    if not label:
+        label = toolchain.label + "CXX"
+    if not commands:
+        commands = toolchain.cxxfile
     cfileimpl(
         self, name, srcs, deps, suffix, commands, label, "cxxfile", cflags
     )
 
 
-def findsources(name, srcs, deps, cflags, filerule):
-    hh = {h for h in filenamesmatchingof(srcs, "*.h")}
-    cflags += ["-I"+dirname(h) for h in hh]
-    deps += list(hh)
+def findsources(name, srcs, deps, cflags, toolchain, filerule):
+    headers = filenamesmatchingof(srcs, "*.h")
+    cflags = cflags + ["-I"+dirname(h) for h in headers]
+    deps = deps + headers
 
     objs = []
     for s in flatten(srcs):
@@ -75,6 +104,7 @@ def findsources(name, srcs, deps, cflags, filerule):
                 srcs=[f],
                 deps=deps,
                 cflags=cflags,
+                toolchain=toolchain,
             )
             for f in filenamesof(s)
             if f.endswith(".c")
@@ -135,6 +165,7 @@ def libraryimpl(
     caller_ldflags,
     cflags,
     ldflags,
+    toolchain,
     commands,
     label,
     kind,
@@ -163,6 +194,7 @@ def libraryimpl(
         srcs,
         targetswithtraitsof(deps, "cheaders"),
         cflags + bubbledattrsof(deps, "caller_cflags"),
+        toolchain,
         kind,
     )
 
@@ -192,10 +224,15 @@ def clibrary(
     caller_ldflags: List = [],
     cflags: List = [],
     ldflags: List = [],
-    commands=["$(AR) cqs {outs[0]} {ins}"],
-    label="LIB",
+    toolchain=Toolchain,
+    commands=None,
+    label=None,
     cfilerule=cfile,
 ):
+    if not label:
+        label = toolchain.label + "LIB"
+    if not commands:
+        commands = toolchain.clibrary
     libraryimpl(
         self,
         name,
@@ -206,6 +243,7 @@ def clibrary(
         caller_ldflags,
         cflags,
         ldflags,
+        toolchain,
         commands,
         label,
         cfilerule,
@@ -223,9 +261,14 @@ def cxxlibrary(
     caller_ldflags: List = [],
     cflags: List = [],
     ldflags: List = [],
-    commands=["$(AR) cqs {outs[0]} {ins}"],
-    label="LIB",
+    toolchain=Toolchain,
+    commands=None,
+    label=None,
 ):
+    if not label:
+        label = toolchain.label + "LIB"
+    if not commands:
+        commands = toolchain.clibrary
     libraryimpl(
         self,
         name,
@@ -236,6 +279,7 @@ def cxxlibrary(
         caller_ldflags,
         cflags,
         ldflags,
+        toolchain,
         commands,
         label,
         cxxfile,
@@ -243,19 +287,28 @@ def cxxlibrary(
 
 
 def programimpl(
-    self, name, srcs, deps, cflags, ldflags, commands, label, filerule, kind
+    self,
+    name,
+    srcs,
+    deps,
+    cflags,
+    ldflags,
+    toolchain,
+    commands,
+    label,
+    filerule,
+    kind,
 ):
     ars = filenamesmatchingof(deps, "*.a")
-    deps = deps + filenamesmatchingof(srcs, "*.h")
     ldflags = ldflags + bubbledattrsof(deps, "caller_ldflags")
 
-    cfiles = findsources(name, srcs, deps, cflags, filerule)
+    cfiles = findsources(name, srcs, deps, cflags, toolchain, filerule)
     normalrule(
         replaces=self,
         ins=cfiles + ars + ars,
         outs=[basename(name) + "$(EXT)"],
         deps=deps,
-        label=label,
+        label=toolchain.label + label,
         commands=commands,
         ldflags=ldflags,
     )
@@ -269,11 +322,14 @@ def cprogram(
     deps: Targets = None,
     cflags: List = [],
     ldflags: List = [],
-    commands=["$(CC) -o {outs[0]} {ins} {ldflags} $(LDFLAGS)"],
+    toolchain=Toolchain,
+    commands=None,
     label="CLINK",
     cfilerule=cfile,
     cfilekind="cprogram",
 ):
+    if not commands:
+        commands = toolchain.cprogram
     programimpl(
         self,
         name,
@@ -281,6 +337,7 @@ def cprogram(
         deps,
         cflags,
         ldflags,
+        toolchain,
         commands,
         label,
         cfilerule,
@@ -296,9 +353,12 @@ def cxxprogram(
     deps: Targets = None,
     cflags: List = [],
     ldflags: List = [],
-    commands=["$(CXX) -o {outs[0]} {ins} {ldflags} $(LDFLAGS)"],
+    toolchain=Toolchain,
+    commands=None,
     label="CXXLINK",
 ):
+    if not commands:
+        commands = toolchain.cxxprogram
     programimpl(
         self,
         name,
@@ -306,6 +366,7 @@ def cxxprogram(
         deps,
         cflags,
         ldflags,
+        toolchain,
         commands,
         label,
         cxxfile,

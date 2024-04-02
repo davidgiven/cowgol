@@ -11,8 +11,7 @@ yacc(
 cprogram(
     name="zmac",
     srcs=[".+parser", "./mio.c", "./zi80dis.cpp", "./zi80dis.h"],
-    cflags=
-        ["-Ithird_party/zmac"],
+    cflags=["-Ithird_party/zmac"],
 )
 
 
