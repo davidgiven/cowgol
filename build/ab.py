@@ -386,21 +386,23 @@ def emitter_rule(rule, ins, outs, deps=[]):
     emit("")
     emit(".PHONY:", rule.name)
     emit(rule.name, ":", rule.sentinel)
+
     emit(
         rule.sentinel,
-        filenamesof(outs) if outs else [],
+        # filenamesof(outs) if outs else [],
         ":",
         filenamesof(ins),
         filenamesof(deps),
     )
 
-    for f in filenamesof(outs):
-        emit(f, ":", rule.sentinel)
 
-
-def emitter_endrule(rule):
+def emitter_endrule(rule, outs):
     emit("\t$(hide) mkdir -p", dirname(rule.sentinel))
-    emit("\t$(hide) touch $@")
+    emit("\t$(hide) touch", rule.sentinel)
+
+    for f in filenamesof(outs):
+        emit(".SECONDARY:", f)
+        emit(f, ":", rule.sentinel, ";")
 
 
 def emitter_label(s):
@@ -443,10 +445,12 @@ def simplerule(
             dirs += [dir]
 
         cs = [("mkdir -p %s" % dir) for dir in dirs]
+
     for c in commands:
         cs += [templateexpand(c, self)]
+
     emitter_exec(cs)
-    emitter_endrule(self)
+    emitter_endrule(self, outs)
 
 
 @Rule
@@ -509,7 +513,7 @@ def export(self, name=None, items: TargetsMap = {}, deps: Targets = None):
         self.outs,
         [(d.outs if d.outs else d.sentinel) for d in deps],
     )
-    emitter_endrule(self)
+    emitter_endrule(self, self.outs)
 
 
 def loadbuildfile(filename):
