@@ -64,7 +64,7 @@ def cxxfile(
 
 def findsources(name, srcs, deps, cflags, filerule):
     hh = {h for h in filenamesmatchingof(srcs, "*.h")}
-    cflags += ["-I"+dirname(h) for h in hh]
+    cflags += ["-I" + dirname(h) for h in hh]
     deps += list(hh)
 
     objs = []

@@ -16,5 +16,5 @@ cprogram(
         "./src/utils.c",
         "./src/video.c",
     ],
-    ldflags= ["-lm"],
+    ldflags=["-lm"],
 )

@@ -39,9 +39,7 @@ def cowlib(
         ins=[toolchain.cowfe, cow] + srcs,
         outs=[self.localname + ".cob"],
         commands=[
-            "chronic {ins[0]} "
-            + (" ".join(flags))
-            + " {ins[1]} {outs[0]}"
+            "chronic {ins[0]} " + (" ".join(flags)) + " {ins[1]} {outs[0]}"
         ],
         label="COWFE-" + toolchain.localname.upper(),
     )
