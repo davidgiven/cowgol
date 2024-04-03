@@ -120,8 +120,7 @@ end record;
 
 record CaseLabels is
 	next_label: LabelRef;
-	break_label: LabelRef;
-	old_break_label: LabelRef;
+	end_label: LabelRef;
 	old_case: [CaseLabels];
 	width: uint8;
 	seenelse: uint8;
