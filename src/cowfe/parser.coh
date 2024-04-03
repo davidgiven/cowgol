@@ -1,0 +1,176 @@
+# Important: this is not a recursive descent parser (because Cowgol doesn't
+# support recursion). It reads one statement at a time, using an explicit stack
+# to store data, and Dijksta's Shunting Yard Algorithm for parsing recursive
+# structures like types or expressions. Make sure not to call any routine
+# reentrantly!
+
+const PARSE_STACK_SIZE := 128;
+var stack: [void][PARSE_STACK_SIZE];
+var sp: [[void]];
+var opstack: uint8[PARSE_STACK_SIZE];
+var osp: @indexof opstack;
+
+sub Push(p: [void]) is
+    [sp] := p;
+    sp := @next sp;
+end sub;
+
+sub Pop(): (val: [void]) is
+    sp := @prev sp;
+    val := [sp];
+end sub;
+
+sub PushSymbol(p: [Symbol]) is
+    Push(p as [void]);
+end sub;
+
+sub PushType(t: [Type]) is
+    Push(t as [void]);
+end sub;
+
+sub PopType(): (t: [Type]) is
+    t := Pop() as [Type];
+end sub;
+
+sub RequireToken(t: uint8) is
+    if token != t then
+        StartError();
+        print("expected token ");
+        print_i8(t);
+        print(", but got ");
+        print_i8(token);
+        EndError();
+    end if;
+    LexerGetToken();
+end sub;
+
+sub GrabTokenBuffer(): (news: string) is
+    news := InternalStrDup(&token_buffer[0]);
+end sub;
+
+sub _check_for_identifier() is
+    if token != ID then
+        SimpleError("expected identifier");
+    end if;
+end sub;
+
+sub ParseNewSymbol(): (sym: [Symbol]) is
+    _check_for_identifier();
+    sym := AddSymbol(0 as [Namespace], GrabTokenBuffer());
+    LexerGetToken();
+end sub;
+
+sub ParseNewOrExistingSymbol(): (sym: [Symbol]) is
+    _check_for_identifier();
+    var name := GrabTokenBuffer();
+    sym := LookupSymbol(0 as [Namespace], name);
+    if sym == (0 as [Symbol]) then
+        sym := AddSymbol(0 as [Namespace], name);
+    else
+        Free(name);
+    end if;
+end sub;
+
+sub ParseType(): (type: [Type]) is
+    sub popops() is
+        while osp != 0 loop
+            osp := osp - 1;
+            case opstack[osp] is
+                when OPENSQ:
+                    return;
+            end case;
+        end loop;
+    end sub;
+
+    loop
+        # Prefix operators.
+
+        case token is
+            when OPENSQ:
+                opstack[osp] := OPENSQ;
+                osp := osp + 1;
+                continue;
+        end case;
+
+        # Terms.
+
+        case token is
+            when ID:
+                var sym := ParseNewOrExistingSymbol();
+                if sym.kind == 0 then
+                    # Create a partial type.
+                    type := AllocNewType();
+                    type.kind := TYPE_PARTIAL;
+
+                    sym.kind := TYPE;
+                    sym.typedata := type;
+                    type.symbol := sym;
+                end if;
+                if sym.kind != TYPE then
+                    StartError();
+                    print("expected ");
+                    print(sym.name);
+                    print(" to be a type");
+                    EndError();
+                end if;
+                PushType(type);
+                # fall through to postfix section
+
+            when else:
+                StartError();
+                print("invalid token in type expression term");
+                EndError();
+        end case;
+
+        # Postfix.
+
+        case token is
+            when COMMA: break;
+            when ASSIGN: break;
+
+            when CLOSESQ:
+                popops();
+                PushType(MakePointerType(PopType()));
+                LexerGetToken();
+
+            when else:
+                StartError();
+                print("invalid token in type expression postfix operator");
+                EndError();
+        end case;
+    end loop;
+
+    print("done type");
+    type := PopType();
+end sub;
+
+sub ParseVar() is
+    LexerGetToken();
+    var sym := ParseNewSymbol();
+    var type: [Type] := 0 as [Type];
+    if token == COLON then
+        LexerGetToken();
+        type := ParseType();
+    end if;
+    RequireToken(SEMICOLON);
+end sub;
+
+sub ParseExpressionStatement() is
+    LexerGetToken();
+    RequireToken(SEMICOLON);
+end sub;
+
+sub Parse() is
+    sp := &stack[0];
+    osp := 0;
+
+    while token != EOF loop
+        case token is
+            when VAR:
+                ParseVar();
+
+            when else:
+                ParseExpressionStatement();
+        end case;
+    end loop;
+end sub;

@@ -247,7 +247,7 @@
     jr ``_loop2
 
 # Divides two 16-bit signed numbers: BC = BC / DE
-# The quotient is returned in BC, the remainder in DE..
+# The quotient is returned in BC, the remainder in DE.
 &X _dvrms2
     ; _dvrms2
 ``:

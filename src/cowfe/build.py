@@ -34,7 +34,7 @@ for toolchain in TOOLCHAINS:
             toolchain=toolchain,
             srcs=[
                 ".+arch-" + arch,
-                ".+parser",
+                "./parser.coh",
                 "./allocator.coh",
                 "./codegen.coh",
                 "./emitter.coh",
