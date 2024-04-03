@@ -248,7 +248,7 @@ statement ::= startcase whens END CASE SEMICOLON.
 	if (current_case.seenelse == 0) and (current_case.next_label != 0) then
 		Generate(MidLabel(current_case.next_label));
 	end if;
-	Generate(MidLabel(current_case.break_label));
+	Generate(MidLabel(current_case.end_label));
 	Generate(MidEndcase(current_case.width));
 
 	var c := current_case;
@@ -260,8 +260,7 @@ startcase ::= CASE expression(E) IS.
 {
 	var c := InternalAlloc(@bytesof CaseLabels) as [CaseLabels];
 	c.old_case := current_case;
-	c.old_break_label := break_label;
-	c.break_label := AllocLabel();
+	c.end_label := AllocLabel();
 	current_case := c;
 
 	if IsNum(E.type) == 0 then
@@ -284,7 +283,7 @@ beginwhen ::= WHEN cvalue(C) COLON.
 	end if;
 
 	if current_case.next_label != 0 then
-		Generate(MidJump(current_case.break_label));
+		Generate(MidJump(current_case.end_label));
 		Generate(MidLabel(current_case.next_label));
 	end if;
 	current_case.next_label := AllocLabel();
@@ -298,7 +297,7 @@ beginwhen ::= WHEN ELSE COLON.
 		SimpleError("only one when else allowed");
 	end if;
 	if current_case.next_label != 0 then
-		Generate(MidJump(current_case.break_label));
+		Generate(MidJump(current_case.end_label));
 		Generate(MidLabel(current_case.next_label));
 	end if;
 	current_case.next_label := 0;
