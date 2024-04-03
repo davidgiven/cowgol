@@ -16,6 +16,15 @@ ARCHS = [
 
 lemoncowgol(name="parser", src="src/cowfe/parser.y")
 
+normalrule(name="tokens",
+           ins=["./mktokens.py"],
+           outs=["tokens.coh"],
+           commands=[
+               "python3 {ins[0]} > {outs[0]}"
+           ],
+           label="MKTOKENS"
+)
+
 for arch in ARCHS:
     normalrule(
         name="arch-" + arch,
@@ -33,8 +42,8 @@ for toolchain in TOOLCHAINS:
             name="cowfe-for-" + arch + "-with-" + toolchain.localname,
             toolchain=toolchain,
             srcs=[
+                ".+tokens",
                 ".+arch-" + arch,
-                "./parser.coh",
                 "./allocator.coh",
                 "./codegen.coh",
                 "./emitter.coh",
@@ -43,6 +52,7 @@ for toolchain in TOOLCHAINS:
                 "./main.cow",
                 "./midcodec.coh",
                 "./namespace.coh",
+                "./parser.coh",
                 "./regcache.coh",
                 "./symbols.coh",
                 "./treewalker.coh",

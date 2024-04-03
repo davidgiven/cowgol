@@ -22,76 +22,6 @@ var token: uint8;
 
 var infcb: FCB;
  
-const EOF       := 0;
-const ID        := 1;
-const STRING    := 2;
-const NUMBER    := 3;
-const TYPE      := 4;
-const ALIAS     := 5;
-const ASM       := 6;
-const AT        := 7;
-const BYTESOF   := 8;
-const DECL      := 9;
-const INDEXOF   := 10;
-const IMPL      := 11;
-const SIZEOF    := 12;
-const NEXT      := 13;
-const PREV      := 14;
-const AND       := 15;
-const AS        := 16;
-const BREAK     := 17;
-const CASE      := 18;
-const CONST     := 19;
-const CONTINUE  := 20;
-const ELSE      := 21;
-const ELSEIF    := 22;
-const END       := 23;
-const EXTERN    := 24;
-const IF        := 25;
-const IS        := 26;
-const INT       := 27;
-const INTERFACE := 28;
-const IMPLEMENTS := 29;
-const LOOP      := 30;
-const NOT       := 31;
-const OR        := 32;
-const RECORD    := 33;
-const RETURN    := 34;
-const SUB       := 35;
-const THEN      := 36;
-const TYPEDEF   := 37;
-const VAR       := 38;
-const WHEN      := 39;
-const WHILE     := 40;
-const PERCENT   := 41;
-const AMPERSAND := 42;
-const OPENPAREN := 43;
-const CLOSEPAREN := 44;
-const STAR      := 45;
-const PLUS      := 46;
-const MINUS     := 47;
-const COMMA     := 48;
-const DOT       := 49;
-const SLASH     := 50;
-const COLON     := 51;
-const SEMICOLON := 52;
-const OPENSQ    := 53;
-const CLOSESQ   := 54;
-const CARET     := 55;
-const OPENBR    := 56;
-const CLOSEBR   := 57;
-const PIPE      := 58;
-const TILDE     := 59;
-const ASSIGN    := 60;
-const LSHIFT    := 61;
-const RSHIFT    := 62;
-const LEOP      := 63;
-const LTOP      := 64;
-const GEOP      := 65;
-const GTOP      := 66;
-const EQOP      := 67;
-const NEOP      := 68;
-
 const CTYPE_DECDIGIT := 0x01;
 const CTYPE_IDSTART  := 0x10;
 const CTYPE_IDCONT   := 0x20;
@@ -194,49 +124,6 @@ var lexer_ctype: uint8[] := {
     CTYPE_TOKEN|CLOSEBR,         # 0x7d }
     CTYPE_TOKEN|TILDE            # 0x7e ~
 };
-
-var keyword_names: string[] := {
-    "@alias",
-    "@asm",
-    "@at",
-    "@bytesof",
-    "@decl",
-    "@extern",
-    "@indexof",
-    "@impl",
-    "@sizeof",
-    "@next",
-    "@prev",
-    "and",
-    "as",
-    "break",
-    "case",
-    "const",
-    "continue",
-    "else",
-    "elseif",
-    "end",
-    "extern",
-    "if",
-    "is",
-    "include",
-    "int",
-    "interface",
-    "implements",
-    "loop",
-    "not",
-    "or",
-    "record",
-    "return",
-    "sub",
-    "then",
-    "typedef",
-    "var",
-    "when",
-    "while",
-};
-
-const INCLUDE := 0xff; # This is special
 
 var keyword_ids: uint8[] := {
     ALIAS,
@@ -480,10 +367,10 @@ sub LexerGetToken() is
     end sub;
 
     sub lexer_i_match_keyword(): (token: uint8) is
-        var i: @indexof keyword_names := 0;
-        while i != @sizeof keyword_names loop
-            if StrCmp(&token_buffer[0], keyword_names[i]) == 0 then
-                token := keyword_ids[i];
+        var i: @indexof keyword_ids := 0;
+        while i != @sizeof keyword_ids loop
+            token := keyword_ids[i];
+            if StrCmp(&token_buffer[0], token_names[token]) == 0 then
                 return;
             end if;
             i := i + 1;

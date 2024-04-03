@@ -32,13 +32,24 @@ sub PopType(): (t: [Type]) is
     t := Pop() as [Type];
 end sub;
 
+sub PrintTokenName(t: uint8) is
+    var n := token_names[t];
+    if [n+1] == ' ' then
+        print(n+1);
+    else
+        print_char('\'');
+        print(n);
+        print_char('\'');
+    end if;
+end sub;
+
 sub RequireToken(t: uint8) is
     if token != t then
         StartError();
         print("expected token ");
-        print_i8(t);
+        PrintTokenName(t);
         print(", but got ");
-        print_i8(token);
+        PrintTokenName(token);
         EndError();
     end if;
     LexerGetToken();
@@ -82,63 +93,63 @@ sub ParseType(): (type: [Type]) is
         end loop;
     end sub;
 
-    loop
-        # Prefix operators.
+    sub parse() is
+        loop
+            # Terms and prefix operators.
 
-        case token is
-            when OPENSQ:
-                opstack[osp] := OPENSQ;
-                osp := osp + 1;
-                continue;
-        end case;
+            case token is
+                when OPENSQ:
+                    opstack[osp] := OPENSQ;
+                    osp := osp + 1;
+                    continue;
+                
+                when ID:
+                    var sym := ParseNewOrExistingSymbol();
+                    if sym.kind == 0 then
+                        # Create a partial type.
+                        type := AllocNewType();
+                        type.kind := TYPE_PARTIAL;
 
-        # Terms.
+                        sym.kind := TYPE;
+                        sym.typedata := type;
+                        type.symbol := sym;
+                    end if;
+                    if sym.kind != TYPE then
+                        StartError();
+                        print("expected ");
+                        print(sym.name);
+                        print(" to be a type");
+                        EndError();
+                    end if;
+                    PushType(type);
+                    # fall through to postfix section
 
-        case token is
-            when ID:
-                var sym := ParseNewOrExistingSymbol();
-                if sym.kind == 0 then
-                    # Create a partial type.
-                    type := AllocNewType();
-                    type.kind := TYPE_PARTIAL;
-
-                    sym.kind := TYPE;
-                    sym.typedata := type;
-                    type.symbol := sym;
-                end if;
-                if sym.kind != TYPE then
+                when else:
                     StartError();
-                    print("expected ");
-                    print(sym.name);
-                    print(" to be a type");
+                    print("invalid token in type expression term");
                     EndError();
-                end if;
-                PushType(type);
-                # fall through to postfix section
+            end case;
 
-            when else:
-                StartError();
-                print("invalid token in type expression term");
-                EndError();
-        end case;
+            loop
+                # Postfix.
 
-        # Postfix.
+                case token is
+                    when COMMA: return;
+                    when ASSIGN: return;
 
-        case token is
-            when COMMA: break;
-            when ASSIGN: break;
+                    when CLOSESQ:
+                        popops();
+                        PushType(MakePointerType(PopType()));
+                        LexerGetToken();
 
-            when CLOSESQ:
-                popops();
-                PushType(MakePointerType(PopType()));
-                LexerGetToken();
-
-            when else:
-                StartError();
-                print("invalid token in type expression postfix operator");
-                EndError();
-        end case;
-    end loop;
+                    when else:
+                        StartError();
+                        print("invalid token in type expression postfix operator");
+                        EndError();
+                end case;
+            end loop;
+        end loop;
+    end sub;
 
     print("done type");
     type := PopType();
