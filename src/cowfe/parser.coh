@@ -4,176 +4,317 @@
 # structures like types or expressions. Make sure not to call any routine
 # reentrantly!
 
-const PARSE_STACK_SIZE := 128;
-var stack: [void][PARSE_STACK_SIZE];
-var sp: [[void]];
-var opstack: uint8[PARSE_STACK_SIZE];
-var osp: @indexof opstack;
+sub Parse() is
+    const PARSE_STACK_SIZE := 128;
+    var stack: [void][PARSE_STACK_SIZE];
+    var sp: [[void]];
+    var opstack: uint8[PARSE_STACK_SIZE];
+    var opsp: @indexof opstack;
 
-sub Push(p: [void]) is
-    [sp] := p;
-    sp := @next sp;
-end sub;
-
-sub Pop(): (val: [void]) is
-    sp := @prev sp;
-    val := [sp];
-end sub;
-
-sub PushSymbol(p: [Symbol]) is
-    Push(p as [void]);
-end sub;
-
-sub PushType(t: [Type]) is
-    Push(t as [void]);
-end sub;
-
-sub PopType(): (t: [Type]) is
-    t := Pop() as [Type];
-end sub;
-
-sub PrintTokenName(t: uint8) is
-    var n := token_names[t];
-    if [n+1] == ' ' then
-        print(n+1);
-    else
-        print_char('\'');
-        print(n);
-        print_char('\'');
-    end if;
-end sub;
-
-sub RequireToken(t: uint8) is
-    if token != t then
-        StartError();
-        print("expected token ");
-        PrintTokenName(t);
-        print(", but got ");
-        PrintTokenName(token);
-        EndError();
-    end if;
-    LexerGetToken();
-end sub;
-
-sub GrabTokenBuffer(): (news: string) is
-    news := InternalStrDup(&token_buffer[0]);
-end sub;
-
-sub _check_for_identifier() is
-    if token != ID then
-        SimpleError("expected identifier");
-    end if;
-end sub;
-
-sub ParseNewSymbol(): (sym: [Symbol]) is
-    _check_for_identifier();
-    sym := AddSymbol(0 as [Namespace], GrabTokenBuffer());
-    LexerGetToken();
-end sub;
-
-sub ParseNewOrExistingSymbol(): (sym: [Symbol]) is
-    _check_for_identifier();
-    var name := GrabTokenBuffer();
-    sym := LookupSymbol(0 as [Namespace], name);
-    if sym == (0 as [Symbol]) then
-        sym := AddSymbol(0 as [Namespace], name);
-    else
-        Free(name);
-    end if;
-end sub;
-
-sub ParseType(): (type: [Type]) is
-    sub popops() is
-        while osp != 0 loop
-            osp := osp - 1;
-            case opstack[osp] is
-                when OPENSQ:
-                    return;
-            end case;
-        end loop;
+    sub Push(p: [void]) is
+        [sp] := p;
+        sp := @next sp;
     end sub;
 
-    sub parse() is
-        loop
-            # Terms and prefix operators.
+    sub Pop(): (val: [void]) is
+        if sp == &stack[0] then
+            SimpleError("opstack underflow");
+        end if;
+        
+        sp := @prev sp;
+        val := [sp];
+    end sub;
 
-            case token is
-                when OPENSQ:
-                    opstack[osp] := OPENSQ;
-                    osp := osp + 1;
-                    continue;
-                
-                when ID:
-                    var sym := ParseNewOrExistingSymbol();
-                    if sym.kind == 0 then
-                        # Create a partial type.
-                        type := AllocNewType();
-                        type.kind := TYPE_PARTIAL;
+    sub PushSymbol(p: [Symbol]) is
+        Push(p as [void]);
+    end sub;
 
-                        sym.kind := TYPE;
-                        sym.typedata := type;
-                        type.symbol := sym;
-                    end if;
-                    if sym.kind != TYPE then
-                        StartError();
-                        print("expected ");
-                        print(sym.name);
-                        print(" to be a type");
-                        EndError();
-                    end if;
-                    PushType(type);
-                    # fall through to postfix section
+    sub PushType(t: [Type]) is
+        Push(t as [void]);
+    end sub;
 
-                when else:
-                    StartError();
-                    print("invalid token in type expression term");
-                    EndError();
-            end case;
+    sub PushNode(n: [Node]) is
+        Push(n as [void]);
+    end sub;
 
+    sub PopType(): (t: [Type]) is
+        t := Pop() as [Type];
+    end sub;
+
+    sub PopNode(): (n: [Node]) is
+        n := Pop() as [Node];
+    end sub;
+
+    sub PushOp(op: uint8) is
+        opstack[opsp] := op;
+        opsp := opsp + 1;
+    end sub;
+
+    sub PopOp(): (op: uint8) is
+        if opsp == 0 then
+            SimpleError("opstack underflow");
+        end if;
+
+        opsp := opsp - 1;
+        op := opstack[opsp];
+    end sub;
+
+    sub RequireToken(t: uint8) is
+        if token != t then
+            StartError();
+            print("expected token ");
+            PrintTokenName(t);
+            print(", but got ");
+            PrintTokenName(token);
+            EndError();
+        end if;
+        LexerGetToken();
+    end sub;
+
+    sub GrabTokenBuffer(): (news: string) is
+        news := InternalStrDup(&token_buffer[0]);
+    end sub;
+
+    sub _check_for_identifier() is
+        if token != ID then
+            SimpleError("expected identifier");
+        end if;
+    end sub;
+
+    sub ParseNewSymbol(): (sym: [Symbol]) is
+        _check_for_identifier();
+        sym := AddSymbol(0 as [Namespace], GrabTokenBuffer());
+        LexerGetToken();
+    end sub;
+
+    sub ParseNewOrExistingSymbol(): (sym: [Symbol]) is
+        _check_for_identifier();
+        var name := GrabTokenBuffer();
+        sym := LookupSymbol(0 as [Namespace], name);
+        if sym == (0 as [Symbol]) then
+            sym := AddSymbol(0 as [Namespace], name);
+        else
+            Free(name);
+        end if;
+        LexerGetToken();
+    end sub;
+
+    sub ParseType(): (type: [Type]) is
+        var startsp := sp;
+        sub popops() is
+            while opsp != 0 loop
+                opsp := opsp - 1;
+                case opstack[opsp] is
+                    when OPENSQ:
+                        return;
+                end case;
+            end loop;
+        end sub;
+
+        sub parse() is
             loop
-                # Postfix.
+                # Terms and prefix operators.
 
                 case token is
-                    when COMMA: return;
-                    when ASSIGN: return;
+                    when OPENSQ:
+                        opstack[opsp] := OPENSQ;
+                        opsp := opsp + 1;
+                        continue;
+                    
+                    when ID:
+                        var sym := ParseNewOrExistingSymbol();
+                        if sym.kind == 0 then
+                            # Create a partial type.
+                            type := AllocNewType();
+                            type.kind := TYPE_PARTIAL;
 
-                    when CLOSESQ:
-                        popops();
-                        PushType(MakePointerType(PopType()));
+                            sym.kind := TYPE;
+                            sym.typedata := type;
+                            type.symbol := sym;
+                        else
+                            # This type already exists.
+                            type := sym.typedata;
+                        end if;
+                        if sym.kind != TYPE then
+                            StartError();
+                            print("expected ");
+                            print(sym.name);
+                            print(" to be a type");
+                            EndError();
+                        end if;
+                        PushType(type);
+                        # fall through to postfix section
+
+                    when else:
+                        StartError();
+                        print("invalid token ");
+                        PrintTokenName(token);
+                        print(" in type expression term");
+                        EndError();
+                end case;
+
+                loop
+                    # Postfix.
+
+                    case token is
+                        when COMMA: return;
+                        when ASSIGN: return;
+                        when SEMICOLON: return;
+
+                        when CLOSESQ:
+                            popops();
+                            PushType(MakePointerType(PopType()));
+                            LexerGetToken();
+
+                        when else:
+                            StartError();
+                            print("invalid token ");
+                            PrintTokenName(token);
+                            print(" in type expression postfix operator");
+                            EndError();
+                    end case;
+                end loop;
+            end loop;
+        end sub;
+
+        parse();
+        type := PopType();
+        if sp != startsp then
+            SimpleError("unterminated expression");
+        end if;
+    end sub;
+
+    sub ParseExpression(): (node: [Node]) is
+        var startsp := sp;
+
+        sub popops() is
+            var lhs: [Node];
+            var rhs: [Node];
+
+            while opsp != 0 loop
+                opsp := opsp - 1;
+                case opstack[opsp] is
+                    when OPENPAREN:
+                        return;
+
+                    when PLUS:
+                        rhs := PopNode();
+                        lhs := PopNode();
+                        PushNode(ExprAdd(lhs, rhs));
+                        
+                    when else:
+                        StartError();
+                        print("unhandled op ");
+                        PrintTokenName(opstack[opsp]);
+                        EndError();
+                end case;
+            end loop;
+        end sub;
+
+        sub parse() is
+            loop
+                # Terms and prefix operators.
+
+                case token is
+                    when OPENPAREN:
+                        opstack[opsp] := OPENPAREN;
+                        opsp := opsp + 1;
+                        continue;
+                    
+                    when NUMBER:
+                        PushNode(MidConstant(token_value));
                         LexerGetToken();
 
                     when else:
                         StartError();
-                        print("invalid token in type expression postfix operator");
+                        print("invalid token ");
+                        PrintTokenName(token);
+                        print(" in expression");
                         EndError();
                 end case;
+
+                loop
+                    # Postfix.
+
+                    case token is
+                        when COMMA: return;
+                        when ASSIGN: return;
+                        when SEMICOLON: return;
+
+                        when CLOSEPAREN:
+                            popops();
+                            LexerGetToken();
+
+                        when PLUS:
+                            PushOp(PLUS);
+                            LexerGetToken();
+                            break; # next token is a term
+
+                        when else:
+                            StartError();
+                            print("invalid token ");
+                            PrintTokenName(token);
+                            print(" in expression postfix operator");
+                            EndError();
+                    end case;
+                end loop;
             end loop;
-        end loop;
+        end sub;
+
+        parse();
+        popops();
+        node := PopNode();
+        if sp != startsp then
+            SimpleError("unterminated expression");
+        end if;
     end sub;
 
-    print("done type");
-    type := PopType();
-end sub;
-
-sub ParseVar() is
-    LexerGetToken();
-    var sym := ParseNewSymbol();
-    var type: [Type] := 0 as [Type];
-    if token == COLON then
+    sub ParseVar() is
         LexerGetToken();
-        type := ParseType();
-    end if;
-    RequireToken(SEMICOLON);
-end sub;
+        var sym := ParseNewSymbol();
+        var type: [Type] := 0 as [Type];
+        if token == COLON then
+            LexerGetToken();
+            type := ParseType();
+        end if;
 
-sub ParseExpressionStatement() is
-    LexerGetToken();
-    RequireToken(SEMICOLON);
-end sub;
+        var value: [Node] := (0 as [Node]);
+        if token == ASSIGN then
+            LexerGetToken();
+            value := ParseExpression();
+            if type == (0 as [Type]) then
+                type := value.type;
+                if type == (0 as [Type]) then
+                    SimpleError("types cannot be inferred for numeric constants");
+                end if;
+                if IsScalar(type) == 0 then
+                    SimpleError("you can only assign scalar values");
+                end if;
+            end if;
+        end if;
 
-sub Parse() is
+        if type == (0 as [Type]) then
+            SimpleError("type inference can't be used with a value to infer from");
+        end if;
+
+        InitVariable(current_subr, sym, type);
+
+        if value != (0 as [Node]) then
+            CheckExpressionType(value, sym.vardata.type);
+            var w := value.type.width as uint8;
+            Generate(MidStore(w, value, MidDeref(w, MidAddress(sym, 0))));
+        end if;
+
+        RequireToken(SEMICOLON);
+    end sub;
+
+    sub ParseExpressionStatement() is
+        LexerGetToken();
+        RequireToken(SEMICOLON);
+    end sub;
+
     sp := &stack[0];
-    osp := 0;
+    opsp := 0;
 
     while token != EOF loop
         case token is

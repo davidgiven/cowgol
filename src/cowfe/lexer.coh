@@ -189,6 +189,17 @@ sub SimpleError(message: string) is
     EndError();
 end sub;
 
+sub PrintTokenName(t: uint8) is
+    var n := token_names[t];
+    if [n] == ' ' then
+        print(n+1);
+    else
+        print_char('\'');
+        print(n);
+        print_char('\'');
+    end if;
+end sub;
+
 sub LexerAddIncludePath(path: string) is
     var p := InternalAlloc(@bytesof IncludePath) as [IncludePath];
     p.next := include_paths;
@@ -637,9 +648,9 @@ sub LexerGetToken() is
         end if;
     end loop;
     
-    #print("token: ");
-    #print_i8(token);
-    #print_nl();
+    print("token: ");
+    PrintTokenName(token);
+    print_nl();
 end sub;
 
 # vim: set ts=4 sw=4 et
