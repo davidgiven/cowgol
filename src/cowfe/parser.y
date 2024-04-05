@@ -6,6 +6,7 @@
 %token OPENBR CLOSEBR ID NUMBER AT BYTESOF ELSEIF.
 %token INT TYPEDEF SIZEOF STRING.
 %token IMPL DECL EXTERN INTERFACE.
+%token NIL.
 
 %left COMMA.
 %left AND.
@@ -86,10 +87,10 @@ statement ::= VAR newid(S) ASSIGN expression(E) SEMICOLON.
 {
 	var type := E.type;
 	if type == (0 as [Type]) then
-		SimpleError("types cannot be inferred for numeric constants");
+		SimpleError("types cannot be inferred for untyped constants");
 	end if;
 	if IsScalar(type) == 0 then
-		SimpleError("you can only assign to lvalues");
+		SimpleError("you can only assign scalars");
 	end if;
 
 	InitVariable(current_subr, S, type);
@@ -396,6 +397,7 @@ conditional(R) ::= expression(T1) LEOP expression(T2).
 %type leafexpression {[Node]}
 leafexpression(E) ::= NUMBER(T).                           { E := MidConstant(T.number); }
 leafexpression(E) ::= OPENPAREN expression(E1) CLOSEPAREN. { E := E1; }
+leafexpression(E) ::= NIL.                                 { E := MidConstant(0); }
 
 %type expression {[Node]}
 expression(E) ::= leafexpression(E1).                      { E := E1; }

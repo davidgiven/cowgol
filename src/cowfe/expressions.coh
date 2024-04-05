@@ -37,12 +37,6 @@ sub ResolveUntypedConstantsForAddOrSub(lhs: [Node], rhs: [Node]) is
 		elseif IsPtr(lhs.type) != 0 then
 			rhs.type := intptr_type;
 		else
-			print("lhs.type=");
-			print_hex_i32(lhs.type as intptr as uint32);
-			print_nl();
-			print("rhs.type=");
-			print_hex_i32(rhs.type as intptr as uint32);
-			print_nl();
 			SimpleError("cannot use an untyped constant in this context");
 		end if;
 	end if;
@@ -55,21 +49,37 @@ sub ResolveUntypedConstantsForAddOrSub(lhs: [Node], rhs: [Node]) is
 	end if;
 end sub;
 
+sub CheckNumber(node: [Node]) is
+	if IsNum(node.type) == 0 then
+		SimpleError("number required");
+	end if;
+end sub;
+
+sub CheckNumberOrPointer(node: [Node]) is
+	if (IsNum(node.type) == 0) and (IsPtr(node.type) == 0) then
+		SimpleError("number or pointer required");
+	end if;
+end sub;
+
+sub CheckNilCompatible(withtype: [Node], withouttype: [Node]) is
+	if withouttype.constant.value == 0 then
+		CheckNumberOrPointer(withtype);
+	else
+		CheckNumber(withtype);
+	end if;
+end sub;
+
 sub ResolveUntypedConstantsSimply(lhs: [Node], rhs: [Node]) is
 	var ltype := lhs.type;
 	var rtype := rhs.type;
 	if (ltype != (0 as [Type])) and (rtype == (0 as [Type])) then
+	 	CheckNilCompatible(lhs, rhs);
 		rhs.type := ltype;
 	elseif (ltype == (0 as [Type])) and (rtype != (0 as [Type])) then
+	 	CheckNilCompatible(rhs, lhs);
 		lhs.type := rtype;
 	elseif ltype != rtype then
 		expr_i_cant_do_that(lhs, rhs);
-	end if;
-end sub;
-
-sub CheckNumber(node: [Node]) is
-	if IsNum(node.type) == 0 then
-		SimpleError("number required");
 	end if;
 end sub;
 
