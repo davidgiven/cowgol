@@ -87,6 +87,19 @@ sub Parse() is
         LexerGetToken();
     end sub;
 
+    sub ParseExistingSymbol(): (sym: [Symbol]) is
+        _check_for_identifier();
+        sym := LookupSymbol(0 as [Namespace], &token_buffer[0]);
+        if sym == (0 as [Symbol]) then
+            StartError();
+            print("symbol '");
+            print(&token_buffer[0]);
+            print("' not found");
+            EndError();
+        end if;
+        LexerGetToken();
+    end sub;
+
     sub ParseNewOrExistingSymbol(): (sym: [Symbol]) is
         _check_for_identifier();
         var name := GrabTokenBuffer();
@@ -199,7 +212,7 @@ sub Parse() is
 
             case op is
                 when OPENPAREN:
-                
+
                 when PLUS:
                     rhs := PopNode();
                     lhs := PopNode();
@@ -225,6 +238,31 @@ sub Parse() is
                     lhs := PopNode();
                     PushNode(Expr2Simple(MIDCODE_REMS0, MIDCODE_REMU0, lhs, rhs));
                     
+                when CARET:
+                    rhs := PopNode();
+                    lhs := PopNode();
+                    PushNode(Expr2Simple(MIDCODE_EOR0, MIDCODE_EOR0, lhs, rhs));
+                    
+                when AMPERSAND:
+                    rhs := PopNode();
+                    lhs := PopNode();
+                    PushNode(Expr2Simple(MIDCODE_AND0, MIDCODE_AND0, lhs, rhs));
+                    
+                when PIPE:
+                    rhs := PopNode();
+                    lhs := PopNode();
+                    PushNode(Expr2Simple(MIDCODE_OR0, MIDCODE_OR0, lhs, rhs));
+                    
+                when LSHIFT:
+                    rhs := PopNode();
+                    lhs := PopNode();
+                    PushNode(ExprShift(MIDCODE_LSHIFT0, MIDCODE_LSHIFT0, lhs, rhs));
+                    
+                when RSHIFT:
+                    rhs := PopNode();
+                    lhs := PopNode();
+                    PushNode(ExprShift(MIDCODE_RSHIFTS0, MIDCODE_RSHIFTU0, lhs, rhs));
+
                 when else:
                     StartError();
                     print("unhandled op ");
@@ -258,6 +296,8 @@ sub Parse() is
 
         sub parse() is
             var f: uint8;
+            var sym: [Symbol];
+            var node: [Node];
 
             loop
                 # Terms and prefix operators.
@@ -275,6 +315,42 @@ sub Parse() is
                     when NUMBER:
                         PushNode(MidConstant(token_value));
                         LexerGetToken();
+
+                    when ID:
+                        sym := ParseExistingSymbol();
+
+                        sub not_a_value() is
+                            StartError();
+                            print(sym.name);
+                            print(" is not a value");
+                            EndError();
+                        end sub;
+
+                        case sym.kind is
+                            when CONST:
+                                node := MidConstant(sym.constant);
+
+                            when VAR:
+                                node := MidAddress(sym, 0);
+                                node.type := MakePointerType(sym.vardata.type);
+                                node := MakeLValue(node);
+
+                            when TYPE:
+                                # Subroutine instances are passed around as their type, even if it
+                                # does not *really* make sense. Every type must have a symbol, so
+                                # by using the type as a subroutine literal, we save on having to
+                                # create an extra symbol for it.
+                                if sym.typedata.kind == TYPE_SUBROUTINE then
+                                    node := MidSubref(sym.typedata.subrtype.subr);
+                                    node.type := sym.typedata.subrtype.subr.intfsubr.type;
+                                else
+                                    not_a_value();
+                                end if;
+
+                            when else:
+                                not_a_value();
+                        end case;
+                        PushNode(node);
 
                     when else:
                         StartError();
