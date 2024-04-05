@@ -1,38 +1,38 @@
 tokens = [
-    # Infix operators, with precendence.
+    # Infix operators, with unary and diadic precedence.
 
-    ("OPENPAREN", "(", 1),
-    ("CLOSEPAREN", ")", 1),
-    ("OPENSQ", "[", 1),
-    ("CLOSESQ", "]", 1),
-    ("DOT", ".", 1),
-    ("NOT", "not", "PREFIX_OP|2"),
-    ("BYTESOF", "@bytesof", "PREFIX_OP|2"),
-    ("INDEXOF", "@indexof", "PREFIX_OP|2"),
-    ("SIZEOF", "@sizeof", "PREFIX_OP|2"),
-    ("NEXT", "@next", "PREFIX_OP|2"),
-    ("PREV", "@prev", "PREFIX_OP|2"),
-    ("AS", "as", 2),
-    ("TILDE", "~", "PREFIX_OP|2"),
-    ("STAR", "*", "INFIX_OP|3"),
-    ("PERCENT", "%", "INFIX_OP|3"),
-    ("SLASH", "/", "INFIX_OP|3"),
-    ("PLUS", "+", "INFIX_OP|4"),
-    ("MINUS", "-", "INFIX_OP|4"),
-    ("LSHIFT", "<<", "INFIX_OP|5"),
-    ("RSHIFT", ">>", "INFIX_OP|5"),
-    ("LEOP", "<=", 6),
-    ("LTOP", "<", 6),
-    ("GEOP", ">=", 6),
-    ("GTOP", ">", 6),
-    ("EQOP", "==", 7),
-    ("NEOP", "!=", 7),
-    ("AMPERSAND", "&", "INFIX_OP|8"),
-    ("CARET", "^", "INFIX_OP|9"),
-    ("PIPE", "|", "INFIX_OP|10"),
-    ("AND", "and", 11),
-    ("OR", "or", 12),
-    ("COMMA", ",", 15),
+    ("OPENPAREN", "(", 15, 15),
+    ("CLOSEPAREN", ")", 15, 15),
+    ("OPENSQ", "[", 0, 1),
+    ("CLOSESQ", "]", 0, 1),
+    ("DOT", ".", 0, 1),
+    ("NOT", "not", 2, 0),
+    ("BYTESOF", "@bytesof", 2, 0),
+    ("INDEXOF", "@indexof", 2, 0),
+    ("SIZEOF", "@sizeof", 2, 0),
+    ("NEXT", "@next", 2, 0),
+    ("PREV", "@prev", 2, 0),
+    ("AS", "as", 0, 2),
+    ("TILDE", "~", 2, 0),
+    ("STAR", "*", 0, 3),
+    ("PERCENT", "%", 0, 3),
+    ("SLASH", "/", 0, 3),
+    ("PLUS", "+", 2, 4),
+    ("MINUS", "-", 2, 4),
+    ("LSHIFT", "<<", 0, 5),
+    ("RSHIFT", ">>", 0, 5),
+    ("LEOP", "<=", 0, 6),
+    ("LTOP", "<", 0, 6),
+    ("GEOP", ">=", 0, 6),
+    ("GTOP", ">", 0, 6),
+    ("EQOP", "==", 0, 7),
+    ("NEOP", "!=", 0, 7),
+    ("AMPERSAND", "&", 2, 8),
+    ("CARET", "^", 0, 9),
+    ("PIPE", "|", 0, 10),
+    ("AND", "and", 0, 11),
+    ("OR", "or", 0, 12),
+    ("COMMA", ",", 0, 15),
 
     # Other tokens, without precedence.
 
@@ -90,5 +90,5 @@ print("var token_flags: uint8[] := {")
 for n, r, *p in tokens:
     if len(p) == 0:
         break
-    print(f'\t{p[0]},')
+    print(f'\t{(p[0]<<4) | p[1]},')
 print("};")

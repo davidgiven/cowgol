@@ -11,6 +11,8 @@ sub Parse() is
     var opstack: uint8[PARSE_STACK_SIZE];
     var opsp: @indexof opstack;
 
+    const UNARY_FLAG := 0x80;
+
     sub Push(p: [void]) is
         [sp] := p;
         sp := @next sp;
@@ -135,6 +137,7 @@ sub Parse() is
                         continue;
                     
                     when ID:
+                        print("push id\n");
                         var sym := ParseNewOrExistingSymbol();
                         if sym.kind == 0 then
                             # Create a partial type.
@@ -201,12 +204,22 @@ sub Parse() is
         var startsp := sp;
         var startopsp := opsp;
 
+        sub precedenceof(op: uint8): (p: uint8) is
+            if (op & UNARY_FLAG) != 0 then
+                p := token_flags[op] >> 4;
+            else
+                p := token_flags[op] & 0x0f;
+            end if;
+        end sub;
+
         sub applyop() is
             var op := PopOp();
             var lhs: [Node];
             var rhs: [Node];
 
             print("apply ");
+            print_i8(op);
+            print(": ");
             PrintTokenName(op);
             print_nl();
 
@@ -218,10 +231,17 @@ sub Parse() is
                     lhs := PopNode();
                     PushNode(ExprAdd(lhs, rhs));
                     
+                when PLUS|UNARY_FLAG:
+                    # do nothing
+
                 when MINUS:
                     rhs := PopNode();
                     lhs := PopNode();
                     PushNode(ExprSub(lhs, rhs));
+                    
+                when MINUS|UNARY_FLAG:
+                    lhs := PopNode();
+                    PushNode(Expr1Simple(MIDCODE_NEG0, lhs));
                     
                 when STAR:
                     rhs := PopNode();
@@ -238,6 +258,10 @@ sub Parse() is
                     lhs := PopNode();
                     PushNode(Expr2Simple(MIDCODE_REMS0, MIDCODE_REMU0, lhs, rhs));
                     
+                when UNARY_FLAG|TILDE:
+                    lhs := PopNode();
+                    PushNode(Expr1Simple(MIDCODE_NOT0, lhs));
+
                 when CARET:
                     rhs := PopNode();
                     lhs := PopNode();
@@ -248,6 +272,15 @@ sub Parse() is
                     lhs := PopNode();
                     PushNode(Expr2Simple(MIDCODE_AND0, MIDCODE_AND0, lhs, rhs));
                     
+                when UNARY_FLAG|AMPERSAND:
+                    lhs := UndoLValue(PopNode());
+                    if lhs.op == MIDCODE_ADDRESS then
+                        var sym := lhs.address.sym;
+                        if IsScalar(sym.vardata.type) != 0 then
+                            SimpleError("you cannot take the address of scalar variables");
+                        end if;
+                    end if;
+
                 when PIPE:
                     rhs := PopNode();
                     lhs := PopNode();
@@ -266,15 +299,17 @@ sub Parse() is
                 when else:
                     StartError();
                     print("unhandled op ");
-                    PrintTokenName(opstack[opsp]);
+                    if (opstack[opsp] & UNARY_FLAG) != 0 then
+                        print("unary ");
+                    end if;
+                    PrintTokenName(opstack[opsp] & 0x7f);
                     EndError();
             end case;
         end sub;
 
         sub applyops(p: uint8) is
             while opsp != 0 loop
-                var topop := opstack[opsp-1];
-                var topopp := token_flags[topop] & PRECENDENCE_MASK;
+                var topopp := precedenceof(opstack[opsp-1]);
                 if topopp > p then
                     break;
                 end if;
@@ -290,7 +325,13 @@ sub Parse() is
         end sub;
         
         sub pushop(op: uint8) is
-            applyops(token_flags[op] & PRECENDENCE_MASK);
+            print("push ");
+            print_i8(op);
+            print(": ");
+            PrintTokenName(op);
+            print_nl();
+
+            applyops(precedenceof(op));
             PushOp(op);
         end sub;
 
@@ -301,6 +342,11 @@ sub Parse() is
 
             loop
                 # Terms and prefix operators.
+                    
+                f := 0;
+                if token < @sizeof token_flags then
+                    f := token_flags[token];
+                end if;
 
                 case token is
                     when COMMA: return;
@@ -353,11 +399,17 @@ sub Parse() is
                         PushNode(node);
 
                     when else:
-                        StartError();
-                        print("invalid token ");
-                        PrintTokenName(token);
-                        print(" in expression");
-                        EndError();
+                        if (f & 0xf0) != 0 then
+                            pushop(UNARY_FLAG | token);
+                            LexerGetToken();
+                            continue; # next token is another term
+                        else
+                            StartError();
+                            print("invalid token ");
+                            PrintTokenName(token);
+                            print(" in expression");
+                            EndError();
+                        end if;
                 end case;
 
                 loop
@@ -378,7 +430,7 @@ sub Parse() is
                             LexerGetToken();
 
                         when else:
-                            if (f & INFIX_OP) != 0 then
+                            if (f & 0x0f) != 0 then
                                 pushop(token);
                                 LexerGetToken();
                                 break; # next token is a term

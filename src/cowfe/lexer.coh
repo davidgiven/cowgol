@@ -22,10 +22,6 @@ var token: uint8;
 
 var infcb: FCB;
  
-const PRECENDENCE_MASK := 0x0f;
-const PREFIX_OP := 0x10;
-const INFIX_OP  := 0x20;
-
 include ".obj/src/cowfe/+tokens/tokens.coh";
 
 const CTYPE_DECDIGIT := 0x01;
@@ -196,7 +192,7 @@ sub SimpleError(message: string) is
 end sub;
 
 sub PrintTokenName(t: uint8) is
-    var n := token_names[t];
+    var n := token_names[t & 0x7f];
     if [n] == ' ' then
         print(n+1);
     else
