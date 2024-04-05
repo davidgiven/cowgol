@@ -182,7 +182,7 @@ sub FindSymbol(name: string): (psymbol: [[Symbol]]) is
 	psymbol := &symbolTable[hash & 0x1f];
 	loop
 		var symbol := [psymbol];
-		if symbol == (0 as [Symbol]) then
+		if symbol == nil then
 			break;
 		end if;
 
@@ -374,7 +374,7 @@ sub ReadToken(): (token: Token) is
 		tokenBuffer[tokenLength] := 0;
 
 		var psymbol := FindSymbol(&tokenBuffer[0]);
-		if [psymbol] == (0 as [Symbol]) then
+		if [psymbol] == nil then
 			AddSymbol(psymbol, HeapifyToken());
 		else
 			tokenSymbol := [psymbol];
@@ -734,7 +734,7 @@ sub TitleCb implements SymbolCallback is
 end sub;
 
 sub EquCb implements SymbolCallback is
-    if currentLabel == (0 as [Symbol]) then
+    if currentLabel == nil then
         SimpleError("equ with no label");
     end if;
 
@@ -753,7 +753,7 @@ sub EquCb implements SymbolCallback is
 end sub;
 
 sub SetCb implements SymbolCallback is
-    if currentLabel == (0 as [Symbol]) then
+    if currentLabel == nil then
         SimpleError("set with no label");
     end if;
 
@@ -983,7 +983,7 @@ sub CheckForUndefinedSymbols() is
     var psymbol := &symbolTable[0];
     while psymbol != &symbolTable[@sizeof symbolTable] loop
         var symbol := [psymbol];
-        while symbol != (0 as [Symbol]) loop
+        while symbol != nil loop
             if symbol.callback == UndefinedLabelCb then
                 print("undefined symbol: ");
                 print(symbol.name);
@@ -1056,13 +1056,13 @@ end sub;
 sub AddSymbols(p: [Symbol], endp: [Symbol]) is
     while p != endp loop
 		var psymbol := FindSymbol(p.name);
-		if [psymbol] != (0 as [Symbol]) then
+		if [psymbol] != nil then
 			StartError();
 			print("duplicate symbol during init ");
 			print(p.name);
 			EndError();
 		end if;
-		p.next := (0 as [Symbol]);
+		p.next := nil;
 		[psymbol] := p;
 
 		p := @next p;

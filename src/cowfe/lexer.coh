@@ -212,7 +212,7 @@ var keyword_ids: uint8[] := {
 
 sub StartError() is
 	print("error: ");
-	if current_file == (0 as [File]) then
+	if current_file == nil then
 		print("<eof>");
 	else
 		print(current_file.path);
@@ -268,13 +268,13 @@ sub LexerIncludeFile(path: string) is
 	f.next := current_file;
 	f.lineno := 1;
 
-	if current_file != (0 as [File]) then
+	if current_file != nil then
 		lexer_i_close(current_file);
 	end if;
 
 	var p := include_paths;
 	var fl := StrLen(path);
-	while p != (0 as [IncludePath]) loop
+	while p != nil loop
 		var il := StrLen(p.path);
 		f.path := InternalAlloc(fl + il + 1);
 		MemCopy(p.path, il, f.path);
@@ -323,7 +323,7 @@ sub LexerReadToken(): (token: uint8) is
 		end if;
 
 		loop
-			if current_file == (0 as [File]) then
+			if current_file == nil then
 				c := 0;
 				break;
 			end if;
@@ -341,7 +341,7 @@ sub LexerReadToken(): (token: uint8) is
 			lexer_i_close(f);
 			Free(f as [uint8]);
 
-			if current_file != (0 as [File]) then
+			if current_file != nil then
 				file_nesting := file_nesting - 1;
 				LexerPrintSpaces();
 				print("< ");

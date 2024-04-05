@@ -8,8 +8,8 @@ var outputFilename: [uint8];
 ArgvInit();
 inputFilename := ArgvNext();
 outputFilename := ArgvNext();
-if (inputFilename == (0 as [uint8])) or (outputFilename == (0 as [uint8]))
-	or (ArgvNext() != (0 as [uint8])) then
+if (inputFilename == nil) or (outputFilename == nil)
+	or (ArgvNext() != nil) then
 	print("Syntax error!\n");
 	return;
 end if;

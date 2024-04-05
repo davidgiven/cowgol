@@ -2,5 +2,5 @@ include "cowgol.coh";
 include "tests/_framework.coh";
 
 var p: [uint8] := nil;
-print("p == 0"); if p == (0 as [uint8]) then yes(); else no(); end if;
+print("p == 0"); if p == nil then yes(); else no(); end if;
 print("p == nil"); if p == nil then yes(); else no(); end if;
