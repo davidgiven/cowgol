@@ -282,7 +282,7 @@ dmsc@github (and others). It is distributed under the terms of the GPL 2.0
 license; see `third_party/emu2/LICENSE` for the full text.
 
 `third_party/djlink` contains a copy of the djlink 16-bit linker written by
-dj@delorie.com. It is distributed under the terms of the GPL 2.0 licesne; see
+dj@delorie.com. It is distributed under the terms of the GPL 2.0 license; see
 `third_party/djlink/copying` for the full text, with additional grants
 described in `third_party/djlink/copying.dj`.
 
@@ -293,3 +293,6 @@ turn contains a copy of John R. Hauser's softfloat library, distributable under
 a custom but MIT-like license; see `third_party/musashi/softfloat/README.txt`
 for the text.
 
+`third_party/libz80ex` contains a copy of the z80ex Z80 emulation library,
+written bypigmaker57@kahoh57.info. It is distributable under the terms of the
+GPL GPL 2.0 license; see `third_party/z80ex/COPYING` for the text.
