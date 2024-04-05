@@ -88,6 +88,12 @@ sub ReadM() is
 
 		print_char(' ');
 		print(MidcodeName(node.op));
+		case node.op is
+			when MIDCODE_CONSTANT:
+				print_char('(');
+				print_i32(node.constant.value as uint32);
+				print_char(')');
+		end case;
 	end loop;
 	print_nl();
 	Discard(rootnode);
