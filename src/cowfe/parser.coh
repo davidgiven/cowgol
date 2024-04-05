@@ -186,39 +186,90 @@ sub Parse() is
 
     sub ParseExpression(): (node: [Node]) is
         var startsp := sp;
+        var startopsp := opsp;
 
-        sub popops() is
+        sub applyop() is
+            var op := PopOp();
             var lhs: [Node];
             var rhs: [Node];
 
-            while opsp != 0 loop
-                opsp := opsp - 1;
-                case opstack[opsp] is
-                    when OPENPAREN:
-                        return;
+            print("apply ");
+            PrintTokenName(op);
+            print_nl();
 
-                    when PLUS:
-                        rhs := PopNode();
-                        lhs := PopNode();
-                        PushNode(ExprAdd(lhs, rhs));
-                        
-                    when else:
-                        StartError();
-                        print("unhandled op ");
-                        PrintTokenName(opstack[opsp]);
-                        EndError();
-                end case;
+            case op is
+                when OPENPAREN:
+                
+                when PLUS:
+                    rhs := PopNode();
+                    lhs := PopNode();
+                    PushNode(ExprAdd(lhs, rhs));
+                    
+                when MINUS:
+                    rhs := PopNode();
+                    lhs := PopNode();
+                    PushNode(ExprSub(lhs, rhs));
+                    
+                when STAR:
+                    rhs := PopNode();
+                    lhs := PopNode();
+                    PushNode(Expr2Simple(MIDCODE_MUL0, MIDCODE_MUL0, lhs, rhs));
+                    
+                when SLASH:
+                    rhs := PopNode();
+                    lhs := PopNode();
+                    PushNode(Expr2Simple(MIDCODE_DIVS0, MIDCODE_DIVU0, lhs, rhs));
+                    
+                when PERCENT:
+                    rhs := PopNode();
+                    lhs := PopNode();
+                    PushNode(Expr2Simple(MIDCODE_REMS0, MIDCODE_REMU0, lhs, rhs));
+                    
+                when else:
+                    StartError();
+                    print("unhandled op ");
+                    PrintTokenName(opstack[opsp]);
+                    EndError();
+            end case;
+        end sub;
+
+        sub applyops(p: uint8) is
+            while opsp != 0 loop
+                var topop := opstack[opsp-1];
+                var topopp := token_flags[topop] & PRECENDENCE_MASK;
+                if topopp > p then
+                    break;
+                end if;
+
+                applyop();
             end loop;
         end sub;
 
+        sub popops() is
+            while opsp != startopsp loop
+                applyop();
+            end loop;
+        end sub;
+        
+        sub pushop(op: uint8) is
+            applyops(token_flags[op] & PRECENDENCE_MASK);
+            PushOp(op);
+        end sub;
+
         sub parse() is
+            var f: uint8;
+
             loop
                 # Terms and prefix operators.
 
                 case token is
+                    when COMMA: return;
+                    when ASSIGN: return;
+                    when SEMICOLON: return;
+
                     when OPENPAREN:
-                        opstack[opsp] := OPENPAREN;
-                        opsp := opsp + 1;
+                        PushOp(OPENPAREN);
+                        LexerGetToken();
                         continue;
                     
                     when NUMBER:
@@ -234,6 +285,11 @@ sub Parse() is
                 end case;
 
                 loop
+                    f := 0;
+                    if token < @sizeof token_flags then
+                        f := token_flags[token];
+                    end if;
+
                     # Postfix.
 
                     case token is
@@ -245,17 +301,18 @@ sub Parse() is
                             popops();
                             LexerGetToken();
 
-                        when PLUS:
-                            PushOp(PLUS);
-                            LexerGetToken();
-                            break; # next token is a term
-
                         when else:
-                            StartError();
-                            print("invalid token ");
-                            PrintTokenName(token);
-                            print(" in expression postfix operator");
-                            EndError();
+                            if (f & INFIX_OP) != 0 then
+                                pushop(token);
+                                LexerGetToken();
+                                break; # next token is a term
+                            else
+                                StartError();
+                                print("invalid token ");
+                                PrintTokenName(token);
+                                print(" in expression postfix operator");
+                                EndError();
+                            end if;
                     end case;
                 end loop;
             end loop;

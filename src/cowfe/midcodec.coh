@@ -105,6 +105,10 @@ end sub;
 sub FoldConstant2(op: uint8, lhsp: [Node], rhsp: [Node]): (result: Arith) is
 	var lhs := lhsp.constant.value;
 	var rhs := rhsp.constant.value;
+	print("[fold lhs=");
+	print_i32(lhs as uint32);
+	print(" rhs=");
+	print_i32(rhs as uint32);
 	case op is
 		when MIDCODE_ADD0:      result := lhs + rhs;
 		when MIDCODE_SUB0:      result := lhs - rhs;
@@ -122,6 +126,9 @@ sub FoldConstant2(op: uint8, lhsp: [Node], rhsp: [Node]): (result: Arith) is
 		when else:
 			midcodec_i_bad_fold();
 	end case;
+	print(" result=");
+	print_i32(result as uint32);
+	print("]\n");
 end sub;
 
 sub MidC1Op(op: uint8, width: uint8, lhs: [Node]): (result: [Node]) is

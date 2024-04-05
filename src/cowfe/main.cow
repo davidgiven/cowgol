@@ -18,7 +18,6 @@ const INSTRUCTION_TEMPLATE_DEPTH := 0;
 include "include/coodecls.coh";
 include "src/cowfe/types.coh";
 include "src/cowfe/allocator.coh";
-include ".obj/src/cowfe/+tokens/tokens.coh";
 include "src/cowfe/lexer.coh";
 include "src/cowfe/midcodec.coh";
 include "src/cowfe/emitter.coh";

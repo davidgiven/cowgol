@@ -1,36 +1,35 @@
 tokens = [
     # Infix operators, with precendence.
 
-    ("NOT", "not", 2),
-    ("STAR", "*", 3),
-    ("PERCENT", "%", 3),
-    ("SLASH", "/", 3),
-    ("PLUS", "+", 4),
-    ("MINUS", "-", 4),
-    ("LSHIFT", "<<", 5),
-    ("RSHIFT", ">>", 5),
-    ("AMPERSAND", "&", 8),
-    ("CARET", "^", 9),
-    ("PIPE", "|", 10),
-
     ("OPENPAREN", "(", 1),
     ("CLOSEPAREN", ")", 1),
     ("OPENSQ", "[", 1),
     ("CLOSESQ", "]", 1),
     ("DOT", ".", 1),
-    ("BYTESOF", "@bytesof", 2),
-    ("INDEXOF", "@indexof", 2),
-    ("SIZEOF", "@sizeof", 2),
-    ("NEXT", "@next", 2),
-    ("PREV", "@prev", 2),
+    ("NOT", "not", "PREFIX_OP|2"),
+    ("BYTESOF", "@bytesof", "PREFIX_OP|2"),
+    ("INDEXOF", "@indexof", "PREFIX_OP|2"),
+    ("SIZEOF", "@sizeof", "PREFIX_OP|2"),
+    ("NEXT", "@next", "PREFIX_OP|2"),
+    ("PREV", "@prev", "PREFIX_OP|2"),
     ("AS", "as", 2),
-    ("TILDE", "~", 2),
+    ("TILDE", "~", "PREFIX_OP|2"),
+    ("STAR", "*", "INFIX_OP|3"),
+    ("PERCENT", "%", "INFIX_OP|3"),
+    ("SLASH", "/", "INFIX_OP|3"),
+    ("PLUS", "+", "INFIX_OP|4"),
+    ("MINUS", "-", "INFIX_OP|4"),
+    ("LSHIFT", "<<", "INFIX_OP|5"),
+    ("RSHIFT", ">>", "INFIX_OP|5"),
     ("LEOP", "<=", 6),
     ("LTOP", "<", 6),
     ("GEOP", ">=", 6),
     ("GTOP", ">", 6),
     ("EQOP", "==", 7),
     ("NEOP", "!=", 7),
+    ("AMPERSAND", "&", "INFIX_OP|8"),
+    ("CARET", "^", "INFIX_OP|9"),
+    ("PIPE", "|", "INFIX_OP|10"),
     ("AND", "and", 11),
     ("OR", "or", 12),
     ("COMMA", ",", 15),
@@ -87,7 +86,7 @@ for n, r, *unused in tokens:
     print(f'\t"{r}",')
 print("};")
 
-print("var token_precedence: uint8[] := {")
+print("var token_flags: uint8[] := {")
 for n, r, *p in tokens:
     if len(p) == 0:
         break

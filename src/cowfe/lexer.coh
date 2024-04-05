@@ -22,6 +22,12 @@ var token: uint8;
 
 var infcb: FCB;
  
+const PRECENDENCE_MASK := 0x0f;
+const PREFIX_OP := 0x10;
+const INFIX_OP  := 0x20;
+
+include ".obj/src/cowfe/+tokens/tokens.coh";
+
 const CTYPE_DECDIGIT := 0x01;
 const CTYPE_IDSTART  := 0x10;
 const CTYPE_IDCONT   := 0x20;
@@ -567,7 +573,7 @@ sub LexerGetToken() is
 
         case c is
             when 0:
-                token := 0;
+                token := EOF;
 
             when ':':
                 c := lexer_i_getchar();
