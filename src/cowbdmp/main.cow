@@ -93,6 +93,12 @@ sub ReadM() is
 				print_char('(');
 				print_i32(node.constant.value as uint32);
 				print_char(')');
+
+			when MIDCODE_ADDRESS:
+				print_char('(');
+				print_char('+');
+				print_i32((node.address.sym.off + node.address.off) as uint32);
+				print_char(')');
 		end case;
 	end loop;
 	print_nl();
