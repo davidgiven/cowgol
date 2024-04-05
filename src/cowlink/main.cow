@@ -37,7 +37,7 @@ sub AddInputFile(filename: [uint8]) is
 	print_nl();
 
 	var coo := OpenAndLoadCoo(filename);
-	if firstCoo == (0 as [Coo]) then
+	if firstCoo == nil then
 		firstCoo := coo;
 		coos := coo;
 	else
@@ -46,12 +46,12 @@ sub AddInputFile(filename: [uint8]) is
 	end if;
 
 	var thisMain := [FindSub(coo, 0)];
-	if thisMain != (0 as [Subroutine]) then
-		if mainSubroutine == (0 as [Subroutine]) then
+	if thisMain != nil then
+		if mainSubroutine == nil then
 			mainSubroutine := thisMain;
 		end if;
 	end if;
-	if mostRecentSubroutine != (0 as [Subroutine]) then
+	if mostRecentSubroutine != nil then
 		AddRef(mostRecentSubroutine, thisMain);
 	end if;
 	mostRecentSubroutine := thisMain;
@@ -60,7 +60,7 @@ end sub;
 ArgvInit();
 loop
 	var arg := ArgvNext();
-	if arg == (0 as [uint8]) then
+	if arg == nil then
 		break;
 	end if;
 

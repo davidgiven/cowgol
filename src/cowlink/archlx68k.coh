@@ -43,9 +43,9 @@ sub ArchEmitHeader(coo: [Coo]) is
 	E("\tmove.l %a0, (argv)\n");
 	E("\tlea (ws), %a6\n");
 
-	while coo != (0 as [Coo]) loop
+	while coo != nil loop
 		var main := coo.index.subroutines[0];
-		if main != (0 as [Subroutine]) then
+		if main != nil then
 			E("\tjsr ");
 			ArchEmitSubRef(main);
 			E_nl();

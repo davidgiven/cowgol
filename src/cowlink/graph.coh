@@ -7,11 +7,11 @@ sub ResolveExternals() is
 	# Find all external implementations.
 	
 	var subroutine := subroutines;
-	while subroutine != (0 as [Subroutine]) loop
+	while subroutine != nil loop
 		if (subroutine.state & SUB_IMPLEMENTATION) != 0 then
 			external := subroutine.external;
-			if external != (0 as [External]) then
-				if (external.impl != (0 as [Subroutine])) and (external.impl != subroutine) then
+			if external != nil then
+				if (external.impl != nil) and (external.impl != subroutine) then
 					SimpleError("conflicting externals");
 				end if;
 				external.impl := subroutine;
@@ -23,9 +23,9 @@ sub ResolveExternals() is
 	# Now find any missing implementations.
 	
 	subroutine := subroutines;
-	while subroutine != (0 as [Subroutine]) loop
+	while subroutine != nil loop
 		external := subroutine.external;
-		if (external != (0 as [External])) and (external.impl == (0 as [Subroutine])) then
+		if (external != nil) and (external.impl == nil) then
 			print("error: external '");
 			print(external.name);
 			print("' unresolved\n");
@@ -91,13 +91,13 @@ sub PlaceSubroutines(subroutine: [Subroutine]) is
 		end loop;
 
 		var refs := &subroutine.refs;
-		while refs != (0 as [References]) loop
+		while refs != nil loop
 			var j: uint8 := 0;
 			while j != COO_REFS_SIZE loop
 				var called := refs.calls[j];
 				j := j + 1;
 
-				if called == (0 as [Subroutine]) then
+				if called == nil then
 					break;
 				end if;
 				called := Deref(called);
@@ -147,7 +147,7 @@ sub PlaceSubroutines(subroutine: [Subroutine]) is
 #	var total: uint16 := 0;
 #	var used: uint16 := 0;
 #	loop
-#		if subroutine == (0 as [Subroutine]) then
+#		if subroutine == nil then
 #			break;
 #		end if;
 #		if subroutine.used != 0 then
