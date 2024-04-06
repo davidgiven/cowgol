@@ -10,12 +10,12 @@ sub ArgvNext(): (arg: [uint8]) is
 	# No more arguments?
 
 	if argv_pointer == (0 as [[uint8]]) then
-		arg := (0 as [uint8]);
+		arg := nil;
 		return;
 	end if;
 
 	arg := [argv_pointer];
-	if arg == (0 as [uint8]) then
+	if arg == nil then
 		# No more arguments.
 		argv_pointer := (0 as [[uint8]]);
 	else

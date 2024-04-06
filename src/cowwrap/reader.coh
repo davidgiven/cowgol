@@ -15,11 +15,11 @@ var main_symbol: Symbol;
 var symbols: [Symbol] := &main_symbol;
 
 var current_id: SubId := 1;
-var current_subr: [Symbol] := (0 as [Symbol]);
+var current_subr: [Symbol] := nil;
 
 sub GetSymbol(name: string): (symbol: [Symbol]) is
 	symbol := symbols;
-	while symbol != (0 as [Symbol]) loop
+	while symbol != nil loop
 		if StrCmp(name, symbol.name) == 0 then
 			return;
 		end if;
@@ -117,9 +117,9 @@ sub ProcessFile() is
 	end sub;
 
 	sub CloseChunk() is
-		if current_subr != (0 as [Symbol]) then
+		if current_subr != nil then
 			EmitterPopChunk('F');
-			current_subr := (0 as [Symbol]);
+			current_subr := nil;
 		end if;
 	end sub;
 
@@ -174,7 +174,7 @@ sub ProcessFile() is
 	end sub;
 
 	sub SourceLine() is
-		if current_subr == (0 as [Symbol]) then
+		if current_subr == nil then
 			FatalError("source text with no subroutine defined");
 		end if;
 		loop
@@ -249,7 +249,7 @@ end sub;
 sub CheckSymbols() is
 	var success: uint8 := 1;
 	var s := symbols;
-	while s != (0 as [Symbol]) loop
+	while s != nil loop
 		if s.state == SYM_UNDECLARED then
 			print("reference to undeclared symbol '");
 			print(s.name);

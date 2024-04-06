@@ -181,7 +181,7 @@ sub EmitterDeclareWorkspace(subr: [Subroutine], wid: uint8, workspace: Size) is
 end sub;
 
 sub EmitParameterList(param: [Symbol]) is
-	while param != (0 as [Symbol]) loop
+	while param != nil loop
 		E_b16(param.vardata.subr.id);
 		E_b8(param.vardata.wsid);
 		E_bsize(param.vardata.offset);

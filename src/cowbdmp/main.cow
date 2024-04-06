@@ -82,7 +82,7 @@ sub ReadM() is
 	PushNode(rootnode);
 	while next_node != old_next_node loop
 		var node := NextNode();
-		if node == (0 as [Node]) then
+		if node == nil then
 			break;
 		end if;
 

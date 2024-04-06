@@ -20,7 +20,7 @@ end sub;
 
 sub MakePointerType(type: [Type]): (ptrtype: [Type]) is
 	ptrtype := type.pointerto;
-	if ptrtype == (0 as [Type]) then
+	if ptrtype == nil then
 		ptrtype := AllocNewType();
 		ptrtype.kind := TYPE_POINTER;
 		ptrtype.width := intptr_type.width;
@@ -61,7 +61,7 @@ sub DestructSubroutineContents(subr: [Subroutine]) is
 
 	# Adds all members of the namespace to the pending list.
 	sub QueueNamespace(namespace: [Namespace]) is
-		while namespace.first != (0 as [Symbol]) loop
+		while namespace.first != nil loop
 			var s := namespace.first;
 			namespace.first := s.next;
 
@@ -85,11 +85,11 @@ sub DestructSubroutineContents(subr: [Subroutine]) is
 	# are none.
 
 	pending := subr.namespace.first;
-	if last_parameter != (0 as [Symbol]) then
+	if last_parameter != nil then
 		pending := last_parameter.next;
 	end if;
 
-	while pending != (0 as [Symbol]) loop
+	while pending != nil loop
 		var symbol := pending;
 		pending := pending.next;
 		
@@ -113,7 +113,7 @@ sub DestructSubroutineContents(subr: [Subroutine]) is
 		FreeSymbol(symbol);
 	end loop;
 
-	if last_parameter != (0 as [Symbol]) then
+	if last_parameter != nil then
 		last_parameter.next := 0 as [Symbol];
 	else
 		subr.namespace.first := 0 as [Symbol];
