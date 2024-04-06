@@ -10,7 +10,7 @@ sub AddSubr(subrid: uint16): (subr: [Subroutine]) is
 	var id := subrid;
 	var index := &subrindex;
 	while id >= SUBR_INDEX_SIZE loop
-		if index.next == (0 as [SubrIndex]) then
+		if index.next == nil then
 			index.next := Alloc(@bytesof SubrIndex) as [SubrIndex];
 		end if;
 		index := index.next;
@@ -18,7 +18,7 @@ sub AddSubr(subrid: uint16): (subr: [Subroutine]) is
 	end loop;
 
 	var slot := &index.subr[id as uint8];
-	if [slot] != (0 as [Subroutine]) then
+	if [slot] != nil then
 		StartError();
 		print("duplicate subrid 0x");
 		print_hex_i16(subrid);
@@ -35,7 +35,7 @@ end sub;
 	var index := &subrindex;
 	var i := subrid;
 	while i >= SUBR_INDEX_SIZE loop
-		if index.next == (0 as [SubrIndex]) then
+		if index.next == nil then
 			StartError();
 			print("unknown subrid ");
 			print_hex_i16(subrid);
@@ -82,7 +82,7 @@ sub ReadM() is
 end sub;
 
 sub ReadParameters(count: uint8, paramp: [[[Parameter]]]) is
-	if [paramp] != (0 as [[Parameter]]) then
+	if [paramp] != nil then
 		SimpleError("parameters specified twice");
 	end if;
 	var p := Alloc(count as intptr * @bytesof intptr) as [[Parameter]];

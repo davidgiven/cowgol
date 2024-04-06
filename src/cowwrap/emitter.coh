@@ -18,7 +18,7 @@ end record;
 var current_chunk: [EmitterChunk];
 
 sub E_b8(byte: uint8) is
-	if current_chunk != (0 as [EmitterChunk]) then
+	if current_chunk != nil then
 		var r := current_chunk.current_record;
 		if r.ptr == RECORD_SIZE then
 			r := Alloc(@bytesof EmitterRecord) as [EmitterRecord];
@@ -69,7 +69,7 @@ sub EmitterPopChunk(type: uint8) is
 	FCBPutChar(&outfcb, (len>>8) as uint8);
 
 	var r := current_chunk.first_record;
-	while r != (0 as [EmitterRecord]) loop
+	while r != nil loop
 		var i: uint8 := 0;
 		while i != r.ptr loop
 			FCBPutChar(&outfcb, r.data[i]);

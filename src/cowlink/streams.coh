@@ -22,7 +22,7 @@ sub SetStream(sid: uint8) is
 		SimpleError("stream ID out of range");
 	end if;
 	current_stream := &streams[sid];
-	if current_stream.last_chunk == (0 as [EmitterChunk]) then
+	if current_stream.last_chunk == nil then
 		var chunk := Alloc(@bytesof EmitterChunk) as [EmitterChunk];
 		current_stream.first_chunk := chunk;
 		current_stream.last_chunk := chunk;
@@ -136,7 +136,7 @@ end sub;
 
 sub FlushStream() is
 	var chunk := current_stream.first_chunk;
-	while chunk != (0 as [EmitterChunk]) loop
+	while chunk != nil loop
 		var i: uint8 := 0;
 		while i != chunk.len loop
 			WriteCharacterFromStream(chunk.buffer[i]);

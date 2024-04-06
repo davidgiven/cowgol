@@ -37,6 +37,7 @@ TESTS = [
     "mul-8bit-s",
     "mul-8bit-u",
     "nested-calls",
+    "null",
     "outputparams",
     "pointers",
     "rangetypes",

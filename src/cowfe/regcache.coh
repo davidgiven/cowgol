@@ -50,7 +50,7 @@ sub RegCacheLeavesConstant(reg: RegId, value: Word) is
 	end loop;
 
 	p := reg_i_find_empty_slot();
-	if p != (0 as [CacheSlot]) then
+	if p != nil then
 		p.state := CACHE_SLOT_CONSTANT;
 		p.number := value;
 		p.reg := reg;
@@ -68,7 +68,7 @@ sub RegCacheLeavesAddress(reg: RegId, sym: [Symbol], off: Size) is
 	end loop;
 
 	p := reg_i_find_empty_slot();
-	if p != (0 as [CacheSlot]) then
+	if p != nil then
 		p.state := CACHE_SLOT_ADDRESS;
 		p.symbol := sym;
 		p.number := off as Word;
@@ -87,7 +87,7 @@ sub RegCacheLeavesValue(reg: RegId, sym: [Symbol], off: Size) is
 	end loop;
 
 	p := reg_i_find_empty_slot();
-	if p != (0 as [CacheSlot]) then
+	if p != nil then
 			p.state := CACHE_SLOT_VALUE;
 			p.symbol := sym;
 			p.number := off as Word;

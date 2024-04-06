@@ -35,9 +35,9 @@ end sub;
 sub ArchEmitFooter(coo: [Coo]) is
 	E("void cmain(void) {\n");
 
-	while coo != (0 as [Coo]) loop
+	while coo != nil loop
 		var main := coo.index.subroutines[0];
-		if main != (0 as [Subroutine]) then
+		if main != nil then
 			E_b8('\t');
 			ArchEmitSubRef(main);
 			E("();\n");

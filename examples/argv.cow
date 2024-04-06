@@ -6,7 +6,7 @@ ArgvInit();
 var i: uint8 := 0;
 loop
 	var arg := ArgvNext();
-	if arg == (0 as [uint8]) then
+	if arg == nil then
 		break;
 	end if;
 	print_hex_i8(i);
