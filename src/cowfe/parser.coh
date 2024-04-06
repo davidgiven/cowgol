@@ -7,9 +7,14 @@
 sub Parse() is
     const PARSE_STACK_SIZE := 128;
     var stack: [void][PARSE_STACK_SIZE];
-    var sp: [[void]];
+    var sp: @indexof stack;
     var opstack: uint8[PARSE_STACK_SIZE];
     var opsp: @indexof opstack;
+
+    var exit_label: LabelRef := nil;
+    var true_label: LabelRef := nil;
+    var false_label: LabelRef := nil;
+    var false_generated: uint8 := 0;
 
     const UNARY_FLAG := 0x80;
 
@@ -20,18 +25,22 @@ sub Parse() is
         EndError();
     end sub;
 
+    sub BadStructureError(token: uint8) is
+        SimpleError("mismatched structure");
+    end sub;
+
     sub Push(p: [void]) is
-        [sp] := p;
-        sp := @next sp;
+        stack[sp] := p;
+        sp := sp + 1;
     end sub;
 
     sub Pop(): (val: [void]) is
-        if sp == &stack[0] then
+        if sp == 0 then
             SimpleError("opstack underflow");
         end if;
         
-        sp := @prev sp;
-        val := [sp];
+        sp := sp - 1;
+        val := stack[sp];
     end sub;
 
     sub PushSymbol(p: [Symbol]) is
@@ -46,12 +55,53 @@ sub Parse() is
         Push(n as [void]);
     end sub;
 
+    sub PushLabelRef(ref: LabelRef) is
+        Push(ref as intptr as [void]);
+    end sub;
+
+    sub PushInt(i: uint8) is
+        Push(i as intptr as [void]);
+    end sub;
+
     sub PopType(): (t: [Type]) is
         t := Pop() as [Type];
     end sub;
 
     sub PopNode(): (n: [Node]) is
         n := Pop() as [Node];
+    end sub;
+
+    sub PopLabelRef(): (ref: LabelRef) is
+        ref := Pop() as intptr as LabelRef;
+    end sub;
+
+    sub PopInt(): (n: uint8) is
+        n := Pop() as intptr as uint8;
+    end sub;
+
+    sub PushIfData() is
+        PushLabelRef(exit_label);
+        PushLabelRef(true_label);
+        PushLabelRef(false_label);
+        PushInt(false_generated);
+        PushInt(IF);
+    end sub;
+
+    sub PopIfData() is
+        if PopInt() != IF then
+            BadStructureError(IF);
+        end if;
+
+        false_generated := PopInt();
+        false_label := PopLabelRef();
+        true_label := PopLabelRef();
+        exit_label := PopLabelRef();
+    end sub;
+
+    sub CheckStructure(t: uint8) is
+        if (sp == 0) or (stack[sp-1] as intptr as uint8 != t) then
+            BadStructureError(t);
+        end if;
     end sub;
 
     sub PushOp(op: uint8) is
@@ -531,7 +581,10 @@ sub Parse() is
         popops();
         node := PopNode();
         if sp != startsp then
-            SimpleError("unterminated expression");
+            StartError();
+            print("syntax error: unterminated expression at ");
+            PrintTokenName(token);
+            EndError();
         end if;
     end sub;
 
@@ -598,13 +651,94 @@ sub Parse() is
         RequireToken(SEMICOLON);
     end sub;
 
-    sp := &stack[0];
+    sub ParseIf() is
+        LexerGetToken();
+
+        PushIfData();
+        true_label := AllocLabel();
+        false_label := AllocLabel();
+        exit_label := AllocLabel();
+        false_generated := 0;
+
+        var cond := ParseExpression();
+        cond.beq.truelabel := true_label;
+        cond.beq.falselabel := false_label;
+        cond.beq.fallthrough := true_label;
+        GenerateConditional(cond);
+
+        RequireToken(THEN);
+    end sub;
+
+    sub CheckElseIsLast() is
+        if false_generated != 0 then
+            SimpleError("'else' must be last");
+        end if;
+    end sub;
+    
+    sub ParseElseif() is
+        LexerGetToken();
+
+        CheckStructure(IF);
+        CheckElseIsLast();
+
+        Generate(MidJump(exit_label));
+        Generate(MidLabel(false_label));
+        
+        true_label := AllocLabel();
+        false_label := AllocLabel();
+        # false_generated is 0
+        
+        var cond := ParseExpression();
+        cond.beq.truelabel := true_label;
+        cond.beq.falselabel := false_label;
+        cond.beq.fallthrough := true_label;
+        GenerateConditional(cond);
+
+        RequireToken(THEN);
+    end sub;
+
+    sub ParseElse() is
+        LexerGetToken();
+
+        CheckStructure(IF);
+        CheckElseIsLast();
+
+        Generate(MidJump(exit_label));
+        Generate(MidLabel(false_label));
+        false_generated := 1;
+    end sub;
+        
+    sub ParseEndIf() is
+        LexerGetToken();
+
+        CheckStructure(IF);
+        if false_generated == 0 then
+            Generate(MidLabel(false_label));
+        end if;
+        Generate(MidLabel(exit_label));
+        PopIfData();
+    
+        RequireToken(SEMICOLON);
+    end sub;
+
+    sp := 0;
     opsp := 0;
 
     while token != EOF loop
         case token is
-            when VAR:
-                ParseVar();
+            when VAR:    ParseVar();
+            when IF:     ParseIf();
+            when ELSE:   ParseElse();
+            when ELSEIF: ParseElseif();
+
+            when END:
+                LexerGetToken();
+                case token is
+                    when IF: ParseEndIf();
+
+                    when else:
+                        SyntaxError(token);
+                end case;
 
             when else:
                 ParseExpressionStatement();
