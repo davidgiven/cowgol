@@ -104,20 +104,6 @@ record SubroutineLabels is
 	old_labels: [SubroutineLabels];
 end record;
 
-record LoopLabels is
-	loop_label: LabelRef;
-	exit_label: LabelRef;
-	old_break_label: LabelRef;
-	old_continue_label: LabelRef;
-end record;
-	
-record IfLabels is
-	exit_label: LabelRef;
-	true_label: LabelRef;
-	false_label: LabelRef;
-	next: [IfLabels];
-end record;
-
 record CaseLabels is
 	next_label: LabelRef;
 	end_label: LabelRef;
@@ -139,9 +125,6 @@ end record;
 var current_subr: [Subroutine];
 var next_label_id: LabelRef := 1;
 var next_subr_id: uint16 := 1;
-var break_label: LabelRef;
-var continue_label: LabelRef;
-var current_if: [IfLabels];
 var current_case: [CaseLabels];
 var current_type: [Type];
 var current_call: [SubroutineCall];

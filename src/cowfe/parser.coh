@@ -15,6 +15,8 @@ sub Parse() is
     var true_label: LabelRef := nil;
     var false_label: LabelRef := nil;
     var false_generated: uint8 := 0;
+    var break_label: LabelRef := 0;
+    var continue_label: LabelRef := 0;
 
     const UNARY_FLAG := 0x80;
 
