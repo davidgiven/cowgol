@@ -99,7 +99,26 @@ sub ReadM() is
 				print_char('+');
 				print_i32((node.address.sym.off + node.address.off) as uint32);
 				print_char(')');
+
+			when MIDCODE_LABEL:
+				print("(#");
+				print_i32(node.label.label as uint32);
+				print_char(')');
+
+			when MIDCODE_JUMP:
+				print("(#");
+				print_i32(node.jump.label as uint32);
+				print_char(')');
 		end case;
+		if (node.op >= MIDCODE_BAND) and (node.op < MIDCODE_STARTCASE1) then
+			print("(true=#");
+			print_i32(node.beq.truelabel as uint32);
+			print(" false=#");
+			print_i32(node.beq.falselabel as uint32);
+			print(" fallthrough=#");
+			print_i32(node.beq.fallthrough as uint32);
+			print(")");
+		end if;
 	end loop;
 	print_nl();
 	Discard(rootnode);
