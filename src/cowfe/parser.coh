@@ -13,6 +13,13 @@ sub Parse() is
 
     const UNARY_FLAG := 0x80;
 
+    sub SyntaxError(token: uint8) is
+        StartError();
+        print("syntax error: unexpected ");
+        PrintTokenName(token);
+        EndError();
+    end sub;
+
     sub Push(p: [void]) is
         [sp] := p;
         sp := @next sp;
@@ -200,6 +207,32 @@ sub Parse() is
         end if;
     end sub;
 
+	sub Negate(node: [Node]) is
+		node.beq.negated := node.beq.negated ^ 1;
+	end sub;
+ 
+	sub ConditionalEq(lhs: [Node], rhs: [Node], negated: uint8): (result: [Node]) is
+		CondSimple(lhs, rhs);
+		var truelabel := AllocLabel();
+		var falselabel := AllocLabel();
+		var w := NodeWidth(lhs);
+
+		result := MidBeq(w, lhs, rhs, truelabel, falselabel, 0, negated);
+	end sub;
+
+	sub ConditionalLt(lhs: [Node], rhs: [Node], negated: uint8): (result: [Node]) is
+		CondSimple(lhs, rhs);
+		var truelabel := AllocLabel();
+		var falselabel := AllocLabel();
+		var w := NodeWidth(lhs);
+
+		if IsSNum(lhs.type) != 0 then
+			result := MidBlts(w, lhs, rhs, truelabel, falselabel, 0, negated);
+		else
+			result := MidBltu(w, lhs, rhs, truelabel, falselabel, 0, negated);
+		end if;
+	end sub;
+
     sub ParseExpression(): (node: [Node]) is
         var startsp := sp;
         var startopsp := opsp;
@@ -225,7 +258,13 @@ sub Parse() is
 
             case op is
                 when OPENPAREN:
+                    # infix OPENPAREN is function application
+                    # do nothing
 
+                when OPENPAREN|UNARY_FLAG:
+                    # unary OPENPAREN is grouping
+                    # do nothing
+                    
                 when PLUS:
                     rhs := PopNode();
                     lhs := PopNode();
@@ -296,6 +335,56 @@ sub Parse() is
                     lhs := PopNode();
                     PushNode(ExprShift(MIDCODE_RSHIFTS0, MIDCODE_RSHIFTU0, lhs, rhs));
 
+                when NOT:
+                    lhs := PopNode();
+                    Negate(lhs);
+                    PushNode(lhs);
+
+                when AND:
+                    rhs := PopNode();
+                    lhs := PopNode();
+                    PushNode(MidBand(lhs, rhs, 0, 0, 0, 0));
+
+                when OR:
+                    rhs := PopNode();
+                    lhs := PopNode();
+                    PushNode(MidBor(lhs, rhs, 0, 0, 0, 0));
+
+                when EQOP:
+                    rhs := PopNode();
+                    lhs := PopNode();
+                    PushNode(ConditionalEq(lhs, rhs, 0));
+
+                when NEOP:
+                    rhs := PopNode();
+                    lhs := PopNode();
+                    PushNode(ConditionalEq(lhs, rhs, 1));
+
+                when LTOP:
+                    rhs := PopNode();
+                    lhs := PopNode();
+                    PushNode(ConditionalLt(lhs, rhs, 0));
+
+                when GEOP:
+                    rhs := PopNode();
+                    lhs := PopNode();
+                    PushNode(ConditionalLt(lhs, rhs, 0));
+
+                when GTOP:
+                    rhs := PopNode();
+                    lhs := PopNode();
+                    PushNode(ConditionalLt(rhs, lhs, 0));
+
+                when LEOP:
+                    rhs := PopNode();
+                    lhs := PopNode();
+                    PushNode(ConditionalLt(rhs, lhs, 1));
+                
+                when COMMA:
+                    rhs := PopNode();
+                    lhs := PopNode();
+                    PushNode(MidPair(rhs, lhs));
+                    
                 when else:
                     StartError();
                     print("unhandled op ");
@@ -421,10 +510,6 @@ sub Parse() is
                     # Postfix.
 
                     case token is
-                        when COMMA: return;
-                        when ASSIGN: return;
-                        when SEMICOLON: return;
-
                         when CLOSEPAREN:
                             popops();
                             LexerGetToken();
@@ -435,11 +520,7 @@ sub Parse() is
                                 LexerGetToken();
                                 break; # next token is a term
                             else
-                                StartError();
-                                print("invalid token ");
-                                PrintTokenName(token);
-                                print(" in expression postfix operator");
-                                EndError();
+                                return;
                             end if;
                     end case;
                 end loop;
@@ -494,7 +575,26 @@ sub Parse() is
     end sub;
 
     sub ParseExpressionStatement() is
-        LexerGetToken();
+        var lvalue: [Node] := ParseExpression();
+        case token is
+            when SEMICOLON:
+                # Bare expressions must be void procedure calls.
+
+            when ASSIGN:
+                # Either a simple or a multi assignment.
+
+                RequireToken(ASSIGN);
+                var rvalue: [Node] := ParseExpression();
+                
+                var type := lvalue.type;
+                var address := UndoLValue(lvalue);
+                CheckExpressionType(rvalue, type);
+                var w := type.width as uint8;
+                Generate(MidStore(w, rvalue, MidDeref(w, address)));
+
+            when else:
+                SyntaxError(token);
+        end case;
         RequireToken(SEMICOLON);
     end sub;
 

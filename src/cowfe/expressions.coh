@@ -7,7 +7,18 @@ sub expr_i_cant_do_that(lhs: [Node], rhs: [Node]) is
 	EndError();
 end sub;
 
+sub CheckExpressionNode(node: [Node]) is
+	if node.op == MIDCODE_PAIR then
+		SimpleError("a single value was expected here");
+	end if;
+	if (node.op >= MIDCODE_BAND) and (node.op < MIDCODE_STARTCASE1) then
+		SimpleError("conditionals cannot be used in an expression context");
+	end if;
+end sub;
+
 sub CheckExpressionType(node: [Node], type: [Type]) is
+	CheckExpressionNode(node);
+
 	if node.type == nil then
 		node.type := type;
 	end if;
@@ -50,12 +61,14 @@ sub ResolveUntypedConstantsForAddOrSub(lhs: [Node], rhs: [Node]) is
 end sub;
 
 sub CheckNumber(node: [Node]) is
+	CheckExpressionNode(node);
 	if IsNum(node.type) == 0 then
 		SimpleError("number required");
 	end if;
 end sub;
 
 sub CheckNumberOrPointer(node: [Node]) is
+	CheckExpressionNode(node);
 	if (IsNum(node.type) == 0) and (IsPtr(node.type) == 0) then
 		SimpleError("number or pointer required");
 	end if;
@@ -97,6 +110,7 @@ sub CondSimple(lhs: [Node], rhs: [Node]) is
 end sub;
 
 sub Expr1Simple(op: uint8, lhs: [Node]): (result: [Node]) is
+	CheckExpressionNode(lhs);
 	result := MidC1Op(op, NodeWidth(lhs), lhs);
 	result.type := lhs.type;
 end sub;
