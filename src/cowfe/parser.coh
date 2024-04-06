@@ -98,6 +98,21 @@ sub Parse() is
         exit_label := PopLabelRef();
     end sub;
 
+    sub PushLoopData() is
+        PushLabelRef(break_label);
+        PushLabelRef(continue_label);
+        PushInt(LOOP);
+    end sub;
+
+    sub PopLoopData() is
+        if PopInt() != LOOP then
+            BadStructureError(LOOP);
+        end if;
+
+        continue_label := PopLabelRef();
+        break_label := PopLabelRef();
+    end sub;
+
     sub CheckStructure(t: uint8) is
         if (sp == 0) or (stack[sp-1] as intptr as uint8 != t) then
             BadStructureError(t);
@@ -683,7 +698,7 @@ sub Parse() is
 
         Generate(MidJump(exit_label));
         Generate(MidLabel(false_label));
-        
+
         true_label := AllocLabel();
         false_label := AllocLabel();
         # false_generated is 0
@@ -721,20 +736,73 @@ sub Parse() is
         RequireToken(SEMICOLON);
     end sub;
 
+    sub ParseLoop() is
+        LexerGetToken();
+        PushLoopData();
+
+        break_label := AllocLabel();
+        continue_label := AllocLabel();
+        Generate(MidLabel(continue_label));
+    end sub;
+        
+    sub ParseWhile() is
+        ParseLoop();
+        
+        var cond := ParseExpression();
+        cond.beq.truelabel := AllocLabel();
+        cond.beq.falselabel := break_label;
+        cond.beq.fallthrough := cond.beq.truelabel;
+        GenerateConditional(cond);
+
+        RequireToken(LOOP);
+    end sub;
+
+    sub ParseEndLoop() is
+        LexerGetToken();
+        Generate(MidJump(continue_label));
+        Generate(MidLabel(break_label));
+
+        PopLoopData();
+        RequireToken(SEMICOLON);
+    end sub;
+
+    sub ParseContinue() is
+        LexerGetToken();
+        if continue_label == 0 then
+            SimpleError("nowhere to continue to");
+        end if;
+        Generate(MidJump(continue_label));
+        RequireToken(SEMICOLON);
+    end sub;
+    
+    sub ParseBreak() is
+        LexerGetToken();
+        if break_label == 0 then
+            SimpleError("nowhere to break to");
+        end if;
+        Generate(MidJump(break_label));
+        RequireToken(SEMICOLON);
+    end sub;
+
     sp := 0;
     opsp := 0;
 
     while token != EOF loop
         case token is
-            when VAR:    ParseVar();
-            when IF:     ParseIf();
-            when ELSE:   ParseElse();
-            when ELSEIF: ParseElseif();
+            when VAR:      ParseVar();
+            when IF:       ParseIf();
+            when ELSE:     ParseElse();
+            when ELSEIF:   ParseElseif();
+            when WHILE:    ParseWhile();
+            when LOOP:     ParseLoop();
+            when BREAK:    ParseBreak();
+            when CONTINUE: ParseContinue();
 
             when END:
                 LexerGetToken();
                 case token is
-                    when IF: ParseEndIf();
+                    when IF:   ParseEndIf();
+                    when LOOP: ParseEndLoop();
 
                     when else:
                         SyntaxError(token);
