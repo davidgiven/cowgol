@@ -439,6 +439,8 @@ sub Parse() is
             print_nl();
 
             case op is
+                when OPENSQ|UNARY_FLAG:
+                    PushType(MakePointerType(PopType()));
                     
                 when else:
                     StartError();
@@ -530,6 +532,11 @@ sub Parse() is
                         LexerGetToken();
                         continue;
                     
+                    when OPENSQ:
+                        PushOp(OPENSQ|UNARY_FLAG);
+                        LexerGetToken();
+                        continue;
+
                     when NUMBER:
                         not_allowed_in_type();
                         print("push const ");
@@ -618,7 +625,7 @@ sub Parse() is
                     case token is
                         when CLOSEPAREN:
                             print("closing parenthesis\n");
-                            loop
+                            while opsp != startopsp loop
                                 op := peekop();
                                 applyop();
                                 if op == (UNARY_FLAG|OPENPAREN) then
@@ -629,7 +636,7 @@ sub Parse() is
 
                         when CLOSESQ:
                             print("closing square bracket\n");
-                            loop
+                            while opsp != startopsp loop
                                 op := peekop();
                                 applyop();
                                 if (op == OPENSQ) or (op == OPENSQ_TYPE) then
@@ -860,6 +867,59 @@ sub Parse() is
         RequireToken(SEMICOLON);
     end sub;
 
+    sub ParseAsm() is
+        sub bad_reference() is
+            SimpleError("you can only emit references to variables, subroutines, or constants");
+        end sub;
+
+        LexerGetToken();
+        Generate(MidAsmstart());
+
+        loop
+            case token is
+                when STRING:
+                    Generate(MidAsmtext(&token_buffer[0]));
+                    LexerGetToken();
+
+                when NUMBER:
+                    Generate(MidAsmvalue(token_value));
+                    LexerGetToken();
+
+                when ID:
+                    var sym := ParseExistingSymbol();
+                    case sym.kind is
+                        when TYPE:
+                            if IsSubroutine(sym.typedata) != 0 then
+                                EmitterReferenceSubroutine(current_subr, sym.typedata.subrtype.subr);
+                                Generate(MidAsmsubref(sym.typedata.subrtype.subr));
+                            else
+                                bad_reference();
+                            end if;
+
+                        when VAR:
+                            Generate(MidAsmsymbol(sym));
+
+                        when CONST:
+                            Generate(MidAsmvalue(sym.constant));
+
+                        when else:
+                            bad_reference();
+                    end case;
+
+                when else:
+                    SyntaxError(token);
+            end case;
+
+            if token == SEMICOLON then
+                break;
+            end if;
+            RequireToken(COMMA);
+        end loop;
+
+        Generate(MidAsmend());
+        RequireToken(SEMICOLON);
+    end sub;
+
     sp := 0;
     opsp := 0;
 
@@ -873,6 +933,7 @@ sub Parse() is
             when LOOP:     ParseLoop();
             when BREAK:    ParseBreak();
             when CONTINUE: ParseContinue();
+            when ASM:      ParseAsm();
 
             when END:
                 LexerGetToken();
