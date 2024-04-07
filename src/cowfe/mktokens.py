@@ -1,9 +1,10 @@
 tokens = [
     # Infix operators, with unary and diadic precedence.
 
-    ("OPENPAREN", "(", 15, 15),
-    ("CLOSEPAREN", ")", 15, 15),
+    ("OPENPAREN", "(", 1, 1),
+    ("CLOSEPAREN", ")", 1, 1),
     ("OPENSQ", "[", 0, 1),
+    ("OPENSQ_TYPE", "[", 0, 1), # used when parsing array sizes
     ("CLOSESQ", "]", 0, 1),
     ("DOT", ".", 0, 1),
     ("NOT", "not", 2, 0),

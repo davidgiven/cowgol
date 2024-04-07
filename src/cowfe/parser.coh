@@ -18,6 +18,8 @@ sub Parse() is
     var break_label: LabelRef := 0;
     var continue_label: LabelRef := 0;
 
+    var type_mode: uint8;
+
     const UNARY_FLAG := 0x80;
 
     sub SyntaxError(token: uint8) is
@@ -121,9 +123,33 @@ sub Parse() is
         end if;
     end sub;
 
+    sub PrintOpStack() is
+        var i: uint8 := 0;
+        print("[");
+        while i != opsp loop
+            if i != 0 then
+                print_char(' ');
+            end if;
+
+            var op := opstack[i];
+            if (op & UNARY_FLAG) != 0 then
+                print("U+");
+            end if;
+            PrintTokenName(op & 0x7f);
+            i := i + 1;
+        end loop;
+        print("]\n");
+    end sub;
+
     sub PushOp(op: uint8) is
+        print("pushop: ");
+        print_i8(op);
+        print_nl();
+
         opstack[opsp] := op;
         opsp := opsp + 1;
+    
+        PrintOpStack();
     end sub;
 
     sub PopOp(): (op: uint8) is
@@ -133,6 +159,10 @@ sub Parse() is
 
         opsp := opsp - 1;
         op := opstack[opsp];
+
+        print("popop: ");
+        print_i8(op);
+        print_nl();
     end sub;
 
     sub RequireToken(t: uint8) is
@@ -188,92 +218,13 @@ sub Parse() is
         LexerGetToken();
     end sub;
 
-    sub ParseType(): (type: [Type]) is
-        var startsp := sp;
-        sub popops() is
-            while opsp != 0 loop
-                opsp := opsp - 1;
-                case opstack[opsp] is
-                    when OPENSQ:
-                        return;
-                end case;
-            end loop;
-        end sub;
-
-        sub parse() is
-            loop
-                # Terms and prefix operators.
-
-                case token is
-                    when OPENSQ:
-                        opstack[opsp] := OPENSQ;
-                        opsp := opsp + 1;
-                        continue;
-                    
-                    when ID:
-                        print("push id\n");
-                        var sym := ParseNewOrExistingSymbol();
-                        if sym.kind == 0 then
-                            # Create a partial type.
-                            type := AllocNewType();
-                            type.kind := TYPE_PARTIAL;
-
-                            sym.kind := TYPE;
-                            sym.typedata := type;
-                            type.symbol := sym;
-                        else
-                            # This type already exists.
-                            type := sym.typedata;
-                        end if;
-                        if sym.kind != TYPE then
-                            StartError();
-                            print("expected ");
-                            print(sym.name);
-                            print(" to be a type");
-                            EndError();
-                        end if;
-                        PushType(type);
-                        # fall through to postfix section
-
-                    when else:
-                        StartError();
-                        print("invalid token ");
-                        PrintTokenName(token);
-                        print(" in type expression term");
-                        EndError();
-                end case;
-
-                loop
-                    # Postfix.
-
-                    case token is
-                        when COMMA: return;
-                        when ASSIGN: return;
-                        when SEMICOLON: return;
-
-                        when CLOSESQ:
-                            popops();
-                            PushType(MakePointerType(PopType()));
-                            LexerGetToken();
-
-                        when else:
-                            StartError();
-                            print("invalid token ");
-                            PrintTokenName(token);
-                            print(" in type expression postfix operator");
-                            EndError();
-                    end case;
-                end loop;
-            end loop;
-        end sub;
-
-        parse();
-        type := PopType();
-        if sp != startsp then
-            SimpleError("unterminated expression");
+    sub ToConstant(node: [Node]): (value: int32) is
+        if node.op != MIDCODE_CONSTANT then
+            SimpleError("non-constant value provided");
         end if;
+        value := node.constant.value;
     end sub;
-
+    
 	sub Negate(node: [Node]) is
 		node.beq.negated := node.beq.negated ^ 1;
 	end sub;
@@ -300,9 +251,16 @@ sub Parse() is
 		end if;
 	end sub;
 
-    sub ParseExpression(): (node: [Node]) is
+    sub ParseRaw() is
         var startsp := sp;
         var startopsp := opsp;
+
+        sub peekop(): (op: uint8) is
+            if opsp == startopsp then
+                SimpleError("unterminated expression");
+            end if;
+            op := opstack[opsp-1];
+        end sub;
 
         sub precedenceof(op: uint8): (p: uint8) is
             if (op & UNARY_FLAG) != 0 then
@@ -312,16 +270,25 @@ sub Parse() is
             end if;
         end sub;
 
-        sub applyop() is
+        sub applyvalueop() is
+            var type: [Type];
             var op := PopOp();
-            var lhs: [Node];
-            var rhs: [Node];
 
-            print("apply ");
-            print_i8(op);
+            print("applyvalue ");
+            if (op & UNARY_FLAG) != 0 then
+                print("unary ");
+            end if;
+            print_i8(op & 0x7f);
             print(": ");
             PrintTokenName(op);
             print_nl();
+
+            var rhs: [Node];
+            if (op & UNARY_FLAG) == 0 then
+                # Binary
+                rhs := PopNode();
+            end if;
+            var lhs := PopNode();
 
             case op is
                 when OPENPAREN:
@@ -333,53 +300,37 @@ sub Parse() is
                     # do nothing
                     
                 when PLUS:
-                    rhs := PopNode();
-                    lhs := PopNode();
-                    PushNode(ExprAdd(lhs, rhs));
+                    lhs := ExprAdd(lhs, rhs);
                     
                 when PLUS|UNARY_FLAG:
                     # do nothing
 
                 when MINUS:
-                    rhs := PopNode();
-                    lhs := PopNode();
-                    PushNode(ExprSub(lhs, rhs));
+                    lhs := ExprSub(lhs, rhs);
                     
                 when MINUS|UNARY_FLAG:
-                    lhs := PopNode();
-                    PushNode(Expr1Simple(MIDCODE_NEG0, lhs));
+                    lhs := Expr1Simple(MIDCODE_NEG0, lhs);
                     
                 when STAR:
-                    rhs := PopNode();
-                    lhs := PopNode();
-                    PushNode(Expr2Simple(MIDCODE_MUL0, MIDCODE_MUL0, lhs, rhs));
+                    lhs := Expr2Simple(MIDCODE_MUL0, MIDCODE_MUL0, lhs, rhs);
                     
                 when SLASH:
-                    rhs := PopNode();
-                    lhs := PopNode();
-                    PushNode(Expr2Simple(MIDCODE_DIVS0, MIDCODE_DIVU0, lhs, rhs));
+                    lhs := Expr2Simple(MIDCODE_DIVS0, MIDCODE_DIVU0, lhs, rhs);
                     
                 when PERCENT:
-                    rhs := PopNode();
-                    lhs := PopNode();
-                    PushNode(Expr2Simple(MIDCODE_REMS0, MIDCODE_REMU0, lhs, rhs));
+                    lhs := Expr2Simple(MIDCODE_REMS0, MIDCODE_REMU0, lhs, rhs);
                     
                 when UNARY_FLAG|TILDE:
-                    lhs := PopNode();
-                    PushNode(Expr1Simple(MIDCODE_NOT0, lhs));
+                    lhs := Expr1Simple(MIDCODE_NOT0, lhs);
 
                 when CARET:
-                    rhs := PopNode();
-                    lhs := PopNode();
-                    PushNode(Expr2Simple(MIDCODE_EOR0, MIDCODE_EOR0, lhs, rhs));
+                    lhs := Expr2Simple(MIDCODE_EOR0, MIDCODE_EOR0, lhs, rhs);
                     
                 when AMPERSAND:
-                    rhs := PopNode();
-                    lhs := PopNode();
-                    PushNode(Expr2Simple(MIDCODE_AND0, MIDCODE_AND0, lhs, rhs));
+                    lhs := Expr2Simple(MIDCODE_AND0, MIDCODE_AND0, lhs, rhs);
                     
                 when UNARY_FLAG|AMPERSAND:
-                    lhs := UndoLValue(PopNode());
+                    lhs := UndoLValue(lhs);
                     if lhs.op == MIDCODE_ADDRESS then
                         var sym := lhs.address.sym;
                         if IsScalar(sym.vardata.type) != 0 then
@@ -388,73 +339,110 @@ sub Parse() is
                     end if;
 
                 when PIPE:
-                    rhs := PopNode();
-                    lhs := PopNode();
-                    PushNode(Expr2Simple(MIDCODE_OR0, MIDCODE_OR0, lhs, rhs));
+                    lhs := Expr2Simple(MIDCODE_OR0, MIDCODE_OR0, lhs, rhs);
                     
                 when LSHIFT:
-                    rhs := PopNode();
-                    lhs := PopNode();
-                    PushNode(ExprShift(MIDCODE_LSHIFT0, MIDCODE_LSHIFT0, lhs, rhs));
+                    lhs := ExprShift(MIDCODE_LSHIFT0, MIDCODE_LSHIFT0, lhs, rhs);
                     
                 when RSHIFT:
-                    rhs := PopNode();
-                    lhs := PopNode();
-                    PushNode(ExprShift(MIDCODE_RSHIFTS0, MIDCODE_RSHIFTU0, lhs, rhs));
+                    lhs := ExprShift(MIDCODE_RSHIFTS0, MIDCODE_RSHIFTU0, lhs, rhs);
 
                 when NOT:
-                    lhs := PopNode();
                     Negate(lhs);
-                    PushNode(lhs);
 
                 when AND:
-                    rhs := PopNode();
-                    lhs := PopNode();
-                    PushNode(MidBand(lhs, rhs, 0, 0, 0, 0));
+                    lhs := MidBand(lhs, rhs, 0, 0, 0, 0);
 
                 when OR:
-                    rhs := PopNode();
-                    lhs := PopNode();
-                    PushNode(MidBor(lhs, rhs, 0, 0, 0, 0));
+                    lhs := MidBor(lhs, rhs, 0, 0, 0, 0);
 
                 when EQOP:
-                    rhs := PopNode();
-                    lhs := PopNode();
-                    PushNode(ConditionalEq(lhs, rhs, 0));
+                    lhs := ConditionalEq(lhs, rhs, 0);
 
                 when NEOP:
-                    rhs := PopNode();
-                    lhs := PopNode();
-                    PushNode(ConditionalEq(lhs, rhs, 1));
+                    lhs := ConditionalEq(lhs, rhs, 1);
 
                 when LTOP:
-                    rhs := PopNode();
-                    lhs := PopNode();
-                    PushNode(ConditionalLt(lhs, rhs, 0));
+                    lhs := ConditionalLt(lhs, rhs, 0);
 
                 when GEOP:
-                    rhs := PopNode();
-                    lhs := PopNode();
-                    PushNode(ConditionalLt(lhs, rhs, 0));
+                    lhs := ConditionalLt(lhs, rhs, 0);
 
                 when GTOP:
-                    rhs := PopNode();
-                    lhs := PopNode();
-                    PushNode(ConditionalLt(rhs, lhs, 0));
+                    lhs := ConditionalLt(rhs, lhs, 0);
 
                 when LEOP:
-                    rhs := PopNode();
-                    lhs := PopNode();
-                    PushNode(ConditionalLt(rhs, lhs, 1));
+                    lhs := ConditionalLt(rhs, lhs, 1);
                 
                 when COMMA:
-                    rhs := PopNode();
-                    lhs := PopNode();
-                    PushNode(MidPair(rhs, lhs));
+                    lhs := MidPair(rhs, lhs);
+                    
+                when OPENSQ:
+                    type := lhs.type;
+                    lhs := MaybeUndoLValue(lhs);
+
+                    if IsArray(type) == 0 then
+                        StartError();
+                        print("you can only index an array, not a ");
+                        print(type.symbol.name);
+                        EndError();
+                    end if;
+
+                    CheckExpressionType(rhs, type.arraytype.indextype);
+                    if IsNum(rhs.type) == 0 then
+                            SimpleError("array indices must be numbers");
+                    end if;
+
+                    var elementtype := type.arraytype.element;
+                    var w := intptr_type.width as uint8;
+
+                    var displacement := MidC2Op(MIDCODE_MUL0, w,
+                        MidCCast(intptr_type.width as uint8, rhs, 0),
+                        MidConstant(elementtype.stride as int32));
+                    displacement.type := intptr_type;
+
+                    var adjustedaddress := MidC2Op(MIDCODE_ADD0, w, lhs, displacement);
+                    adjustedaddress.type := MakePointerType(elementtype);
+                    lhs := MakeLValue(adjustedaddress);
+
+                when OPENSQ_TYPE:
+                    # Bit of a hack here --- the LHS is really a type.
+                    var length := ToConstant(rhs);
+                    type := MakeArrayType(lhs as [Type], length as uint16);
+                    PushType(type);
+                    type_mode := 1;
+                    return;
+
+                when else:
+                    StartError();
+                    print("unhandled value op ");
+                    if (opstack[opsp] & UNARY_FLAG) != 0 then
+                        print("unary ");
+                    end if;
+                    PrintTokenName(opstack[opsp] & 0x7f);
+                    EndError();
+            end case;
+        
+            PushNode(lhs);
+        end sub;
+
+        sub applytypeop() is
+            var op := PopOp();
+
+            print("applytype ");
+            if (op & UNARY_FLAG) != 0 then
+                print("unary ");
+            end if;
+            print_i8(op & 0x7f);
+            print(": ");
+            PrintTokenName(op);
+            print_nl();
+
+            case op is
                     
                 when else:
                     StartError();
-                    print("unhandled op ");
+                    print("unhandled type op ");
                     if (opstack[opsp] & UNARY_FLAG) != 0 then
                         print("unary ");
                     end if;
@@ -463,10 +451,19 @@ sub Parse() is
             end case;
         end sub;
 
+        sub applyop() is
+            PrintOpStack();
+            if type_mode == 0 then
+                applyvalueop();
+            else
+                applytypeop();
+            end if;
+        end sub;
+
         sub applyops(p: uint8) is
             while opsp != 0 loop
                 var topopp := precedenceof(opstack[opsp-1]);
-                if topopp > p then
+                if topopp < p then
                     break;
                 end if;
 
@@ -474,12 +471,6 @@ sub Parse() is
             end loop;
         end sub;
 
-        sub popops() is
-            while opsp != startopsp loop
-                applyop();
-            end loop;
-        end sub;
-        
         sub pushop(op: uint8) is
             print("push ");
             print_i8(op);
@@ -491,10 +482,27 @@ sub Parse() is
             PushOp(op);
         end sub;
 
+        sub bad_context(kind: string) is
+            StartError();
+            print("can't use ");
+            PrintTokenName(token);
+            print(" in a ");
+            print(kind);
+            print(" context");
+            EndError();
+        end sub;
+
+        sub not_allowed_in_type() is
+            if type_mode != 0 then
+                bad_context("type");
+            end if;
+        end sub;
+
         sub parse() is
             var f: uint8;
             var sym: [Symbol];
             var node: [Node];
+            var op: uint8;
 
             loop
                 # Terms and prefix operators.
@@ -504,55 +512,85 @@ sub Parse() is
                     f := token_flags[token];
                 end if;
 
+                print("seen ");
+                PrintTokenName(token & 0x7f);
+                print("; type_mode=");
+                print_i8(type_mode);
+                print_nl();
+
+                print("prefix\n");
                 case token is
                     when COMMA: return;
                     when ASSIGN: return;
                     when SEMICOLON: return;
 
                     when OPENPAREN:
-                        PushOp(OPENPAREN);
+                        not_allowed_in_type();
+                        PushOp(OPENPAREN|UNARY_FLAG);
                         LexerGetToken();
                         continue;
                     
                     when NUMBER:
+                        not_allowed_in_type();
+                        print("push const ");
+                        print_i32(token_value as uint32);
+                        print_nl();
                         PushNode(MidConstant(token_value));
                         LexerGetToken();
 
                     when ID:
                         sym := ParseExistingSymbol();
 
-                        sub not_a_value() is
+                        sub not_a(kind: string) is
                             StartError();
                             print(sym.name);
-                            print(" is not a value");
+                            print(" is not a ");
+                            print(kind);
                             EndError();
                         end sub;
 
-                        case sym.kind is
-                            when CONST:
-                                node := MidConstant(sym.constant);
+                        if type_mode == 0 then
+                            # Parse as expression.
+                            case sym.kind is
+                                when CONST:
+                                    node := MidConstant(sym.constant);
 
-                            when VAR:
-                                node := MidAddress(sym, 0);
-                                node.type := MakePointerType(sym.vardata.type);
-                                node := MakeLValue(node);
+                                when VAR:
+                                    node := MidAddress(sym, 0);
+                                    node.type := MakePointerType(sym.vardata.type);
+                                    node := MakeLValue(node);
 
-                            when TYPE:
-                                # Subroutine instances are passed around as their type, even if it
-                                # does not *really* make sense. Every type must have a symbol, so
-                                # by using the type as a subroutine literal, we save on having to
-                                # create an extra symbol for it.
-                                if sym.typedata.kind == TYPE_SUBROUTINE then
-                                    node := MidSubref(sym.typedata.subrtype.subr);
-                                    node.type := sym.typedata.subrtype.subr.intfsubr.type;
-                                else
-                                    not_a_value();
-                                end if;
+                                when TYPE:
+                                    # Subroutine instances are passed around as their type, even if it
+                                    # does not *really* make sense. Every type must have a symbol, so
+                                    # by using the type as a subroutine literal, we save on having to
+                                    # create an extra symbol for it.
+                                    if sym.typedata.kind == TYPE_SUBROUTINE then
+                                        node := MidSubref(sym.typedata.subrtype.subr);
+                                        node.type := sym.typedata.subrtype.subr.intfsubr.type;
+                                    else
+                                        not_a("value");
+                                    end if;
 
-                            when else:
-                                not_a_value();
-                        end case;
-                        PushNode(node);
+                                when else:
+                                    not_a("value");
+                            end case;
+                            PushNode(node);
+                        else
+                            # Parse as type.
+                            if sym.kind == 0 then
+                                var type := AllocNewType();
+                                type.kind := TYPE_PARTIAL;
+
+                                sym.kind := TYPE;
+                                sym.typedata := type;
+                                type.symbol := sym;
+                            end if;
+                            if sym.kind != TYPE then
+                                not_a("type");
+                            end if;
+                            PushType(sym.typedata);
+                        end if;
 
                     when else:
                         if (f & 0xf0) != 0 then
@@ -574,15 +612,38 @@ sub Parse() is
                         f := token_flags[token];
                     end if;
 
-                    # Postfix.
+                    # Infix.
 
+                    print("infix\n");
                     case token is
                         when CLOSEPAREN:
-                            popops();
+                            print("closing parenthesis\n");
+                            loop
+                                op := peekop();
+                                applyop();
+                                if op == (UNARY_FLAG|OPENPAREN) then
+                                    break;
+                                end if;
+                            end loop;
                             LexerGetToken();
 
+                        when CLOSESQ:
+                            print("closing square bracket\n");
+                            loop
+                                op := peekop();
+                                applyop();
+                                if (op == OPENSQ) or (op == OPENSQ_TYPE) then
+                                    break;
+                                end if;
+                            end loop;
+                            LexerGetToken();
+                            
                         when else:
                             if (f & 0x0f) != 0 then
+                                if (type_mode != 0) and (token == OPENSQ) then
+                                    token := OPENSQ_TYPE;
+                                    type_mode := 0;
+                                end if;
                                 pushop(token);
                                 LexerGetToken();
                                 break; # next token is a term
@@ -595,14 +656,27 @@ sub Parse() is
         end sub;
 
         parse();
-        popops();
-        node := PopNode();
-        if sp != startsp then
+        while opsp != startopsp loop
+            applyop();
+        end loop;
+        if sp != (startsp+1) then
             StartError();
             print("syntax error: unterminated expression at ");
             PrintTokenName(token);
             EndError();
         end if;
+    end sub;
+
+    sub ParseExpression(): (node: [Node]) is
+        type_mode := 0;
+        ParseRaw();
+        node := PopNode();
+    end sub;
+
+    sub ParseType(): (type: [Type]) is
+        type_mode := 1;
+        ParseRaw();
+        type := PopType();
     end sub;
 
     sub ParseVar() is
