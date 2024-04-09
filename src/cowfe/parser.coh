@@ -67,6 +67,10 @@ sub Parse() is
         Push(i as intptr as [void]);
     end sub;
 
+    sub PushSubroutine(subr: [Subroutine]) is
+        Push(subr as [void]);
+    end sub;
+
     sub PopType(): (t: [Type]) is
         t := Pop() as [Type];
     end sub;
@@ -81,6 +85,10 @@ sub Parse() is
 
     sub PopInt(): (n: uint8) is
         n := Pop() as intptr as uint8;
+    end sub;
+
+    sub PopSubroutine(): (subr: [Subroutine]) is
+        subr := Pop() as [Subroutine];
     end sub;
 
     sub PushIfData() is
@@ -115,6 +123,23 @@ sub Parse() is
 
         continue_label := PopLabelRef();
         break_label := PopLabelRef();
+    end sub;
+
+    sub PushSubData() is
+        PushSubroutine(current_subr);
+        PushIfData();
+        PushLoopData();
+        PushInt(SUB);
+    end sub;
+
+    sub PopSubData() is
+        if PopInt() != SUB then
+            BadStructureError(SUB);
+        end if;
+
+        PopLoopData();
+        PopIfData();
+        current_subr := PopSubroutine();
     end sub;
 
     sub CheckStructure(t: uint8) is
@@ -187,9 +212,9 @@ sub Parse() is
         end if;
     end sub;
 
-    sub ParseNewSymbol(): (sym: [Symbol]) is
+    sub ParseNewSymbol(subr: [Subroutine]): (sym: [Symbol]) is
         _check_for_identifier();
-        sym := AddSymbol(0 as [Namespace], GrabTokenBuffer());
+        sym := AddSymbol(&subr.namespace, GrabTokenBuffer());
         LexerGetToken();
     end sub;
 
@@ -264,7 +289,7 @@ sub Parse() is
 
         sub precedenceof(op: uint8): (p: uint8) is
             if (op & UNARY_FLAG) != 0 then
-                p := token_flags[op] >> 4;
+                p := (token_flags[op] >> 4) + 16;
             else
                 p := token_flags[op] & 0x0f;
             end if;
@@ -299,6 +324,12 @@ sub Parse() is
                     # unary OPENPAREN is grouping
                     # do nothing
                     
+                when OPENSQ|UNARY_FLAG:
+                    if IsPtr(lhs.type) == 0 then
+                        SimpleError("cannot dereference non-pointers");
+                    end if;
+                    lhs := MakeLValue(lhs);
+
                 when PLUS:
                     lhs := ExprAdd(lhs, rhs);
                     
@@ -474,7 +505,7 @@ sub Parse() is
         end sub;
 
         sub pushop(op: uint8) is
-            print("push ");
+            print("pushop ");
             print_i8(op);
             print(": ");
             PrintTokenName(op);
@@ -625,6 +656,10 @@ sub Parse() is
                     case token is
                         when CLOSEPAREN:
                             print("closing parenthesis\n");
+                            if opsp == startopsp then
+                                return;
+                            end if;
+
                             while opsp != startopsp loop
                                 op := peekop();
                                 applyop();
@@ -647,6 +682,10 @@ sub Parse() is
                             
                         when else:
                             if (f & 0x0f) != 0 then
+                                if (token == COMMA) and (opsp == 0) then
+                                    return;
+                                end if;
+
                                 if (type_mode != 0) and (token == OPENSQ) then
                                     token := OPENSQ_TYPE;
                                     type_mode := 0;
@@ -688,7 +727,7 @@ sub Parse() is
 
     sub ParseVar() is
         LexerGetToken();
-        var sym := ParseNewSymbol();
+        var sym := ParseNewSymbol(current_subr);
         var type: [Type] := 0 as [Type];
         if token == COLON then
             LexerGetToken();
@@ -920,6 +959,106 @@ sub Parse() is
         RequireToken(SEMICOLON);
     end sub;
 
+    sub ParseParameterList(subr: [Subroutine]): (first: [Symbol]) is
+        RequireToken(OPENPAREN);
+    
+        first := nil;
+        var lastsym: [Symbol] := nil;
+        while token != CLOSEPAREN loop
+            var sym := ParseNewSymbol(subr);
+            RequireToken(COLON);
+            var type := ParseType();
+
+            InitVariable(subr, sym, type);
+            
+            if first != nil then
+                first := sym;
+            end if;
+            if lastsym != nil then
+                lastsym.vardata.next_parameter := sym;
+            end if;
+            lastsym := sym;
+
+            if token == CLOSEPAREN then
+                break;
+            end if;
+            RequireToken(COMMA);
+        end loop;
+
+        RequireToken(CLOSEPAREN);
+    end sub;
+
+    sub ParseSub() is
+        LexerGetToken();
+
+        # Create the new subroutine.
+
+        var sym := ParseNewSymbol(current_subr);
+        var subr := InternalAlloc(@bytesof Subroutine) as [Subroutine];
+        subr.namespace.parent := &current_subr.namespace;
+        subr.parent := current_subr;
+        subr.id := AllocSubrId();
+
+        var type := AllocNewType();
+        type.kind := TYPE_SUBROUTINE;
+        type.width := intptr_type.width;
+        type.alignment := intptr_type.alignment;
+        type.stride := intptr_type.stride;
+        type.subrtype.subr := subr;
+        subr.type := type;
+        subr.intfsubr := subr;
+
+        sym.kind := TYPE;
+        sym.typedata := type;
+        type.symbol := sym;
+        subr.symbol := sym;
+
+        EmitterDeclareSubroutine(subr);
+
+        # Parse the parameter lists.
+
+        var inputs := ParseParameterList(subr);
+        var outputs: [Symbol] := nil;
+        if token == COLON then
+            LexerGetToken();
+            outputs := ParseParameterList(subr);
+        end if;
+        subr.num_input_parameters := CountParameters(inputs);
+        subr.num_output_parameters := CountParameters(outputs);
+        
+        # Enter the new subroutine context.
+
+        PushSubData();
+        current_subr := subr;
+        Generate(MidStartsub(current_subr));
+        current_subr.flags := current_subr.flags | SUB_HAS_IMPL;
+        
+        print("\n*** enter subroutine ");
+        print(subr.symbol.name);
+        print_nl();
+        RequireToken(IS);
+    end sub;
+
+    sub ParseEndSub() is
+        LexerGetToken();
+        
+        Generate(MidEndsub(current_subr));
+
+        ReportWorkspaces(current_subr);
+        DestructSubroutineContents(current_subr);
+
+        print("*** exit subroutine\n");
+        PopSubData();
+        RequireToken(SEMICOLON);
+    end sub;
+        
+    sub ParseReturn() is
+        LexerGetToken();
+        RequireToken(SEMICOLON);
+
+        Generate(MidReturn());
+    end sub;
+
     sp := 0;
     opsp := 0;
 
@@ -934,12 +1073,15 @@ sub Parse() is
             when BREAK:    ParseBreak();
             when CONTINUE: ParseContinue();
             when ASM:      ParseAsm();
+            when SUB:      ParseSub();
+            when RETURN:   ParseReturn();
 
             when END:
                 LexerGetToken();
                 case token is
                     when IF:   ParseEndIf();
                     when LOOP: ParseEndLoop();
+                    when SUB:  ParseEndSub();
 
                     when else:
                         SyntaxError(token);
