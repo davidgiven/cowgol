@@ -197,6 +197,15 @@ sub MidC2Op(op: uint8, width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
 				end case;
 			end if;
 		end if;
+		if (op == MIDCODE_REMU0) then
+			value := rhs.constant.value;
+			exp := GetPowerOfTwo(value);
+			if exp != 0 then
+				Discard(rhs);
+				rhs := MidConstant((value-1) as int32);
+				op := MIDCODE_AND0;
+			end if;
+		end if;
 		if (op == MIDCODE_LSHIFT0) or (op == MIDCODE_RSHIFTU0) or (op == MIDCODE_RSHIFTS0) then
 			if rhs.constant.value == 0 then
 				Discard(rhs);
