@@ -1487,7 +1487,7 @@ gen stk4 := CAST24(hl|de:rhs, sext==0) uses bc
 {
 	E_lxi(REG_BC, 0);
 	ArchEmitMove(REG_BC, 0);
-	ArchEmitMove(REG_HL, 0);
+	ArchEmitMove($rhs, 0);
 }
 
 gen stk4 := CAST24(hl|de:rhs, sext!=0) uses a|bc

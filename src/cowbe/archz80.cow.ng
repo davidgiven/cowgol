@@ -242,9 +242,9 @@
 	end sub;
 
 	sub E_stax(ptr: RegId) is
-		E("\tld a, (");
+		E("\tld (");
 		E_reg(ptr);
-		E(")\n");
+		E("), a\n");
 	end sub;
 
 	sub E_ldax(ptr: RegId) is

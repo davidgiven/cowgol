@@ -927,21 +927,21 @@
 
 	# Note that this *destroys* the source register.
 	sub ArchEmitMove(src: RegId, dest: RegId) is
-		if (src & REGCLASS_R32) == 0 then
-			if src == 0 then
+		if src == 0 then
+			if (dest & REGCLASS_R32) == 0 then
 				E_pop(dest);
-			elseif dest == 0 then
+			else
+				E_pop4(dest);
+			end if;
+		elseif dest == 0 then
+			if (src & REGCLASS_R32) == 0 then
 				E_push(src);
 			else
-				E_move(src, dest);
+				E_push4(src);
 			end if;
 		else
-			if src == 0 then
-				E_pop(hireg(dest));
-				E_pop(loreg(dest));
-			elseif dest == 0 then
-				E_push(loreg(src));
-				E_push(hireg(src));
+			if (src & REGCLASS_R32) == 0 then
+				E_move(src, dest);
 			else
 				E_move(loreg(src), loreg(dest));
 				E_move(hireg(src), hireg(dest));
