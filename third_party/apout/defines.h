@@ -345,20 +345,20 @@ extern u_int16_t *adptr;
 #ifndef EMUV1
 /* lli_word() - Load a word from the given ispace logical address. */
 #define lli_word(addr, word) \
-	{ adptr= (u_int16_t *)&(ispace[addr]); word= *adptr; }
+	{ adptr= (u_int16_t *)&(ispace[addr & ~1]); word= *adptr; }
 
 /* ll_word() - Load a word from the given logical address. */
 #define ll_word(addr, word) \
-	{ adptr= (u_int16_t *)&(dspace[addr]); word= *adptr; }
+	{ adptr= (u_int16_t *)&(dspace[addr & ~1]); word= *adptr; }
 
 /* sl_word() - Store a word at the given logical address. */
 #ifdef WRITEBASE
 #define sl_word(addr, word) \
 	{ if ((u_int16_t)addr < dwrite_base) seg_fault(); \
-	  adptr= (u_int16_t *)&(dspace[addr]); *adptr= word; }
+	  adptr= (u_int16_t *)&(dspace[addr & ~1]); *adptr= word; }
 #else
 #define sl_word(addr, word) \
-	{ adptr= (u_int16_t *)&(dspace[addr]); *adptr= word; }
+	{ adptr= (u_int16_t *)&(dspace[addr & ~1]); *adptr= word; }
 #endif
 
 /* lli_byte() - Load a byte from the given logical ispace address. */
@@ -388,15 +388,15 @@ extern u_int16_t *adptr;
 /* lli_word() - Load a word from the given ispace logical address. */
 #define lli_word(addr, word) \
 	{ if ((Binary<IS_V3) && (addr>=KE11LO) && (addr<=KE11HI)) {	\
-		word= kell_word(addr);					\
-	  } else { adptr= (u_int16_t *)&(ispace[addr]); word= *adptr; }	\
+		word= kell_word(addr & ~1);					\
+	  } else { adptr= (u_int16_t *)&(ispace[addr & ~1]); word= *adptr; }	\
 	}
 
 /* ll_word() - Load a word from the given logical address. */
 #define ll_word(addr, word) \
 	{ if ((Binary<IS_V3) && (addr>=KE11LO) && (addr<=KE11HI)) {	\
-		word= kell_word(addr);					\
-	  } else { adptr= (u_int16_t *)&(dspace[addr]); word= *adptr; }	\
+		word= kell_word(addr & ~1);					\
+	  } else { adptr= (u_int16_t *)&(dspace[addr & ~1]); word= *adptr; }	\
 	}
 
 /* sl_word() - Store a word at the given logical address. */
@@ -404,14 +404,14 @@ extern u_int16_t *adptr;
 #define sl_word(addr, word) \
 	{ if ((u_int16_t)addr < dwrite_base) seg_fault(); \
 	  if ((Binary<IS_V3) && (addr>=KE11LO) && (addr<=KE11HI)) {	\
-		kesl_word(addr, word);					\
-	  } else { adptr= (u_int16_t *)&(dspace[addr]); *adptr= word; }	\
+		kesl_word(addr & ~1, word);					\
+	  } else { adptr= (u_int16_t *)&(dspace[addr & ~1]); *adptr= word; }	\
 	}
 #else
 #define sl_word(addr, word) \
 	{ if ((Binary<IS_V3) && (addr>=KE11LO) && (addr<=KE11HI)) {	\
-		kesl_word(addr, word);					\
-	  } else { adptr= (u_int16_t *)&(dspace[addr]); *adptr= word; }	\
+		kesl_word(addr & ~1, word);					\
+	  } else { adptr= (u_int16_t *)&(dspace[addr & ~1]); *adptr= word; }	\
 	}
 #endif
 
