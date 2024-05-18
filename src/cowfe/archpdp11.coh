@@ -7,7 +7,8 @@ var int8_type: [Type];
 var intptr_type: [Type];
 
 sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
-	newvalue := value;
+	var a := (alignment-1) as Size;
+	newvalue := (value+a) & ~a;
 end sub;
 
 sub ArchInitTypes() is
@@ -40,14 +41,14 @@ end sub;
 
 sub ArchInitVariable(symbol: [Symbol]) is
 	var subr := symbol.vardata.subr;
-	var offset := ArchAlignUp(subr.workspace[0], symbol.vardata.type.width as uint8);
+	var offset := ArchAlignUp(subr.workspace[0], symbol.vardata.type.alignment as uint8);
 	symbol.vardata.offset := offset;
 	subr.workspace[0] := offset + symbol.vardata.type.width;
 end sub;
 
 sub ArchInitMember(containing: [Type], member: [Symbol], position: Size) is
-	member.vardata.offset := ArchAlignUp(position, member.vardata.type.width as uint8);
-	position := position + member.vardata.type.width;
+	member.vardata.offset := ArchAlignUp(position, member.vardata.type.alignment as uint8);
+	position := member.vardata.offset + member.vardata.type.width;
 	if position > containing.width then
 		containing.width := position;
 	end if;
