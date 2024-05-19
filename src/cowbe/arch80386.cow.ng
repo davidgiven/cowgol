@@ -217,6 +217,7 @@
 	end sub;
 
 	sub E_store(reg: RegId, sym: [Symbol], off: Size, index: RegId) is
+		RegCacheFlushValue(sym, off);
 		E_mov(reg);
 		E_reg(reg);
 		E(", (");

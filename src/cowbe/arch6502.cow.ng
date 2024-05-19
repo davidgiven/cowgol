@@ -1418,6 +1418,7 @@ gen STORE1(a:lhs, DEREF1(ptrs)) uses y
 
 gen STORE1(a|x|y:lhs, DEREF1(ADDRESS():a))
 {
+    RegCacheFlushValue(&$a.sym, $a.off);
     E_st($lhs);
     E_symref(&$a.sym, $a.off);
     E_nl();
