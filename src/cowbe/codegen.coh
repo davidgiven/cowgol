@@ -129,6 +129,10 @@ sub FindLast(inreg: RegId): (outreg: RegId) is
 	end loop;
 end sub;
 
+sub RegCacheFlushValue(sym: [Symbol], off: Size) is
+    RegCacheFlush(FindConflictingRegisters(RegCacheFindValue(sym, off)));
+end sub;
+
 sub FindBitNumber(reg: RegId): (bit: uint8) is
 	bit := 0;
 	while reg != 0 loop
