@@ -41,9 +41,9 @@ sub ArchEmitHeader(coo: [Coo]) is
 	E("\tlis 4,argv@ha\n");
 	E("\tstw 3,argv@l(4)\n");
 
-	while coo != (0 as [Coo]) loop
+	while coo != nil loop
 		var main := coo.index.subroutines[0];
-		if main != (0 as [Subroutine]) then
+		if main != nil then
 			E("\tbl ");
 			ArchEmitSubRef(main);
 			E_nl();

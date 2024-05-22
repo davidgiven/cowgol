@@ -28,7 +28,7 @@ sub AddRef(subr: [Subroutine], calls: [Subroutine]) is
 
 	var ref := &subr.refs;
 	while refid >= COO_REFS_SIZE loop
-		if ref.next == (0 as [References]) then
+		if ref.next == nil then
 			ref.next := Alloc(@bytesof References) as [References];
 		end if;
 		ref := ref.next;
@@ -41,7 +41,7 @@ end sub;
 sub FindSub(coo: [Coo], id: uint16): (ptr: [[Subroutine]]) is
 	var subindex := &coo.index;
 	while id >= COO_INDEX_SIZE loop
-		if subindex.next == (0 as [CooIndex]) then
+		if subindex.next == nil then
 			subindex.next := Alloc(@bytesof CooIndex) as [CooIndex];
 		end if;
 		subindex := subindex.next;
@@ -54,7 +54,7 @@ end sub;
 sub FindOrCreateSub(coo: [Coo], id: uint16): (subroutine: [Subroutine]) is
 	var ptr := FindSub(coo, id);
 	subroutine := [ptr];
-	if subroutine == (0 as [Subroutine]) then
+	if subroutine == nil then
 		subroutine := Alloc(@bytesof Subroutine) as [Subroutine];
 		subroutine.coo := coo;
 		subroutine.next := subroutines;
@@ -67,9 +67,9 @@ end sub;
 
 sub Deref(subin: [Subroutine]): (subout: [Subroutine]) is
 	subout := subin;
-	if subin != (0 as [Subroutine]) then
+	if subin != nil then
 		var external := subin.external;
-		if external != (0 as [External]) then
+		if external != nil then
 			subout := external.impl;
 		end if;
 	end if;
@@ -77,7 +77,7 @@ end sub;
 
 sub FindOrCreateExternal(name: string): (external: [External]) is
 	external := externals;
-	while external != (0 as [External]) loop
+	while external != nil loop
 		if StrCmp(external.name, name) == 0 then
 			return;
 		end if;
@@ -132,7 +132,7 @@ sub OpenAndLoadCoo(filename: [uint8]): (coo: [Coo]) is
 			subroutine := FindOrCreateSub(coo, id);
 			var name := read_string(&coo.fcb, (len as uint8) - 2);
 			var external := FindOrCreateExternal(name);
-			if subroutine.external != (0 as [External]) then
+			if subroutine.external != nil then
 				StartError();
 				print("multiple external declarations of '");
 				print(name);

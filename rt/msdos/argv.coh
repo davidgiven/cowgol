@@ -26,7 +26,7 @@ end sub;
 sub ArgvNext(): (arg: [uint8]) is
 	# No more arguments?
 
-	if argv_pointer == (0 as [uint8]) then
+	if argv_pointer == nil then
 		arg := argv_pointer;
 		return;
 	end if;

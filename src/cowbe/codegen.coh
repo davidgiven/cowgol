@@ -61,9 +61,9 @@ sub AllocSubrId(): (id: uint16) is
 	next_subr_id := next_subr_id + 1;
 end sub;
 
-var insn_freelist := (0 as [Instruction]);
+var insn_freelist: [Instruction] := nil;
 sub AllocNewInstruction(): (insn: [Instruction]) is
-	if insn_freelist != (0 as [Instruction]) then
+	if insn_freelist != nil then
 		insn := insn_freelist;
 		insn_freelist := insn_freelist.next;
 		MemSet(insn as [uint8], 0, @bytesof Instruction);
@@ -78,7 +78,7 @@ sub FreeInstruction(insn: [Instruction]) is
 end sub;
 
 @impl sub PurgeAllFreeInstructions is
-	while insn_freelist != (0 as [Instruction]) loop
+	while insn_freelist != nil loop
 		var b := insn_freelist as [uint8];
 		insn_freelist := insn_freelist.next;
 		Free(b);
@@ -127,6 +127,10 @@ sub FindLast(inreg: RegId): (outreg: RegId) is
 		end if;
 		reg := reg << 1;
 	end loop;
+end sub;
+
+sub RegCacheFlushValue(sym: [Symbol], off: Size) is
+    RegCacheFlush(FindConflictingRegisters(RegCacheFindValue(sym, off)));
 end sub;
 
 sub FindBitNumber(reg: RegId): (bit: uint8) is
@@ -338,7 +342,7 @@ sub PrintNodes(rootnode: [Node]) is
 	PushNode(rootnode);
 	while next_node != old_next_node loop
 		var node := NextNode();
-		if node == (0 as [Node]) then
+		if node == nil then
 			break;
 		end if;
 
@@ -361,7 +365,7 @@ end sub;
 
 sub PrintInstructions(insn: [Instruction]) is
 	loop
-		if insn == (0 as [Instruction]) then
+		if insn == nil then
 			break;
 		end if;
 		var ruleid := insn.ruleid;
@@ -423,7 +427,7 @@ sub IsSimpleValue(insn: [Instruction], value: [SimpleValue]): (res: uint8) is
 		if node.op == MIDCODE_FALLBACK then
 			node := node.left;
 		end if;
-		if (node.left != (0 as [Node])) and (IsStackedRegister(node.produced_reg) == 0) then
+		if (node.left != nil) and (IsStackedRegister(node.produced_reg) == 0) then
 			return;
 		end if;
 		#if (node.op == MIDCODE_DEREF1) and (node.left.op == MIDCODE_ADDRESS) then
@@ -499,7 +503,7 @@ sub Generate(rootnode: [Node]) is
 	PushNode(rootnode);
 	while next_node != old_next_node loop
 		var producer := AllocNewInstruction();
-		if first_instruction == (0 as [Instruction]) then
+		if first_instruction == nil then
 			first_instruction := producer;
 			last_instruction := producer;
 		else
@@ -583,7 +587,7 @@ sub Generate(rootnode: [Node]) is
 
 				if rule == &codegen_rules[INSTRUCTION_TEMPLATE_COUNT] then
 					# We've reached the end of the list of rules without matching anything.
-					if (node.op != MIDCODE_FALLBACK) and (node.consumer != (0 as [Instruction])) then
+					if (node.op != MIDCODE_FALLBACK) and (node.consumer != nil) then
 						sub ConvertNodeToFallback() is
 							# Wrap this node in a FALLBACK instruction, in the hope that it'll
 							# convert from whatever wanted it to the right thing.
@@ -759,7 +763,7 @@ sub Generate(rootnode: [Node]) is
 								break;
 							end if;
 
-							if openslot == (0 as [SimpleValue]) then
+							if openslot == nil then
 								openslot := v;
 								slotreg := reg;
 							else
@@ -774,7 +778,7 @@ sub Generate(rootnode: [Node]) is
 						reg := reg >> 1;
 					end loop;
 							
-					if openslot != (0 as [SimpleValue]) then
+					if openslot != nil then
 						MemCopy(&value as [uint8], @bytesof SimpleValue, openslot as [uint8]);
 						openslot.count := 0xff;
 						reg := slotreg;
@@ -940,7 +944,7 @@ sub Generate(rootnode: [Node]) is
 				i := 0;
 				while i != INSTRUCTION_TEMPLATE_DEPTH loop
 					node := producer.n[i];
-					if (node != (0 as [Node]))
+					if (node != nil)
 							and (node.desired_reg == REG_SAME_AS_INSTRUCTION_RESULT) then
 						node.desired_reg := producer.produced_reg;
 
@@ -952,7 +956,7 @@ sub Generate(rootnode: [Node]) is
 						while j != INSTRUCTION_TEMPLATE_DEPTH loop
 							if i != j then
 								node := producer.n[j];
-								if (node != (0 as [Node])) then
+								if (node != nil) then
 									node.desired_reg := node.desired_reg & ~producer.produced_reg;
 								end if;
 							end if;
@@ -975,7 +979,7 @@ sub Generate(rootnode: [Node]) is
 	sub EmitAndFreeInstructions() is
 		loop
 			var insn := last_instruction;
-			if insn == (0 as [Instruction]) then
+			if insn == nil then
 				break;
 			end if;
 			last_instruction := last_instruction.prev;
@@ -990,7 +994,7 @@ sub Generate(rootnode: [Node]) is
 			#print(MidcodeName(insn.n[0].op));
 			#print(" produced=");
 			#print_hex_i32(insn.produced_reg as uint32);
-			#if insn.consumer != (0 as [Node]) then
+			#if insn.consumer != nil then
 			#	print(" consumedby=");
 			#	print_hex_i32(insn.consumer.consumer as intptr as uint32);
 			#end if;
@@ -1012,7 +1016,7 @@ sub Generate(rootnode: [Node]) is
 			#	E_h32(insn as intptr as uint32);
 			#	E(" produced=");
 			#	E_h32(insn.produced_reg as uint32);
-			#	if insn.consumer != (0 as [Node]) then
+			#	if insn.consumer != nil then
 			#		E(" consumedby=");
 			#		E_h32(insn.consumer.consumer as intptr as uint32);
 			#	end if;
@@ -1067,8 +1071,8 @@ sub GenerateConditional(rootnode: [Node]) is
 			rhs.beq.falselabel := f;
 			rhs.beq.fallthrough := r;
 
-			node.left := (0 as [Node]);
-			node.right := (0 as [Node]);
+			node.left := nil;
+			node.right := nil;
 			PushNode(rhs);
 			PushNode(lhs);
 			Discard(node);

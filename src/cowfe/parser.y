@@ -6,6 +6,7 @@
 %token OPENBR CLOSEBR ID NUMBER AT BYTESOF ELSEIF.
 %token INT TYPEDEF SIZEOF STRING.
 %token IMPL DECL EXTERN INTERFACE.
+%token NIL.
 
 %left COMMA.
 %left AND.
@@ -86,10 +87,10 @@ statement ::= VAR newid(S) ASSIGN expression(E) SEMICOLON.
 {
 	var type := E.type;
 	if type == (0 as [Type]) then
-		SimpleError("types cannot be inferred for numeric constants");
+		SimpleError("types cannot be inferred for untyped constants");
 	end if;
 	if IsScalar(type) == 0 then
-		SimpleError("you can only assign to lvalues");
+		SimpleError("you can only assign scalars");
 	end if;
 
 	InitVariable(current_subr, S, type);
@@ -248,7 +249,7 @@ statement ::= startcase whens END CASE SEMICOLON.
 	if (current_case.seenelse == 0) and (current_case.next_label != 0) then
 		Generate(MidLabel(current_case.next_label));
 	end if;
-	Generate(MidLabel(current_case.break_label));
+	Generate(MidLabel(current_case.end_label));
 	Generate(MidEndcase(current_case.width));
 
 	var c := current_case;
@@ -260,8 +261,7 @@ startcase ::= CASE expression(E) IS.
 {
 	var c := InternalAlloc(@bytesof CaseLabels) as [CaseLabels];
 	c.old_case := current_case;
-	c.old_break_label := break_label;
-	c.break_label := AllocLabel();
+	c.end_label := AllocLabel();
 	current_case := c;
 
 	if IsNum(E.type) == 0 then
@@ -284,7 +284,7 @@ beginwhen ::= WHEN cvalue(C) COLON.
 	end if;
 
 	if current_case.next_label != 0 then
-		Generate(MidJump(current_case.break_label));
+		Generate(MidJump(current_case.end_label));
 		Generate(MidLabel(current_case.next_label));
 	end if;
 	current_case.next_label := AllocLabel();
@@ -298,7 +298,7 @@ beginwhen ::= WHEN ELSE COLON.
 		SimpleError("only one when else allowed");
 	end if;
 	if current_case.next_label != 0 then
-		Generate(MidJump(current_case.break_label));
+		Generate(MidJump(current_case.end_label));
 		Generate(MidLabel(current_case.next_label));
 	end if;
 	current_case.next_label := 0;
@@ -397,6 +397,7 @@ conditional(R) ::= expression(T1) LEOP expression(T2).
 %type leafexpression {[Node]}
 leafexpression(E) ::= NUMBER(T).                           { E := MidConstant(T.number); }
 leafexpression(E) ::= OPENPAREN expression(E1) CLOSEPAREN. { E := E1; }
+leafexpression(E) ::= NIL.                                 { E := MidConstant(0); }
 
 %type expression {[Node]}
 expression(E) ::= leafexpression(E1).                      { E := E1; }

@@ -294,3 +294,6 @@ turn contains a copy of John R. Hauser's softfloat library, distributable under
 a custom but MIT-like license; see `third_party/musashi/softfloat/README.txt`
 for the text.
 
+`third_party/libz80ex` contains a copy of the z80ex Z80 emulation library,
+written bypigmaker57@kahoh57.info. It is distributable under the terms of the
+GPL GPL 2.0 license; see `third_party/z80ex/COPYING` for the text.

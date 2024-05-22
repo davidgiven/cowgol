@@ -34,7 +34,7 @@ include "midcodesbe.coh";
 
 var node_freelist: [Node] := 0 as [Node];
 @impl sub AllocateNewNode is
-	if node_freelist != (0 as [Node]) then
+	if node_freelist != nil then
 		m := node_freelist;
 		node_freelist := node_freelist.left;
 		MemSet(m as [uint8], 0, @bytesof Node);
@@ -55,7 +55,7 @@ sub FreeNode(node: [Node]) is
 end sub;
 
 @impl sub PurgeAllFreeNodes is
-	while node_freelist != (0 as [Node]) loop
+	while node_freelist != nil loop
 		var b := node_freelist as [uint8];
 		node_freelist := node_freelist.left;
 		Free(b);

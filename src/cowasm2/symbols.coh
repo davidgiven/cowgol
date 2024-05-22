@@ -19,7 +19,7 @@ sub FindSymbol(name: string): (symbol: [Symbol]) is
 	var hash := [name] & 0xf;
 	var chain := &hashtable[hash];
 	symbol := [chain];
-	while symbol != (0 as [Symbol]) loop
+	while symbol != nil loop
 		if StrCmp(symbol.name, name) == 0 then
 			return;
 		end if;

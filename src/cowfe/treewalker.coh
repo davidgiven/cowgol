@@ -1,5 +1,5 @@
 @impl sub PushNode is
-	if node != (0 as [Node]) then
+	if node != nil then
 		if next_node == &nodes[@sizeof nodes] then
 			SimpleError("node stack overflow");
 		end if;
@@ -15,7 +15,7 @@ end sub;
 
 @impl sub NextNode is
 	node := PopNode();
-	if node != (0 as [Node]) then
+	if node != nil then
 		PushNode(node.left);
 		PushNode(node.right);
 	end if;

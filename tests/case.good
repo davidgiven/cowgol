@@ -27,3 +27,5 @@ int32 of 9 == 4: yes
 19 of many int16s == 119: yes
 39 of many int16s == 139: yes
 40 of many int16s == 0: yes
+before break
+after break

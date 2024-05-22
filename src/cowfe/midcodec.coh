@@ -1,7 +1,7 @@
 
 sub CountParameters(param: [Symbol]): (count: uint8) is
 	count := 0;
-	while param != (0 as [Symbol]) loop
+	while param != nil loop
 		count := count + 1;
 		param := param.vardata.next_parameter;
 	end loop;
@@ -53,7 +53,7 @@ include "midcodesfe.coh";
 
 var node_freelist: [Node] := 0 as [Node];
 @impl sub AllocateNewNode is
-	if node_freelist != (0 as [Node]) then
+	if node_freelist != nil then
 		m := node_freelist;
 		node_freelist := node_freelist.left;
 		MemSet(m as [uint8], 0, @bytesof Node);
@@ -74,7 +74,7 @@ sub FreeNode(node: [Node]) is
 end sub;
 
 @impl sub PurgeAllFreeNodes is
-	while node_freelist != (0 as [Node]) loop
+	while node_freelist != nil loop
 		var b := node_freelist as [uint8];
 		node_freelist := node_freelist.left;
 		Free(b);
@@ -83,7 +83,7 @@ end sub;
 
 sub NodeWidth(node: [Node]): (width: uint8) is
 	width := 0;
-	if node.type != (0 as [Type]) then
+	if node.type != nil then
 		width := node.type.width as uint8;
 	end if;
 end sub;
@@ -195,6 +195,15 @@ sub MidC2Op(op: uint8, width: uint8, lhs: [Node], rhs: [Node]): (result: [Node])
 					when MIDCODE_DIVS0: op := MIDCODE_RSHIFTS0;
 					when MIDCODE_DIVU0: op := MIDCODE_RSHIFTU0;
 				end case;
+			end if;
+		end if;
+		if (op == MIDCODE_REMU0) then
+			value := rhs.constant.value;
+			exp := GetPowerOfTwo(value);
+			if exp != 0 then
+				Discard(rhs);
+				rhs := MidConstant((value-1) as int32);
+				op := MIDCODE_AND0;
 			end if;
 		end if;
 		if (op == MIDCODE_LSHIFT0) or (op == MIDCODE_RSHIFTU0) or (op == MIDCODE_RSHIFTS0) then

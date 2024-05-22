@@ -328,6 +328,7 @@
             when REG_IMM:
                 RegCacheLeavesConstant(srcreg, operand.imm.value as uint16);
             when REG_MEM:
+                RegCacheFlushValue(operand.mem.sym, operand.mem.off);
                 RegCacheLeavesValue(srcreg, operand.mem.sym, operand.mem.off);
         end case;
     end sub;

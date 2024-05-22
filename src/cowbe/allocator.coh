@@ -5,7 +5,7 @@
 
 @impl sub InternalAlloc is
 	block := RawAlloc(length);
-	if block == (0 as [uint8]) then
+	if block == nil then
 		#print("Emergency purge\n");
 		#print("before: ");
 		#print_i32(GetFreeMemory() as uint32);
@@ -19,7 +19,7 @@
 		#print_nl();
 
 		block := RawAlloc(length);
-		if block == (0 as [uint8]) then
+		if block == nil then
 			print("Out of memory\n");
 			#print("Out of memory allocating ");
 			#print_hex_i32(length as uint32);

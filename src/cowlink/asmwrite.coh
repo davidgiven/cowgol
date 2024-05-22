@@ -65,7 +65,7 @@ sub WriteSubroutinesToOutputFile(coo: [Coo]) is
 end sub;
 
 sub WriteAllSubroutinesToOutputFile(coos: [Coo]) is
-	while coos != (0 as [Coo]) loop
+	while coos != nil loop
 		print("Copying from input file: ");
 		print(coos.name);
 		print_nl();

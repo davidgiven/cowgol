@@ -1,5 +1,5 @@
 @impl sub PushNode is
-	if node != (0 as [Node]) then
+	if node != nil then
 		if next_node == &nodes[@sizeof nodes] then
 			SimpleError("node stack overflow");
 		end if;
@@ -16,7 +16,7 @@ end sub;
 # Note: returns children right to left.
 @impl sub NextNode is
 	node := PopNode();
-	if node != (0 as [Node]) then
+	if node != nil then
 		PushNode(node.left);
 		PushNode(node.right);
 	end if;
@@ -63,7 +63,7 @@ sub I_node(): (rootnode: [Node]) is
 	# the queue and add them to the node before queuing it. Eventually we will
 	# end up with a single node on the queue which is the root of the tree.
 
-	var queue: [Node] := (0 as [Node]);
+	var queue: [Node] := nil;
 	while rootnode != 0 as [Node] loop
 		# Remove one item from the list.
 

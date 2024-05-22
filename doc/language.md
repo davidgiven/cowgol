@@ -306,6 +306,7 @@ var p: [uint8];        # pointer type
 p := &v.i;             # allowed: taking the address of a member
 p := &i;               # disallowed: taking the address of a scalar variable
 [p] := [p] + 1;        # dereference pointer
+p := nil;              # nil is convertible to any pointer
 
 ```
 

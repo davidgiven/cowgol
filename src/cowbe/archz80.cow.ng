@@ -242,17 +242,16 @@
 	end sub;
 
 	sub E_stax(ptr: RegId) is
-		E("\tld a, (");
+		E("\tld (");
 		E_reg(ptr);
-		E(")\n");
+		E("), a\n");
 	end sub;
 
 	sub E_ldax(ptr: RegId) is
 		R_flush(REG_A);
-		E("\tld (");
+		E("\tld a, (");
 		E_reg(ptr);
-		E("), a\n");
-		E_nl();
+		E(")\n");
 	end sub;
 
 	sub E_lda(sym: [Symbol], off: Size) is
@@ -342,6 +341,7 @@
 	end sub;
 
 	sub E_store16(src: RegId, sym: [Symbol], off: Size) is
+		RegCacheFlushValue(sym, off);
 		E("\tld (");
 		E_symref(sym, off);
 		E("), ");
@@ -1200,6 +1200,7 @@ gen STORE4(r32:val, DEREF4(ADD2(ix|iy:ptr, CONSTANT(value is indexable_32bit):c)
 
 gen STORE4(r32:val, DEREF4(ADDRESS():a))
 {
+	RegCacheFlushValue(&$a.sym, $a.off);
 	E_store16(wordreg($val), &$a.sym, $a.off);
 	E_exx();
 	E_store16(wordreg($val), &$a.sym, $a.off+2);
@@ -1424,16 +1425,16 @@ gen hl := SUB2(hl:lhs, bc|de:rhs)
 
 %}
 
-gen bc := DIVU2(bc, de) uses a
+gen bc := DIVU2(bc, de) uses a|hl
 		{ E_dvrmu2(); }
 
 gen hl := REMU2(bc, de) uses a
 		{ E_dvrmu2(); }
 
-gen bc := DIVS2(bc, de) uses a
+gen bc := DIVS2(bc, de) uses a|hl
 		{ E_dvrms2(); }
 
-gen de := REMS2(bc, de) uses a
+gen de := REMS2(bc, de) uses a|hl
 		{ E_dvrms2(); }
 
 gen hl := MUL2(de, bc) uses a
@@ -1551,7 +1552,7 @@ gen hlhl := REMU4(bcbc, dede) uses a
 gen bcbc := DIVS4(bcbc, dede) uses a|hlhl
         { E_callhelper("_dvrms4"); }
 
-gen dede := REMS4(bcbc, dede) uses a
+gen dede := REMS4(bcbc, dede) uses a|hlhl
         { E_callhelper("_dvrms4"); }
 
 gen hlhl := AND4(dede, hlhl) uses a
@@ -1881,7 +1882,7 @@ gen hlhl := CAST24(hl, sext==0)
 
 gen hlhl := CAST24(hl, sext!=0) uses a
 {
-	E_mov(REG_A, REG_L);
+	E_mov(REG_A, REG_H);
 	E_add(REG_A, REG_A);
 	E_sbc(REG_A, REG_A);
 	E_exx();

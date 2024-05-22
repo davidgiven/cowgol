@@ -1085,16 +1085,16 @@ gen bc|de|hl := SUB2(bc|de|hl:lhs, CONSTANT():c) uses a
 	aluop2i($lhs, $c.value as uint16, $$, "sui", "sbi");
 }
 
-gen de := DIVU2(de, bc) uses a
+gen de := DIVU2(de, bc) uses a|hl
 		{ dvrmu2(); }
 
 gen hl := REMU2(de, bc) uses a
 		{ dvrmu2(); }
 
-gen de := DIVS2(de, bc) uses a
+gen de := DIVS2(de, bc) uses a|hl
 		{ dvrms2(); }
 
-gen hl := REMS2(de, bc) uses a
+gen hl := REMS2(de, bc) uses a|hl
 		{ dvrms2(); }
 
 gen hl := MUL2(hl, de) uses a|bc
@@ -1487,7 +1487,7 @@ gen stk4 := CAST24(hl|de:rhs, sext==0) uses bc
 {
 	E_lxi(REG_BC, 0);
 	ArchEmitMove(REG_BC, 0);
-	ArchEmitMove(REG_HL, 0);
+	ArchEmitMove($rhs, 0);
 }
 
 gen stk4 := CAST24(hl|de:rhs, sext!=0) uses a|bc

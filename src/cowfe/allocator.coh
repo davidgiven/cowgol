@@ -34,7 +34,7 @@ end sub;
 
 var symbol_freelist: [Symbol] := 0 as [Symbol];
 @impl sub AllocNewSymbol is
-	if symbol_freelist != (0 as [Symbol]) then
+	if symbol_freelist != nil then
 		symbol := symbol_freelist;
 		symbol_freelist := symbol_freelist.next;
 		MemSet(symbol as [uint8], 0, @bytesof Symbol);
@@ -58,7 +58,7 @@ end sub;
 
 var type_freelist: [Type] := 0 as [Type];
 @impl sub AllocNewType is
-	if type_freelist != (0 as [Type]) then
+	if type_freelist != nil then
 		type := type_freelist;
 		type_freelist := type_freelist.pointerto;
 		MemSet(type as [uint8], 0, @bytesof Type);
@@ -84,19 +84,19 @@ end sub;
 
 @impl sub InternalAlloc is
 	block := RawAlloc(length);
-	if block == (0 as [uint8]) then
+	if block == nil then
 		#print("Emergency purge\n");
 		#print("before: ");
 		#print_i32(GetFreeMemory() as uint32);
 		#print_nl();
 
-		while symbol_freelist != (0 as [Symbol]) loop
+		while symbol_freelist != nil loop
 			block := symbol_freelist as [uint8];
 			symbol_freelist := symbol_freelist.next;
 			Free(block);
 		end loop;
 
-		while type_freelist != (0 as [Type]) loop
+		while type_freelist != nil loop
 			block := type_freelist as [uint8];
 			type_freelist := type_freelist.pointerto;
 			Free(block);
@@ -109,7 +109,7 @@ end sub;
 		#print_nl();
 
 		block := RawAlloc(length);
-		if block == (0 as [uint8]) then
+		if block == nil then
 			print("Out of memory\n");
 			#print("Out of memory allocating ");
 			#print_hex_i32(length as uint32);

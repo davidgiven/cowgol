@@ -221,6 +221,7 @@
 	end sub;
 
 	sub E_store(reg: RegId, sym: [Symbol], off: Size, byte: uint8) is
+		RegCacheFlushValue(sym, off);
 		E_mov(reg);
 		E_reg(reg);
 		E(", ");
@@ -927,21 +928,21 @@
 
 	# Note that this *destroys* the source register.
 	sub ArchEmitMove(src: RegId, dest: RegId) is
-		if (src & REGCLASS_R32) == 0 then
-			if src == 0 then
+		if src == 0 then
+			if (dest & REGCLASS_R32) == 0 then
 				E_pop(dest);
-			elseif dest == 0 then
+			else
+				E_pop4(dest);
+			end if;
+		elseif dest == 0 then
+			if (src & REGCLASS_R32) == 0 then
 				E_push(src);
 			else
-				E_move(src, dest);
+				E_push4(src);
 			end if;
 		else
-			if src == 0 then
-				E_pop(hireg(dest));
-				E_pop(loreg(dest));
-			elseif dest == 0 then
-				E_push(loreg(src));
-				E_push(hireg(src));
+			if (src & REGCLASS_R32) == 0 then
+				E_move(src, dest);
 			else
 				E_move(loreg(src), loreg(dest));
 				E_move(hireg(src), hireg(dest));
@@ -1220,7 +1221,14 @@ gen r32 := CAST24(r16:val):c  { E_move($val, loreg($$)); if ($c.sext != 0) then 
 
 gen r8  := DEREF1(r16:rhs)     { E_loadix($$, $rhs, 0, 1); }
 gen r16 := DEREF2(r16:rhs)     { E_loadix($$, $rhs, 0, 0); }
-gen r32 := DEREF4(r16:rhs)     { E_loadix(loreg($$), $rhs, 0, 0); E_loadix(hireg($$), $rhs, 2, 0); }
+gen r32 := DEREF4(r16:rhs)
+{
+	if $rhs == loreg($$) then
+		E_loadix(hireg($$), $rhs, 2, 0); E_loadix(loreg($$), $rhs, 0, 0);
+	else
+		E_loadix(loreg($$), $rhs, 0, 0); E_loadix(hireg($$), $rhs, 2, 0);
+	end if;
+}
 
 gen r8  := DEREF1(ADD1(r16:rhs, CONSTANT():c)) { E_loadix($$, $rhs, $c.value, 1); }
 gen r16 := DEREF2(ADD2(r16:rhs, CONSTANT():c)) { E_loadix($$, $rhs, $c.value, 0); }
@@ -1238,8 +1246,13 @@ gen r32 := DEREF4(ADDRESS():a)
 }
 gen r32 := DEREF4(ADD2(r16:rhs, CONSTANT():c))
 {
-	E_loadix(loreg($$), $rhs, $c.value, 0);
-	E_loadix(hireg($$), $rhs, $c.value + 2, 0);
+	if $rhs == loreg($$) then
+		E_loadix(hireg($$), $rhs, $c.value + 2, 0);
+		E_loadix(loreg($$), $rhs, $c.value, 0);
+	else
+		E_loadix(loreg($$), $rhs, $c.value, 0);
+		E_loadix(hireg($$), $rhs, $c.value + 2, 0);
+	end if;
 }
 gen r32 := DEREF4(ADD2(ADDRESS():a), CONSTANT():c)
 {
@@ -1370,9 +1383,13 @@ gen r32 := EOR4($$, r32:rhs)
 	E_xor(hireg($rhs), hireg($$));
 }
 
-// always use odd registers for 8- and 16-bit multiply and division
-gen r1b|r3b|r5b := MUL1(r0b|r2b|r4b:rhs, $$)     { E_mul($rhs, $$); }
-gen r1|r3|r5 := MUL2(r0|r2|r4:rhs, $$)           { E_mul($rhs, $$); }
+// always use odd registers for 8- and 16-bit multiply and division; NB: do not use register lists
+gen r1b := MUL1(r0b:rhs, $$)                     { E_mul($rhs, $$); }
+gen r3b := MUL1(r2b:rhs, $$)                     { E_mul($rhs, $$); }
+gen r5b := MUL1(r4b:rhs, $$)                     { E_mul($rhs, $$); }
+gen r1 := MUL2(r0:rhs, $$)                       { E_mul($rhs, $$); }
+gen r3 := MUL2(r2:rhs, $$)                       { E_mul($rhs, $$); }
+gen r5 := MUL2(r4:rhs, $$)                       { E_mul($rhs, $$); }
 gen r4r5 := MUL4(r2r3:lhs, r0r1:rhs)             { E_mul4($$, $lhs, $rhs); }
 
 gen r0b := DIVU1(r1b, r8n01:rhs)                 { E_uxtb($rhs); E_uxtb(REG_R1); E_clr(REG_R0); E_div($rhs, REG_R0); }

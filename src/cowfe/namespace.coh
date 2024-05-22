@@ -1,6 +1,6 @@
 sub LookupSymbolInNamespace(namespace: [Namespace], name: string): (symbol: [Symbol]) is
 	symbol := namespace.first;
-	while symbol != (0 as [Symbol]) loop
+	while symbol != nil loop
 		if StrCmp(symbol.name, name) == 0 then
 			while symbol.kind == TYPEDEF loop
 				symbol := symbol.alias;
@@ -9,28 +9,28 @@ sub LookupSymbolInNamespace(namespace: [Namespace], name: string): (symbol: [Sym
 		end if;
 		symbol := symbol.next;
 	end loop;
-	symbol := (0 as [Symbol]);
+	symbol := nil;
 end sub;
 
 sub LookupSymbol(namespace: [Namespace], name: string): (symbol: [Symbol]) is
-	if namespace == (0 as [Namespace]) then
+	if namespace == nil then
 		namespace := &current_subr.namespace;
 	end if;
 	
-	while namespace != (0 as [Namespace]) loop
+	while namespace != nil loop
 		symbol := LookupSymbolInNamespace(namespace, name);
-		if symbol != (0 as [Symbol]) then
+		if symbol != nil then
 			return;
 		end if;
 		namespace := namespace.parent;
 	end loop;
 
-	symbol := (0 as [Symbol]);
+	symbol := nil;
 end sub;
 
 # Note: does not check for name duplications (deliberately)
 sub AddToNamespace(namespace: [Namespace], symbol: [Symbol]) is
-	if namespace.last == (0 as [Symbol]) then
+	if namespace.last == nil then
 		namespace.first := symbol;
 		namespace.last := symbol;
 	else
@@ -42,13 +42,13 @@ end sub;
 
 # Takes ownership of the string
 sub AddSymbol(namespace: [Namespace], name: string): (symbol: [Symbol]) is
-	if namespace == (0 as [Namespace]) then
+	if namespace == nil then
 		namespace := &current_subr.namespace;
 	end if;
 
 	symbol := AllocNewSymbol();
 	if name != (0 as string) then
-		if LookupSymbolInNamespace(namespace, name) != (0 as [Symbol]) then
+		if LookupSymbolInNamespace(namespace, name) != nil then
 			StartError();
 			print("symbol '");
 			print(name);
@@ -107,7 +107,7 @@ end sub;
 
 sub IsTypeOfKind(type: [Type], kind: uint8): (result: uint8) is
 	result := 0;
-	if (type != (0 as [Type])) and (type.kind == kind) then
+	if (type != nil) and (type.kind == kind) then
 		result := 1;
 	end if;
 end sub;
@@ -125,7 +125,7 @@ sub IsSubroutine(type: [Type]): (result: uint8) is
 end sub;
 
 sub IsNum(type: [Type]): (result: uint8) is
-	if type == (0 as [Type]) then
+	if type == nil then
 		result := 1;
 	else
 		result := IsTypeOfKind(type, TYPE_NUMBER);
@@ -133,7 +133,7 @@ sub IsNum(type: [Type]): (result: uint8) is
 end sub;
 
 sub IsSNum(type: [Type]): (result: uint8) is
-	if type == (0 as [Type]) then
+	if type == nil then
 		result := 1;
 	elseif (IsTypeOfKind(type, TYPE_NUMBER) != 0) and (type.numbertype.is_signed != 0) then
 		result := 1;
@@ -175,7 +175,7 @@ sub UndoLValue(lvalue: [Node]): (address: [Node]) is
 	end if;
 
 	address := lvalue.left;
-	lvalue.left := (0 as [Node]);
+	lvalue.left := nil;
 	Discard(lvalue);
 end sub;
 
@@ -191,7 +191,7 @@ sub MaybeUndoLValue(lvalue: [Node]): (address: [Node]) is
 	var k := lvalue.op;
 	if (k >= MIDCODE_DEREF0) and (k <= MIDCODE_DEREF8) then
 		address := lvalue.left;
-		lvalue.left := (0 as [Node]);
+		lvalue.left := nil;
 	elseif IsPtr(lvalue.type) != 0 then
 		address := lvalue;
 	else

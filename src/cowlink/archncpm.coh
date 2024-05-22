@@ -1,0 +1,59 @@
+const STACK_SIZE := 128;
+
+var workspaceSize: Size[NUM_WORKSPACES];
+
+sub E_nl() is
+	E_b8('\n');
+end sub;
+
+sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
+	newvalue := value;
+end sub;
+
+sub ArchEmitSubRef(subr: [Subroutine]) is
+	E_b8('f');
+	E_u16(subr.id);
+	E_b8('_');
+	E(subr.name);
+end sub;
+
+sub ArchEmitWSRef(wid: uint8, address: Size) is
+	E("ws+");
+	E_u16(address);
+end sub;
+
+sub ArchEmitHeader(coo: [Coo]) is
+	E("\torg 100h\n");
+
+	E("\tlxi sp, TOP+");
+	E_u16(STACK_SIZE);
+	E_nl();
+
+	while coo != nil loop
+		var main := coo.index.subroutines[0];
+		if main != nil then
+			E("\tcall ");
+			ArchEmitSubRef(main);
+			E_nl();
+		end if;
+		coo := coo.next;
+	end loop;
+
+	E("\trst 0\n");
+end sub;
+
+sub ArchEmitFooter(coo: [Coo]) is
+	E("TOP:\n");
+
+	E("ws equ TOP+");
+	E_u16(STACK_SIZE);
+	E_nl();
+
+	E("LOMEM equ ws+");
+	E_u16(workspaceSize[0]);
+	E_nl();
+
+	E("\tend\n");
+	E_b8(26);
+end sub;
+

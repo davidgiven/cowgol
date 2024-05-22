@@ -8,7 +8,7 @@ end sub;
 
 sub Alloc(length: intptr): (block: [uint8]) is
 	block := RawAlloc(length);
-	if block == (0 as [uint8]) then
+	if block == nil then
 		print("Out of memory");
 		ExitWithError();
 	end if;

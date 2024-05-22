@@ -242,3 +242,17 @@ sub test_case_many_int16s() is
 end sub;
 test_case_many_int16s();
 
+sub test_break() is
+	var i: uint8 := 1;
+	loop
+		case i is
+			when 1:
+				print("before break\n");
+				break;
+		end case;
+		print("bad\n");
+		break;
+	end loop;
+	print("after break\n");
+end sub;
+test_break();

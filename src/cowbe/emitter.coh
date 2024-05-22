@@ -30,7 +30,7 @@ sub FlushCurrentStream(close: uint8) is
 end sub;
 	
 sub E_b8(byte: uint8) is
-	if current_stream != (0 as [EmitterStream]) then
+	if current_stream != nil then
 		outputbuffer[outputbufferpos] := byte;
 		outputbufferpos := outputbufferpos + 1;
 		if outputbufferpos == @bytesof outputbuffer then
@@ -189,7 +189,7 @@ sub E_wsref(id: uint16, wsid: uint8, off: uint16) is
 end sub;
 
 sub EmitterOpenStream(subr: [Subroutine]) is
-	if current_stream == (0 as [EmitterStream]) then
+	if current_stream == nil then
 		current_stream := &streams[0];
 		current_stream_id := 0;
 	else

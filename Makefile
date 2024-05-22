@@ -1,20 +1,15 @@
 export OBJ = .obj
 export LUA = lua
+export CC = gcc
+export CXX = g++
+export AR = ar
 export CFLAGS = -g -O0
 export LDFLAGS = -g
 export NINJAFLAGS =
 
-all: $(OBJ)/build.ninja
-	@ninja -f $(OBJ)/build.ninja $(NINJAFLAGS)
+.PHONY: all
+all: +all
 
-clean:
-	@echo CLEAN
-	@rm -rf $(OBJ) bin
+TARGETS = +all
+include build/ab.mk
 
-lua-files = $(shell find . -name 'build*.lua') $(wildcard build/*.lua) toolchains.lua
-$(OBJ)/build.ninja: mkninja.lua Makefile $(lua-files)
-	@echo MKNINJA
-	@mkdir -p $(OBJ)
-	@$(LUA) \
-		mkninja.lua \
-		> $@
