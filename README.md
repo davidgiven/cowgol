@@ -139,9 +139,9 @@ end sub;
 The bullet list set of features is:
 
   - strongly typed --- no implicit casting (not even between integers of
-	different widths of signedness)
+	different widths or signedness)
 
-  - records, pointers etc
+  - records, pointers, etc.
 
   - subroutines with multiple input and output arguments
 
@@ -156,7 +156,7 @@ The bullet list set of features is:
 
   - simple type inference of variables if they're assigned during a declaration
 
-  - seperate compilation with global analysis
+  - separate compilation with global analysis
 
 There's more about the language in the links below.
 
@@ -185,9 +185,9 @@ Where?
 - [Check out the GitHub repository](http://github.com/davidgiven/cowgol) and
   build from source. (Alternatively, you can download a source snapshot from
   [the latest release](https://github.com/davidgiven/cowgol/releases/latest),
-  but I suggect the GitHub repositories better because I don't really intend to
-  make formal releases often.) [Build instructions are on their own
-  page.](doc/building.md)
+  but I suggest the GitHub repository because I don't really intend to make
+  formal releases often.) [Build instructions are on their own page.]
+  (doc/building.md)
 
 - [Ask a question by creating a GitHub
   issue](https://github.com/davidgiven/cowgol/issues/new), or just email me
@@ -231,7 +231,7 @@ Apart from actual bugs, there are some unimplemented parts of the language.
 
   - no stable standard library. I hack stuff in as I need it.
 
-Your mileage (or kilometreage, depending) may very. You Have Been Warned.
+Your mileage (or kilometrage, depending) may vary. You Have Been Warned.
 
 
 
@@ -250,7 +250,7 @@ License?
 --------
 
 Cowgol is open source software available [under the 2-clause BSD
-license](https://github.com/davidgiven/cowgol/blob/master/COPYING).  Simplified
+license](https://github.com/davidgiven/cowgol/blob/master/COPYING). Simplified
 summary: do what you like with it, just don't claim you wrote it.
 
 The exceptions are the contents of the `third_party` directory, which were
@@ -278,13 +278,14 @@ Alan Cox. It is distributed under the terms of the GPL 3.0 license; see
 `third_party/rc2014emu/COPYING` for the full text.
 
 `third_party/emu2` constains a copy of the emu2 DOS emulator written by
-dmsc@github (and others). It is distributed under the terms of the GPL 2.0
-license; see `third_party/emu2/LICENSE` for the full text.
+[dmsc@github](https://github.com/dmsc) (and others). It is distributed under
+the terms of the GPL 2.0 license; see `third_party/emu2/LICENSE` for the full
+text.
 
 `third_party/djlink` contains a copy of the djlink 16-bit linker written by
-dj@delorie.com. It is distributed under the terms of the GPL 2.0 license; see
-`third_party/djlink/copying` for the full text, with additional grants
-described in `third_party/djlink/copying.dj`.
+[dj@delorie.com](https://delorie.com). It is distributed under the terms of the
+GPL 2.0 license; see x`third_party/djlink/copying` for the full text, with
+additional grants described in `third_party/djlink/copying.dj`.
 
 `third_party/musashi` contains a copy of the Musashi 68000 emulation library,
 written by Karl Stenerud. It is distributable under the terms of the MIT
