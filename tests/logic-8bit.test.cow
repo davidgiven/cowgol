@@ -9,9 +9,13 @@ var three: int8 := 3;
 var four: int8 := 4;
 
 const NOTFOUR := ~4;
+const ZERO := 0;
+const ONE := 1;
 
 print("two|one==three"); if (two|one) == three then yes(); else no(); end if;
 print("three&two==two"); if (three&two) == two then yes(); else no(); end if;
+print("two&one==ZERO");  if (two&one) == ZERO  then yes(); else no(); end if;
+print("two&ONE==ZERO");  if (two&ONE) == ZERO  then yes(); else no(); end if;
 print("two^one==three"); if (two^one) == three then yes(); else no(); end if;
 print("three^one==two"); if (three^one) == two then yes(); else no(); end if;
 print("~zero==mone");    if ~zero == mone      then yes(); else no(); end if;

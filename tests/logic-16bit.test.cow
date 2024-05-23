@@ -9,9 +9,13 @@ var three: uint16 := 0x3003;
 var four: uint16 := 0x4004;
 
 const NOTFOUR := ~0x4004;
+const ZERO := 0;
+const ONE := 0x1001;
 
 print("two|one==three"); if (two|one) == three then yes(); else no(); end if;
 print("three&two==two"); if (three&two) == two then yes(); else no(); end if;
+print("two&one==ZERO");  if (two&one) == ZERO  then yes(); else no(); end if;
+print("two&ONE==ZERO");  if (two&ONE) == ZERO  then yes(); else no(); end if;
 print("two^one==three"); if (two^one) == three then yes(); else no(); end if;
 print("three^one==two"); if (three^one) == two then yes(); else no(); end if;
 print("~zero==mone");    if ~zero == mone      then yes(); else no(); end if;

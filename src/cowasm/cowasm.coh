@@ -868,6 +868,10 @@ sub AlignCb implements SymbolCallback is
         SimpleError("alignment must be a power of two");
     end if;
 
+    if [currentProgramCounter] & (tokenNumber - 1) == 0 then
+        return;
+    end if;
+
     var newpc := ([currentProgramCounter] + tokenNumber) & ~(tokenNumber - 1);
     while [currentProgramCounter] != newpc loop
         Emit8(0);
