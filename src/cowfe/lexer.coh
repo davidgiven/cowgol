@@ -487,6 +487,7 @@ sub LexerReadToken(): (token: uint8) is
 			when 'n':  c := 10;
 			when 'r':  c := 13;
 			when 't':  c := 9;
+			when 'e':  c := 27;
 			when '\\': c := '\\';
 			when '\'': c := '\'';
 			when '"':  c := '"';
