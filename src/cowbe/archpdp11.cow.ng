@@ -1338,7 +1338,6 @@ gen r32 := SUB4($$, r32:rhs)
 }
 gen r32 := SUB4($$, CONSTANT():c)     { E_subi4($c.value, $$); }
 
-// XXX use BIT when BEQx(ANDx())
 gen r8  := AND1($$, r8:rhs) uses r5b  { E_and($rhs, $$); }
 gen r8  := AND1($$, CONSTANT():c)     { E_andi($c.value, $$); }
 gen r16 := AND2($$, r16:rhs) uses r5  { E_and($rhs, $$); }
@@ -1468,8 +1467,20 @@ gen BEQ0(CONSTANT():c1, CONSTANT():c2):b uses all { beqc(self.n[0], $c1.value, $
 
 gen BEQ1(r8:lhs, r8:rhs):b         uses all { E_cmp($lhs, $rhs);      CmpJumpsJe(self.n[0]); }
 gen BEQ1(r8:lhs, CONSTANT():c):b   uses all { if ($c.value == 0) then E_tst($lhs); else E_cmpi($c.value, $lhs); end if; CmpJumpsJe(self.n[0]); }
+gen BEQ1(AND1(r8:lhs, r8:rhs), CONSTANT(value==0)):b { E_alu2("BIT", $rhs, $lhs); CmpJumpsJe(self.n[0]); }
+gen BEQ1(AND1(r8:lhs, CONSTANT(value!=0):c), CONSTANT(value==0)):b
+{
+	E_alu2i("BIT", $c.value, $lhs);
+	CmpJumpsJe(self.n[0]);
+}
 gen BEQ2(r16:lhs, r16:rhs):b       uses all { E_cmp($lhs, $rhs);      CmpJumpsJe(self.n[0]); }
 gen BEQ2(r16:lhs, CONSTANT():c):b  uses all { if ($c.value == 0) then E_tst($lhs); else E_cmpi($c.value, $lhs); end if; CmpJumpsJe(self.n[0]); }
+gen BEQ2(AND2(r16:lhs, r16:rhs), CONSTANT(value==0)):b { E_alu2("BIT", $rhs, $lhs); CmpJumpsJe(self.n[0]); }
+gen BEQ2(AND2(r16:lhs, CONSTANT(value!=0):c), CONSTANT(value==0)):b
+{
+	E_alu2i("BIT", $c.value, $lhs);
+	CmpJumpsJe(self.n[0]);
+}
 gen BEQ4(r32:lhs, r32:rhs):b       uses all { E_cmpeq4($lhs, $rhs);   CmpJumpsJe(self.n[0]); }
 //n BEQ4(r32:lhs, CONSTANT():c):b  uses all { E_cmpi4($c.value, $lhs); CmpJumpsJe(self.n[0]); } // XXX deadlock
 
