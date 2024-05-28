@@ -910,7 +910,7 @@ gen a|b|d|h := SUB1($$, CONSTANT(value==1))
 		{ E_dcr($$); }
 
 gen a := SUB1(a, CONSTANT():c)
-		{ E_sbi($c.value as uint8); }
+		{ E_sui($c.value as uint8); }
 
 gen a := MUL1(b, d)
 		{ E_callhelper("_mul1"); }

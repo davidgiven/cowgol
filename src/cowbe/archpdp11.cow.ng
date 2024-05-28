@@ -1232,8 +1232,8 @@ gen r32 := DEREF4(r16:rhs)
 
 gen r8  := DEREF1(ADD1(r16:rhs, CONSTANT():c)) { E_loadix($$, $rhs, $c.value, 1); }
 gen r16 := DEREF2(ADD2(r16:rhs, CONSTANT():c)) { E_loadix($$, $rhs, $c.value, 0); }
-gen r8  := DEREF1(ADD1(ADDRESS():a), CONSTANT():c) { E_load($$, &$a.sym, $a.off + $c.value as uint16, 1); }
-gen r16 := DEREF2(ADD2(ADDRESS():a), CONSTANT():c) { E_load($$, &$a.sym, $a.off + $c.value as uint16, 0); }
+gen r8  := DEREF1(ADD1(ADDRESS():a, CONSTANT():c)) { E_load($$, &$a.sym, $a.off + $c.value as uint16, 1); }
+gen r16 := DEREF2(ADD2(ADDRESS():a, CONSTANT():c)) { E_load($$, &$a.sym, $a.off + $c.value as uint16, 0); }
 
 gen r8  := DEREF1(ADDRESS():a) { E_load($$, &$a.sym, $a.off, 1); }
 gen r16 := DEREF1(ADDRESS():a) { E_load($$, &$a.sym, $a.off, 1); }
@@ -1254,7 +1254,7 @@ gen r32 := DEREF4(ADD2(r16:rhs, CONSTANT():c))
 		E_loadix(hireg($$), $rhs, $c.value + 2, 0);
 	end if;
 }
-gen r32 := DEREF4(ADD2(ADDRESS():a), CONSTANT():c)
+gen r32 := DEREF4(ADD2(ADDRESS():a, CONSTANT():c))
 {
 	E_load(loreg($$), &$a.sym, $c.value as uint16 + $a.off, 0);
 	E_load(hireg($$), &$a.sym, $c.value as uint16 + $a.off + 2, 0);
