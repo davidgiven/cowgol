@@ -63,7 +63,9 @@ sub Parse() is
 	print_i8(pass);
 	print_nl();
 
+	lineno := 1;
 	UpdateProgramCounters();
+	RewindSizePointer();
 
 	CheckFCBOpen(FCBOpenIn(&inputFile, inputFilename), inputFilename);
 	ParserInit();

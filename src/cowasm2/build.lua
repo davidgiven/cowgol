@@ -35,6 +35,7 @@ local function build(arch, yarch)
 				"src/cowasm2/lexer.coh",
 				"src/cowasm2/symbols.coh",
 				"src/cowasm2/types.coh",
+				"src/cowasm2/sizing.coh",
 				"$OBJ/src/cowasm2/arch"..yarch..".parser.coh",
 				"$OBJ/src/cowasm2/arch"..yarch..".tokens.coh",
 				}, deps),

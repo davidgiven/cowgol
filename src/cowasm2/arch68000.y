@@ -374,43 +374,65 @@ instruction ::= INSN_ASL(T) mod(M) ea(R1).
 
 instruction ::= INSN_BRA(T) mod expression(E).
 	{
+		var sizeByte := GetNextSizeRecord();
 		if pass == 1 then
-			[currentProgramCounter] := [currentProgramCounter] + 6;
+			[sizeByte] := 10;
+			[currentProgramCounter] := [currentProgramCounter] + 10;
+		#elseif E.type == AS_NUMBER then
+		#	case T.number as uint8 is
+		#		when 0: # bra
+		#			[sizeByte] := 6;
+		#			Emit16(0b0100111011111001); # jmp
+
+		#		when 1: # bsr
+		#			[sizeByte] := 6;
+		#			Emit16(0b0100111010111001); # jsr
+
+		#		when else: # long conditional
+		#			[sizeByte] := 8;
+		#			Emit16(((T.number as uint16 ^ 1) << 8)
+		#				| 0b0110000000000110);
+		#			Emit16(0b0100111010111001); # jmp
+		#	end case;
+		#	Emit32(&E);
 		else
-			var delta: int32;
-			if E.type == AS_NUMBER then
-				case T.number as uint8 is
-					when 0: # bra
-						Emit16(0b0100111011111001);
+			var delta := (E.number - [currentProgramCounter] - 2) as int32;
 
-					when 1: # jsr
-						Emit16(0b0100111010111001);
+			var size: uint8;
+			if (delta >= -0x80) and (delta <= 0x7f) then
+				size := 2;
+			elseif (delta >= -0x8000) and (delta <= 0x7fff) then
+				size := 4;
+			else
+				size := 10;
+			end if;
+			print_hex_i32(sizeByte as intptr as uint32);
+			print(" ");
+			print_hex_i32(delta as uint32);
+			print("\n");
+			if size > [sizeByte] then
+				SizeInvariantError();
+			end if;
+			[sizeByte] := size;
 
-					when else: # long conditional
-						Emit16(((T.number as uint16 ^ 1) << 8)
-							| 0b0110000000000110);
-						Emit16(0b0100111010111001); # jmp
-				end case;
-				Emit32(&E);
-				return;
-			elseif E.type == currentSegment then
-				delta := (E.number - [currentProgramCounter] - 2) as int32;
-				if (delta >= -0x80) and (delta <= 0x7f) then
+			case size is
+				when 2:
 					Emit16((T.number as uint16 << 8)
 						| 0b0110000000000000
 						| (delta as uint8 as uint16));
-				elseif (delta >= -0x8000) and (delta <= 0x7fff) then
+
+				when 4:
 					Emit16((T.number as uint16 << 8)
 						| 0b0110000000000000);
 					Emit16(delta as uint16);
-				else
+
+				when 10:
 					Emit16(((T.number as uint16 ^ 1) << 8)
 						| 0b0110000000000110);
 					Emit16(6);
 					Emit16(0b0100111010111001);
 					Emit32(&E);
-				end if;
-			end if;
+			end case;
 		end if;
 	}
 
@@ -422,30 +444,44 @@ instruction ::= INSN_DBT(T) ea(R) COMMA expression(E).
 			InvalidOperand();
 		end if;
 
+		if E.type == AS_NUMBER then
+			Emit16((T.number as uint16 ^ 0x100)
+				| (R.reg as uint16));
+			Emit16(0b0100111010111001); # jmp
+			Emit32(&E);
+			return;
+		end if;
+
+		var s: uint8[1];
+		var sizeByte := &s[0];
+		#var sizeByte := GetNextSizeRecord();
+		var delta := (E.number - [currentProgramCounter] - 2) as int32;
 		if pass == 1 then
+			[sizeByte] := 10;
 			[currentProgramCounter] := [currentProgramCounter] + 10;
 		else
-			var delta: int32;
-			if E.type == AS_NUMBER then
+			var size: uint8;
+
+			if (delta >= -0x8000) and (delta <= 0x7fff) then
+				size := 4;
+			else
+				size := 10;
+			end if;
+			if size > [sizeByte] then
+				SizeInvariantError();
+			end if;
+			[sizeByte] := size;
+
+			if size == 4 then
+				Emit16((T.number as uint16)
+					| (R.reg as uint16));
+				Emit16(delta as uint16);
+			else
 				Emit16((T.number as uint16 ^ 0x100)
 					| (R.reg as uint16));
+				Emit16(6);
 				Emit16(0b0100111010111001); # jmp
 				Emit32(&E);
-				return;
-			elseif E.type == currentSegment then
-				delta := (E.number - [currentProgramCounter] - 2) as int32;
-				if (delta >= -0x8000) and (delta <= 0x7fff) then
-					Emit16((T.number as uint16)
-						| (R.reg as uint16));
-					Emit16(delta as uint16);
-				else
-					Emit16((T.number as uint16 ^ 0x100)
-						| (R.reg as uint16));
-					Emit16(6);
-					Emit16(0b0100111010111001); # jmp
-					Emit32(&E);
-				end if;
-				return;
 			end if;
 		end if;
 	}
@@ -496,7 +532,7 @@ instruction ::= INSN_BTST(T) ea(R1) COMMA ea(R2).
 
 instruction ::= INSN_CHK(T) mod(M) ea(R1) COMMA ea(R2).
 	{
-		if (IsLvalueD(R1.mode) == 0) or (R2.mode != AM_REGD) or (M != 1) then
+		if (IsRvalueD(R1.mode) == 0) or (R2.mode != AM_REGD) or (M != 1) then
 			InvalidOperand();
 		end if;
 

@@ -22,7 +22,7 @@ var listingFilename: string;
 var inputFile: FCB;
 var outputFile: FCB;
 var listingFile: FCB;
-var lineno: uint16 := 1;
+var lineno: uint16;
 
 var pass: uint8;
 var lastPass: uint8 := 0;

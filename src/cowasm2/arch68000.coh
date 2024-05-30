@@ -65,7 +65,7 @@ sub IsLvalueD(am: uint8): (r: uint8) is
 	if am == AM_REGA then
 		r := 0;
 	else
-		am := IsLvalue(am);
+		r := IsLvalue(am);
 	end if;
 end sub;
 
@@ -307,6 +307,7 @@ include "lexer.coh";
 include "utils.coh";
 include "emitter.coh";
 include "symbols.coh";
+include "sizing.coh";
 
 sub DisplacementOutOfRange(disp: uint32, max: uint32) is
 	if disp > max then

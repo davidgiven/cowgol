@@ -153,6 +153,7 @@ include "lexer.coh";
 include "utils.coh";
 include "emitter.coh";
 include "symbols.coh";
+include "sizing.coh";
 
 sub Emit16(w: uint16) is
 	Emit8((w >> 8) as uint8);
