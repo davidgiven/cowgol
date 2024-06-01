@@ -96,6 +96,7 @@ sub ReadOperand(): (token: Token) is
             end if;
     end case;
 
+    # FIXME @(reg) is @0(reg), not (reg)
     if deferred != 0 then
         addressingMode := addressingMode | AM__DEREF;
     end if;
@@ -253,7 +254,7 @@ sub SobCb implements SymbolCallback is
     if (addressingMode & 0o370) != AM_REG then
         SimpleError("first parameter must be a register");
     end if;
-    var param1addressingMode := addressingMode;
+    var param1addressingMode := (addressingMode & 0o07) as uint16 << 6;
     ExpectExpression();
     
     if pass == 1 then
@@ -261,16 +262,16 @@ sub SobCb implements SymbolCallback is
     else
         var delta := (tokenNumber - [currentProgramCounter] - 2) as int16;
         if (delta >= -256) and (delta <= 0) then
-            EmitWord(currentInsn.value | (((-delta as uint16) >> 1) & 0o77));
+            EmitWord(currentInsn.value | param1addressingMode | (((-delta as uint16) >> 1) & 0o77));
         elseif (delta >= -128) and (delta <= 126) then
             EmitWord(0o000401);
             EmitWord(0o000400 | (((delta as uint16) >> 1) & 0o77));
-            EmitWord((currentInsn.value ^ 0o400) | 2);
+            EmitWord((currentInsn.value ^ 0o400) | param1addressingMode | 2);
         else
             EmitWord(0o000402);
             EmitWord(0o000167);
             EmitWord(tokenNumber - [currentProgramCounter] - 2);
-            EmitWord((currentInsn.value ^ 0o400) | 3);
+            EmitWord((currentInsn.value ^ 0o400) | param1addressingMode | 3);
         end if;
     end if;
 end sub;
@@ -401,6 +402,8 @@ end sub;
         { "CLV",   0o000242, SimpleCb,   &s },
         { "CLZ",   0o000244, SimpleCb,   &s },
         { "CLN",   0o000250, SimpleCb,   &s },
+
+        { "NOP",   0o000240, SimpleCb,   &s },
 
         { "BR",    0o000400, BrCb,       &s },
         { "BNE",   0o001000, CondCb,     &s },
