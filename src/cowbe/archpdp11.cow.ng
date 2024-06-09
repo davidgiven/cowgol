@@ -918,13 +918,13 @@
 		E_u16(sid);
 	end sub;
 
-    sub ArchBeginComment() is
-        E("\t; ");
-    end sub;
+	sub ArchBeginComment() is
+		E("\t; ");
+	end sub;
 
-    sub ArchEndComment() is
-        E_nl();
-    end sub;
+	sub ArchEndComment() is
+		E_nl();
+	end sub;
 
 	# Note that this *destroys* the source register.
 	sub ArchEmitMove(src: RegId, dest: RegId) is
@@ -1236,7 +1236,6 @@ gen r8  := DEREF1(ADD1(ADDRESS():a, CONSTANT():c)) { E_load($$, &$a.sym, $a.off 
 gen r16 := DEREF2(ADD2(ADDRESS():a, CONSTANT():c)) { E_load($$, &$a.sym, $a.off + $c.value as uint16, 0); }
 
 gen r8  := DEREF1(ADDRESS():a) { E_load($$, &$a.sym, $a.off, 1); }
-gen r16 := DEREF1(ADDRESS():a) { E_load($$, &$a.sym, $a.off, 1); }
 gen r16 := DEREF2(ADDRESS():a) { E_load($$, &$a.sym, $a.off, 0); }
 
 gen r32 := DEREF4(ADDRESS():a)
@@ -1313,7 +1312,6 @@ gen r32 := NOT4($$)                   { E_not(loreg($$)); E_not(hireg($$)); }
 gen r8  := ADD1($$, r8:rhs)           { E_add($rhs, $$); }
 gen r8  := ADD1($$, CONSTANT():c)     { E_addi($c.value, $$); }
 gen r16 := ADD2($$, r16:rhs)          { E_add($rhs, $$); }
-gen r16 := ADD1($$, CONSTANT():c)     { E_addi($c.value, $$); }
 gen r16 := ADD2($$, CONSTANT():c)     { E_addi($c.value, $$); }
 
 gen r32 := ADD4($$, r32:rhs)
@@ -1327,7 +1325,6 @@ gen r32 := ADD4($$, CONSTANT():c)     { E_addi4($c.value, $$); }
 gen r8  := SUB1($$, r8:rhs)           { E_sub($rhs, $$); }
 gen r8  := SUB1($$, CONSTANT():c)     { E_subi($c.value, $$); }
 gen r16 := SUB2($$, r16:rhs)          { E_sub($rhs, $$); }
-gen r16 := SUB1($$, CONSTANT():c)     { E_subi($c.value, $$); }
 gen r16 := SUB2($$, CONSTANT():c)     { E_subi($c.value, $$); }
 
 gen r32 := SUB4($$, r32:rhs)
@@ -1341,7 +1338,6 @@ gen r32 := SUB4($$, CONSTANT():c)     { E_subi4($c.value, $$); }
 gen r8  := AND1($$, r8:rhs) uses r5b  { E_and($rhs, $$); }
 gen r8  := AND1($$, CONSTANT():c)     { E_andi($c.value, $$); }
 gen r16 := AND2($$, r16:rhs) uses r5  { E_and($rhs, $$); }
-gen r16 := AND1($$, CONSTANT():c)     { E_andi($c.value, $$); }
 gen r16 := AND2($$, CONSTANT():c)     { E_andi($c.value, $$); }
 
 gen r32 := AND4($$, r32:rhs) uses r4r5
@@ -1358,7 +1354,6 @@ gen r32 := AND4($$, CONSTANT():c)
 gen r8  := OR1($$, r8:rhs)            { E_or($rhs, $$); }
 gen r8  := OR1($$, CONSTANT():c)      { E_ori($c.value, $$); }
 gen r16 := OR2($$, r16:rhs)           { E_or($rhs, $$); }
-gen r16 := OR1($$, CONSTANT():c)      { E_ori($c.value, $$); }
 gen r16 := OR2($$, CONSTANT():c)      { E_ori($c.value, $$); }
 
 gen r32 := OR4($$, r32:rhs)
@@ -1645,3 +1640,4 @@ gen ASMEND()
 	E_nl();
 }
 
+# vim: sw=4 ts=4 noet
