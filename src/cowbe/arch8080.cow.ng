@@ -892,7 +892,7 @@ gen a := ADD1(b|d|h:lhs, a)
 		{ E_add($lhs); }
 
 gen a := ADD1(DEREF1(hl), a)
-		{ E("\tadd m\n"); }
+		{ R_flush(REG_A); E("\tadd m\n"); }
 
 gen a|b|d|h := ADD1($$, CONSTANT(value==-1))
 		{ E_dcr($$); }
@@ -904,7 +904,7 @@ gen a := SUB1(a, b|d|h:rhs)
 		{ E_sub($rhs); }
 
 gen a := SUB1(a, DEREF1(hl))
-		{ E("\tsub m\n"); }
+		{ R_flush(REG_A); E("\tsub m\n"); }
 
 gen a|b|d|h := SUB1($$, CONSTANT(value==1))
 		{ E_dcr($$); }
@@ -928,7 +928,7 @@ gen a := OR1(a, b|d|h:lhs)
 		{ E_ora($lhs); }
 
 gen a := OR1(a, DEREF1(hl))
-		{ E("\tora m\n"); }
+		{ R_flush(REG_A); E("\tora m\n"); }
 
 gen a := OR1(a, CONSTANT():c)
 		{ E_ori($c.value as uint8); }
@@ -937,7 +937,7 @@ gen a := AND1(a, b|d|h:lhs)
 		{ E_ana($lhs); }
 
 gen a := AND1(a, DEREF1(hl))
-		{ E("\tana m\n"); }
+		{ R_flush(REG_A); E("\tana m\n"); }
 
 gen a := AND1(a, CONSTANT():c)
 		{ E_ani($c.value as uint8); }
@@ -946,7 +946,7 @@ gen a := EOR1(a, b|d|h:lhs)
 		{ E_xra($lhs); }
 
 gen a := EOR1(a, DEREF1(hl))
-		{ E("\txra m\n"); }
+		{ R_flush(REG_A); E("\txra m\n"); }
 
 gen a := EOR1(a, CONSTANT():c)
 		{ E_xri($c.value as uint8); }

@@ -44,6 +44,7 @@ TESTS = [
     "recordinitialisers",
     "records",
     "regalloc",
+    "regcache",
     "shifts-16bit",
     "shifts-32bit",
     "shifts-8bit",
