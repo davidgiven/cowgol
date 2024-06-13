@@ -1,0 +1,31 @@
+include "cowgol.coh";
+include "tests/_framework.coh";
+
+# ALU insns referencing memory should flush cached target register value
+sub cache1() is
+    var a: uint8 := 2;
+    var b: uint8 := 1;
+    var c: uint8;
+    var d: uint8;
+
+    c := a + b;
+    d := a;
+    print("regcache1 add"); if c == 3 and d == 2 then yes(); else no(); end if;
+
+    c := a - b;
+    d := a;
+    print("regcache1 sub"); if c == 1 and d == 2 then yes(); else no(); end if;
+
+    c := a | b;
+    d := a;
+    print("regcache1 or"); if c == 3 and d == 2 then yes(); else no(); end if;
+
+    c := a ^ b;
+    d := a;
+    print("regcache1 xor"); if c == 3 and d == 2 then yes(); else no(); end if;
+
+    c := a & b;
+    d := a;
+    print("regcache1 and"); if c == 0 and d == 2 then yes(); else no(); end if;
+end sub;
+cache1();
