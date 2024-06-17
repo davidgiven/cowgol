@@ -4,8 +4,21 @@ sub StrCmp(s1: [uint8], s2: [uint8]): (res: int8) is
 		if (res != 0) or ([s1] == 0) then
 			break;
 		end if;
-		s1 := s1 + 1;
-		s2 := s2 + 1;
+		s1 := @next s1;
+		s2 := @next s2;
+	end loop;
+end sub;
+
+sub MemCmp(s1: [uint8], s2: [uint8], len: uint16): (res: int8) is
+	var i: uint16 := 1;
+	loop
+		res := ([s1] - [s2]) as int8;
+		if (res != 0) or i == len then
+			break;
+		end if;
+		s1 := @next s1;
+		s2 := @next s2;
+		i := i + 1;
 	end loop;
 end sub;
 
@@ -23,8 +36,8 @@ sub StrICmp(s1: [uint8], s2: [uint8]): (res: int8) is
 		if (res != 0) or ([s1] == 0) then
 			break;
 		end if;
-		s1 := s1 + 1;
-		s2 := s2 + 1;
+		s1 := @next s1;
+		s2 := @next s2;
 	end loop;
 end sub;
 
@@ -43,9 +56,9 @@ end sub;
 sub CopyString(src: [uint8], dest: [uint8]) is
 	loop
 		var c := [src];
+		src := @next src;
 		[dest] := c;
-		src := src + 1;
-		dest := dest + 1;
+		dest := @next dest;
 		if c == 0 then
 			break;
 		end if;
@@ -55,8 +68,8 @@ end sub;
 sub MemCopy(src: [uint8], size: intptr, dest: [uint8]) is
 	while size != 0 loop
 		[dest] := [src];
-		dest := dest + 1;
-		src := src + 1;
+		dest := @next dest;
+		src := @next src;
 		size := size - 1;
 	end loop;
 end sub;
