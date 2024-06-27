@@ -888,11 +888,14 @@ gen STORE4(stk4, DEREF4(hl)) uses all
 
 // --- 8-bit arithmetic -----------------------------------------------------
 
-gen a := ADD1(b|d|h:lhs, a)
+gen a := ADD1(a, b|d|h:lhs)
 		{ E_add($lhs); }
 
-gen a := ADD1(DEREF1(hl), a)
+gen a := ADD1(a, DEREF1(hl))
 		{ R_flush(REG_A); E("\tadd m\n"); }
+
+gen a := ADD1($$, CONSTANT():c)
+		{ E_adi($c.value as uint8); }
 
 gen a|b|d|h := ADD1($$, CONSTANT(value==-1))
 		{ E_dcr($$); }
