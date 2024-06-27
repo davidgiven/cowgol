@@ -1218,7 +1218,7 @@ gen STORE4(CONSTANT():c, DEREF4(ADDRESS():a)) uses hl
 
 // --- 8-bit arithmetic -----------------------------------------------------
 
-gen a := ADD1(b|d|h:lhs, a)
+gen a := ADD1(a, b|d|h:lhs)
 		{ E_add(REG_A, $lhs); }
 
 gen a|b|d|h := ADD1($$, CONSTANT(value==-1))
