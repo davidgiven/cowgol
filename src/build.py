@@ -2,10 +2,10 @@ from build.ab import (
     Rule,
     Target,
     Targets,
-    normalrule,
+    simplerule,
     filenamesof,
-    targetswithtraitsof,
 )
+from build.utils import targetswithtraitsof
 from os.path import *
 from types import SimpleNamespace
 import config
@@ -34,20 +34,20 @@ def cowlib(
     dirs = set([dirname(f) for f in filenamesof(srcs)])
     flags = [f"-I{dir}/" for dir in dirs]
 
-    cob = normalrule(
+    cob = simplerule(
         name=name + "/cowfe",
-        ins=[toolchain.cowfe, cow] + srcs,
-        outs=[self.localname + ".cob"],
+        ins=[toolchain.cowfe, cow] + srcs + deps,
+        outs=[f"={self.localname}.cob"],
         commands=[
             "chronic {ins[0]} " + (" ".join(flags)) + " {ins[1]} {outs[0]}"
         ],
         label="COWFE-" + toolchain.localname.upper(),
     )
 
-    normalrule(
+    simplerule(
         replaces=self,
         ins=[toolchain.cowbe, cob],
-        outs=[self.localname + ".coo"],
+        outs=[f"={self.localname}.coo"],
         commands=["chronic {ins[0]} {ins[1]} {outs}"],
         label="COWBE-" + toolchain.localname.upper(),
     )
@@ -57,10 +57,10 @@ def cowlib(
 def cowlink(self, name, deps: Targets = [], toolchain: Target = None):
     coos = filenamesof(targetswithtraitsof(deps, "cowlib"))
 
-    asm = normalrule(
+    asm = simplerule(
         name=name + "/cowlink",
         ins=[toolchain.cowlink] + [coos],
-        outs=[self.localname + toolchain.asmext],
+        outs=[f"={self.localname}{toolchain.asmext}"],
         commands=["chronic {ins[0]} -o {outs} {filenamesof(ins[1:])}"],
         label="COWLINK-" + toolchain.localname.upper(),
     )
@@ -88,71 +88,71 @@ def cowgol(
 @Rule
 def cowwrap(self, name, src: Target = None, toolchain: Target = "src+ncgen"):
     self.traits.add("cowlib")
-    normalrule(
+    simplerule(
         replaces=self,
         ins=[toolchain.cowwrap, src],
-        outs=["cowgol.coo"],
+        outs=["=cowgol.coo"],
         label="COWWRAP-" + toolchain.localname.upper(),
         commands=["chronic {ins[0]} {ins[1]} {outs}"],
     )
 
 
-normalrule(
+simplerule(
     name="midcodesfecoh",
     ins=[
         "scripts/mkmidcodescoh.lua",
         "scripts/libcowgol.lua",
         "src/midcodes.coh.tab",
     ],
-    outs=["midcodesfe.coh"],
+    outs=["=midcodesfe.coh"],
     commands=["lua {ins[0]} -- {ins[2]} {outs[0]} fe"],
     label="MKMIDCODESFE",
 )
 
-normalrule(
+simplerule(
     name="midcodesbecoh",
     ins=[
         "scripts/mkmidcodescoh.lua",
         "scripts/libcowgol.lua",
         "src/midcodes.coh.tab",
     ],
-    outs=["midcodesbe.coh"],
+    outs=["=midcodesbe.coh"],
     commands=["lua {ins[0]} -- {ins[2]} {outs[0]} be"],
     label="MKMIDCODESBE",
 )
 
-normalrule(
+simplerule(
     name="coboutcoh",
     ins=[
         "scripts/mkcobout.lua",
         "scripts/libcowgol.lua",
         "src/midcodes.coh.tab",
     ],
-    outs=["cobout.coh"],
+    outs=["=cobout.coh"],
     commands=["lua {ins[0]} -- {ins[2]} {outs[0]}"],
     label="MKCOBOUT",
 )
 
-normalrule(
+simplerule(
     name="iburgcodes",
     ins=[
         "scripts/mkiburgcodes.lua",
         "scripts/libcowgol.lua",
         "src/midcodes.coh.tab",
     ],
-    outs=["iburgcodes-coh.h"],
+    outs=["=iburgcodes-coh.h"],
     commands=["lua {ins[0]} -- {ins[2]} {outs[0]}"],
     label="MKIBURGCODES",
 )
 
-normalrule(
+simplerule(
     name="cobincoh",
     ins=[
         "scripts/mkcobin.lua",
         "scripts/libcowgol.lua",
         "src/midcodes.coh.tab",
     ],
-    outs=["cobin.coh"],
+    outs=["=cobin.coh"],
     commands=["lua {ins[0]} -- {ins[2]} {outs[0]}"],
     label="MKCOBIN",
 )

@@ -1,4 +1,4 @@
-from build.ab import normalrule, export
+from build.ab import simplerule, export
 from src.build import cowgol
 from src.toolchains import TOOLCHAINS
 
@@ -21,10 +21,10 @@ ARCHS = [
 ]
 
 for arch in ARCHS:
-    normalrule(
+    simplerule(
         name="arch-" + arch,
         ins=["./arch" + arch + ".coh"],
-        outs=["archlink.coh"],
+        outs=["=archlink.coh"],
         commands=["cp {ins} {outs}"],
         label="COPY",
     )

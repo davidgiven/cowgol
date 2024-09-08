@@ -1,5 +1,5 @@
 from build.c import cxxprogram
-from build.ab import export, Rule, Targets, normalrule
+from build.ab import export, Rule, Targets, simplerule
 
 cxxprogram(
     name="objdump",
@@ -53,10 +53,10 @@ export(
 
 @Rule
 def djlink(self, name, srcs: Targets = []):
-    normalrule(
+    simplerule(
         replaces=self,
         ins=["third_party/djlink"] + srcs,
-        outs=[self.localname + ".bin"],
+        outs=[f"={self.localname}.bin"],
         commands=["{ins[0]} -o {outs} {ins[1]} > /dev/null"],
         label="DJLINK",
     )

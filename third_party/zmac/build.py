@@ -1,6 +1,6 @@
 from build.yacc import yacc
 from build.c import cprogram
-from build.ab import Rule, Targets, normalrule, filenameof
+from build.ab import Rule, Targets, simplerule, filenameof
 from os.path import *
 
 yacc(
@@ -16,14 +16,15 @@ cprogram(
 
 
 @Rule
-def zmac(self, name, srcs: Targets = []):
-    filename, ext = splitext(filenameof(srcs))
+def zmac(self, name, srcs: Targets):
+    assert len(srcs) == 1, "zmac can only take one source file"
+    filename, ext = splitext(filenameof(srcs[0]))
     archflag = "-z" if (ext == ".z80") else "-8"
 
-    normalrule(
+    simplerule(
         replaces=self,
         ins=["third_party/zmac", srcs[0]],
-        outs=[self.localname + ".cim"],
+        outs=[f"={self.localname}.cim"],
         commands=[
             "{ins[0]} -j -m "
             + archflag

@@ -8,5 +8,5 @@ cprogram(
         "./globals.h",
     ],
     deps=["third_party/rc2014emu"],
-    ldflags= ["-lreadline"],
+    ldflags=["-lreadline"],
 )

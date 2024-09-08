@@ -1,4 +1,4 @@
-from build.ab import normalrule, export
+from build.ab import simplerule, export
 from src.build import cowgol
 from src.toolchains import TOOLCHAINS
 from third_party.lemon.build import lemoncowgol
@@ -17,10 +17,10 @@ ARCHS = [
 lemoncowgol(name="parser", src="src/cowfe/parser.y")
 
 for arch in ARCHS:
-    normalrule(
+    simplerule(
         name="arch-" + arch,
         ins=["./arch" + arch + ".coh"],
-        outs=["arch.coh"],
+        outs=["=arch.coh"],
         commands=["cp {ins} {outs}"],
         label="COPY",
     )

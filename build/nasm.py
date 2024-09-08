@@ -1,12 +1,12 @@
-from build.ab import normalrule, Rule, Targets, filenameof
+from build.ab import simplerule, Rule, Targets, filenameof
 
 
 @Rule
 def nasm(self, name, srcs: Targets = []):
-    normalrule(
+    simplerule(
         replaces=self,
         ins=srcs,
-        outs=[self.localname + ".obj"],
+        outs=[f"={self.localname}.obj"],
         commands=["nasm -f obj -o {outs} {ins}"],
         label="NASM",
     )

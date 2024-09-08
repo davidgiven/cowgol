@@ -1,12 +1,12 @@
-from build.ab import normalrule, Rule, Targets
+from build.ab import simplerule, Rule, Targets
 
 
 @Rule
 def yacc(self, name, srcs: Targets = []):
-    normalrule(
+    simplerule(
         replaces=self,
         ins=srcs,
-        outs=["y.tab.c", "y.tab.h"],
+        outs=["=y.tab.c", "=y.tab.h"],
         commands=["bison -y -t -o {outs[0]} --defines={outs[1]} {ins}"],
         label="YACC",
     )
@@ -14,10 +14,10 @@ def yacc(self, name, srcs: Targets = []):
 
 @Rule
 def flex(self, name, srcs: Targets = []):
-    normalrule(
+    simplerule(
         replaces=self,
         ins=srcs,
-        outs=["lexer.c"],
+        outs=["=lexer.c"],
         commands=["flex -8 -Cem -s -t {ins[0]} > {outs[0]}"],
         label="FLEX",
     )

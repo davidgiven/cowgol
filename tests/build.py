@@ -1,4 +1,4 @@
-from build.ab import normalrule, Rule, Target, export
+from build.ab import simplerule, Rule, Target, export
 from src.build import cowgol
 from src.toolchains import TOOLCHAINS
 
@@ -71,10 +71,10 @@ def testsuite(self, name, toolchain: Target = None):
                 )
             )
 
-    normalrule(
+    simplerule(
         replaces=self,
         ins=tests,
-        outs=["stamp"],
+        outs=["=stamp"],
         commands=["touch {outs}"],
         label="TESTSUITE",
     )

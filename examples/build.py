@@ -17,7 +17,7 @@ for toolchain in TOOLCHAINS:
     for prog in PROGRAMS:
         t = cowgol(
             name=prog + "-for-" + toolchain.localname,
-            srcs="./" + prog + ".cow",
+            srcs=["./" + prog + ".cow"],
             toolchain=toolchain,
         )
 

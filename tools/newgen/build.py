@@ -1,4 +1,4 @@
-from build.ab import Rule, Targets, normalrule
+from build.ab import Rule, Targets, simplerule
 from build.c import cprogram
 from build.yacc import flex
 from build.gpp import gpp
@@ -18,7 +18,8 @@ cprogram(
         ".+lexer",
         "src+iburgcodes",
     ],
-    cflags=["-DCOWGOL"], ldflags=["-lfl"],
+    cflags=["-DCOWGOL"],
+    ldflags=["-lfl"],
 )
 
 
@@ -26,10 +27,10 @@ cprogram(
 def newgencowgol(self, name, srcs: Targets = []):
     preprocessed = gpp(name=name + "/preprocessed", srcs=srcs)
 
-    normalrule(
+    simplerule(
         replaces=self,
         ins=["tools/newgen", preprocessed],
-        outs=["inssel.coh", "inssel.decl.coh"],
+        outs=["=inssel.coh", "=inssel.decl.coh"],
         commands=["{ins[0]} {ins[1]} {outs[0]} {outs[1]}"],
         label="NEWGEN",
     )

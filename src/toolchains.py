@@ -3,7 +3,7 @@ from build.ab import (
     Target,
     Targets,
     export,
-    normalrule,
+    simplerule,
     filenamesof,
     filenameof,
 )
@@ -23,10 +23,10 @@ def cgen(self, name, srcs: Targets = []):
 
 
 def buildgasimpl(self, prefix, flags=""):
-    normalrule(
+    simplerule(
         replaces=self,
         ins=self.args["srcs"],
-        outs=[self.localname + ".elf"],
+        outs=[f"={self.localname}.elf"],
         commands=[
             prefix + "-as " + flags + " -g {ins} -o {outs[0]}.s",
             prefix + "-ld -g {outs[0]}.s -o {outs[0]}",
@@ -66,10 +66,10 @@ def buildtass64(self, name, srcs: Targets = None):
 
 
 def buildcowasmimpl(self, asm):
-    normalrule(
+    simplerule(
         replaces=self,
         ins=[asm] + self.args["srcs"],
-        outs=[self.localname + ".bin"],
+        outs=[f"={self.localname}.bin"],
         commands=["chronic {ins[0]} -o {outs[0]} {ins[1]}"],
         label="ASM",
     )
@@ -93,10 +93,10 @@ def buildnasm(self, name, srcs: Targets = None):
 
 def testimpl(self, dep, command):
     goodfile = self.args["goodfile"]
-    normalrule(
+    simplerule(
         replaces=self,
         ins=dep + [self.args["exe"]],
-        outs=[self.localname + ".bad"],
+        outs=[f"={self.localname}.bad"],
         commands=[
             "timeout 5s " + command + " > {outs}; true",
             "diff -u -w {outs[0]} " + filenameof(goodfile),

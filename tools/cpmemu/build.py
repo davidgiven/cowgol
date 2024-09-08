@@ -15,6 +15,6 @@ cprogram(
         "./biosbdos.c",
         ".+biosbdosdata",
     ],
-    ldflags= ["-lreadline"],
-    deps = ["third_party/z80ex"],
+    ldflags=["-lreadline"],
+    deps=["third_party/z80ex"],
 )

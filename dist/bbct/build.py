@@ -1,13 +1,13 @@
-from build.ab import export, Rule, Target, normalrule
+from build.ab import export, Rule, Target, simplerule, targetof
 from tools.build import tocpm, mkdfs
 
 
 @Rule
-def bbcify(self, name, src: Target = None):
-    normalrule(
+def bbcify(self, name, *, src: Target):
+    simplerule(
         replaces=self,
         ins=[src],
-        outs=[self.localname + ".txt"],
+        outs=[f"={self.localname}.txt"],
         commands=[
             r"""sed -e 's/include "\(.*\)\.coh"/include "h.\1"/' < {ins} | expand -t4 | tr '\n' '\r' > {outs}"""
         ],
@@ -22,32 +22,32 @@ bbcify(name="commoncoh", src="rt/common.coh")
 mkdfs(
     name="ssd",
     flags=[
-        ["-f", Target("./!boot")],
+        ["-f", targetof("./!boot")],
         [
             "-f",
-            Target("src/cowfe+cowfe-for-16bit-with-bbct"),
+            targetof("src/cowfe+cowfe-for-16bit-with-bbct"),
             "-e0x400",
             "-l0x400",
             "-ncowfe",
         ],
         [
             "-f",
-            Target("src/cowbe+cowbe-for-6502-with-bbct"),
+            targetof("src/cowbe+cowbe-for-6502-with-bbct"),
             "-e0x400",
             "-l0x400",
             "-ncowbe",
         ],
         [
             "-f",
-            Target("src/cowlink+cowlink-for-bbct-with-bbct"),
+            targetof("src/cowlink+cowlink-for-bbct-with-bbct"),
             "-e0x400",
             "-l0x400",
             "-ncowlink",
         ],
-        ["-f", Target("rt/bbct+cowgolcoo"), "-no.cowgol"],
-        ["-f", Target(".+cowgolcoh"), "-nh.cowgol"],
-        ["-f", Target(".+commoncoh"), "-nh.common"],
-        ["-f", Target(".+mandelcow"), "-nw.source"],
+        ["-f", targetof("rt/bbct+cowgolcoo"), "-no.cowgol"],
+        ["-f", targetof(".+cowgolcoh"), "-nh.cowgol"],
+        ["-f", targetof(".+commoncoh"), "-nh.common"],
+        ["-f", targetof(".+mandelcow"), "-nw.source"],
         "-B3",
     ],
 )

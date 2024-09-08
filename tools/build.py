@@ -1,5 +1,5 @@
 from build.c import cprogram
-from build.ab import Rule, Target, Targets, normalrule, flatten, filenamesof
+from build.ab import Rule, Target, Targets, simplerule, flatten, filenameof
 
 cprogram(
     name="mkadfs",
@@ -14,10 +14,10 @@ cprogram(
 
 @Rule
 def tocpm(self, name, src: Target = None):
-    normalrule(
+    simplerule(
         replaces=self,
         ins=["tools/tocpm.lua", src],
-        outs=[self.localname + ".txt"],
+        outs=[f"={self.localname}.txt"],
         commands=["lua {ins[0]} < {ins[1]} > {outs}"],
         label="TOCPM",
     )
@@ -29,15 +29,15 @@ def mkdfs(self, name, flags=[]):
     cmdline = ["{ins[0]}", "-O", "{outs}"]
     for f in flatten(flags):
         if isinstance(f, Target):
-            srcs += [f.convert(self)]
-            cmdline += filenamesof(f.convert(self))
+            srcs += [f]
+            cmdline += filenameof(f)
         else:
             cmdline += [f]
 
-    normalrule(
+    simplerule(
         replaces=self,
         ins=["tools+mkdfs"] + srcs,
-        outs=[self.localname + ".ssd"],
+        outs=[f"={self.localname}.ssd"],
         commands=[" ".join(cmdline)],
         label="MKDFS",
     )
