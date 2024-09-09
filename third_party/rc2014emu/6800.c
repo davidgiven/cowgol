@@ -1625,7 +1625,7 @@ static int m6800_execute_one(struct m6800 *cpu)
             }
             if (tmp8 <= 0x03 && tmp2 <= 0x03 && (cpu->p & P_H)) {
                 tmpc = 1;
-                add =- 0x66;
+                add = -0x66;
             }
         }
         cpu->a += add;
