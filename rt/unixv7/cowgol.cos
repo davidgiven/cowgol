@@ -21,13 +21,13 @@
     rol r5              ; ...moving the shifted out top bit into the remainder
     rol r4
 
-    cmp r4, 0(sp)       ; if remainder < RHS, loop without subtracting
+    cmp r4, (sp)        ; if remainder < RHS, loop without subtracting
     bcs ``_loop
     cmp r5, r1
     bcs ``_loop
 
     inc r3              ; set the bottom bit of the quotient (guaranteed to be 0)
-    sub 0(sp), r4       ; remainder = remainder - RHS
+    sub (sp), r4        ; remainder = remainder - RHS
     sbc r5
     sub r1, r5
     br ``_loop
@@ -63,7 +63,7 @@
 
     call `_divremu4     ; perform unsigned division
 
-    tst 0(sp)           ; check sign of remainder
+    tst (sp)            ; check sign of remainder
     bpl ``_3
     com r4
     com r5

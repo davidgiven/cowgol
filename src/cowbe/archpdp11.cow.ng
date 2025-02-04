@@ -220,6 +220,18 @@
 		E_nl();
 	end sub;
 
+	sub E_loadii(reg: RegId, ptr: RegId, sym: [Symbol], off: Size, byte: uint8) is
+		R_flush(reg);
+		E_mov(reg);
+		E_symref(sym, off);
+		E_openp();
+		E_reg(ptr);
+		E_closep();
+		E_comma();
+		E_reg(reg);
+		E_nl();
+	end sub;
+
 	sub E_store(reg: RegId, sym: [Symbol], off: Size, byte: uint8) is
 		RegCacheFlushValue(sym, off);
 		E_mov(reg);
@@ -230,6 +242,12 @@
 		RegCacheLeavesValue(reg, sym, off);
 	end sub;
 
+	sub E_storepop(sym: [Symbol], off: Size) is
+		E("\tMOV\t(SP)+, ");
+		E_symref(sym, off);
+		E_nl();
+	end sub;
+
 	sub E_storeix(reg: RegId, ptr: RegId, off: Arith, byte: uint8) is
 		E_mov(reg);
 		E_reg(reg);
@@ -238,6 +256,16 @@
 			E_i32(off);
 		end if;
 		E_b8('(');
+		E_reg(ptr);
+		E(")\n");
+	end sub;
+
+	sub E_storeii(reg: RegId, ptr: RegId, sym: [Symbol], off: Size, byte: uint8) is
+		E_mov(reg);
+		E_reg(reg);
+		E_comma();
+		E_symref(sym, off);
+		E_openp();
 		E_reg(ptr);
 		E(")\n");
 	end sub;
@@ -284,15 +312,13 @@
 
 	sub E_call(subr: [Subroutine]) is
 		R_flushall();
-		E_tab();
-		E("CALL\t");
+		E_insn16("CALL");
 		E_subref(subr);
 		E_nl();
 	end sub;
 
 	sub E_callreg(reg: RegId) is
 		R_flushall();
-		E_tab();
 		E_insn16("call");
 		E(" @");
 		E_reg(reg);
@@ -418,9 +444,9 @@
 	end sub;
 
 	sub E_and(src: RegId, dest: RegId) is
-		E_move(src, REG_R5);
-		E_not(REG_R5);
-		E_alu2("BIC", REG_R5, dest);
+		E_not(src);
+		E_alu2("BIC", src, dest);
+		E_not(src);
 	end sub;
 
 	sub E_or(src: RegId, dest: RegId) is
@@ -468,23 +494,13 @@
 	end sub;
 
 	sub E_addi4(value: Arith, dest: RegId) is
-		case value is
-			when 1:
-				E_inc(loreg(dest));
-				E("\tbne\t$+4\n");
-				E_inc(hireg(dest));
-#			when -1:
-#				E_dec(loreg(dest));
-#				E_dec(hireg(dest));
-			when else:
-				if (value & 0xffff) != 0 then
-					E_alu2wi("ADD", value & 0xffff, loreg(dest));
-					E_adc(hireg(dest));
-				end if;
-				if (value >> 16) != 0 then
-					E_alu2wi("ADD", value >> 16, hireg(dest));
-				end if;
-		end case;
+		if (value & 0xffff) != 0 then
+			E_alu2wi("ADD", value & 0xffff, loreg(dest));
+			E_adc(hireg(dest));
+		end if;
+		if (value >> 16) != 0 then
+			E_alu2wi("ADD", value >> 16, hireg(dest));
+		end if;
 	end sub;
 
 	sub E_subi(value: Arith, dest: RegId) is
@@ -496,23 +512,13 @@
 	end sub;
 
 	sub E_subi4(value: Arith, dest: RegId) is
-		case value is
-#			when 1:
-#				E_dec(loreg(dest));
-#				E_sbc(hireg(dest));
-			when -1:
-				E_inc(loreg(dest));
-				E("\tbne\t$+4\n");
-				E_inc(hireg(dest));
-			when else:
-				if (value & 0xffff) != 0 then
-					E_alu2wi("SUB", value & 0xffff, loreg(dest));
-					E_sbc(hireg(dest));
-				end if;
-				if (value >> 16) != 0 then
-					E_alu2wi("SUB", value >> 16, hireg(dest));
-				end if;
-		end case;
+		if (value & 0xffff) != 0 then
+			E_alu2wi("SUB", value & 0xffff, loreg(dest));
+			E_sbc(hireg(dest));
+		end if;
+		if (value >> 16) != 0 then
+			E_alu2wi("SUB", value >> 16, hireg(dest));
+		end if;
 	end sub;
 
 	sub E_andi(value: Arith, dest: RegId) is
@@ -587,10 +593,16 @@
 			E_clr(loreg(reg));
 			value := value - 8;
 		end if;
-		E_insn16("ash");
-		E(" #");
-		E_u8(value);
-		E_comma();
+		if value == 0 then
+			return;
+		elseif value > 1 then
+			E_insn16("ash");
+			E_b8('#');
+			E_u8(value);
+			E_comma();
+		else
+			E_insn16("asl");
+		end if;
 		E_reg(reg);
 		E_nl();
 	end sub;
@@ -663,10 +675,10 @@
 	sub E_shri(value: uint8, reg: RegId) is
 		R_flush(reg);
 		if value > 7 then
+			E_clr(loreg(reg));
 			E_insn16("SWAB");
 			E_reg(reg);
 			E_nl();
-			E_andi(255, reg);
 			value := value - 8;
 		end if;
 		var v := value as uint8;
@@ -871,12 +883,17 @@
 		E_nl();
 	end sub;
 
+	# src is R8, dest is R16
 	sub E_ext(src: RegId, dest: RegId, sext: uint8) is
-		if hireg(src) != dest then
-			E_movb(src, dest);
-		end if;
 		if sext == 0 then
-			E_andi(255, dest);
+			if hireg(src) != dest then
+				E_clr(dest);
+				E_or(src, dest);
+			else
+				E_andi(255, dest);
+			end if;
+		elseif hireg(src) != dest then
+			E_movb(src, dest);
 		end if;
 	end sub;
 
@@ -1058,18 +1075,20 @@ gen STARTSUB() uses all
 			when 2:
 				if count != lastparam then
 					pop_return_address();
-					E_pop(REG_R0);
+					E_storepop(param as [Symbol], 0);
+				else
+					E_store(REG_R0, param as [Symbol], 0, 0);
 				end if;
-				E_store(REG_R0, param as [Symbol], 0, 0);
 
 			when 4:
 				if count != lastparam then
 					pop_return_address();
-					E_pop(REG_R0);
-					E_pop(REG_R1);
+					E_storepop(param as [Symbol], 2);
+					E_storepop(param as [Symbol], 0);
+				else
+					E_store(REG_R0, param as [Symbol], 2, 0);
+					E_store(REG_R1, param as [Symbol], 0, 0);
 				end if;
-				E_store(REG_R0, param as [Symbol], 2, 0);
-				E_store(REG_R1, param as [Symbol], 0, 0);
 		end case;
 	end loop;
 
@@ -1197,11 +1216,7 @@ gen r32 := CONSTANT():c
 	end if;
 
 	E_loadconst(loreg($$), $c.value & 0xffff);
-	if ($c.value as uint16) == ($c.value>>16) as uint16 then
-		E_move(loreg($$), hireg($$));
-	else
-		E_loadconst(hireg($$), ($c.value>>16));
-	end if;
+	E_loadconst(hireg($$), ($c.value>>16));
 	RegCacheLeavesConstant($$, $c.value as uint32);
 }
 
@@ -1209,12 +1224,12 @@ gen r32 := CONSTANT():c
 // Casts
 
 gen r16 := CAST12(r8:val):c   { E_ext($val, $$, $c.sext); }
-gen r8  := CAST21(r16:val):c  { if ($val != hireg($$)) then E_ext($val, $$, $c.sext); end if; }
+gen r8  := CAST21(r16:val):c  { if ($val != hireg($$)) then E_move($val, hireg($$)); end if; }
 
 gen r32 := CAST14(r8:val):c   { E_ext($val, loreg($$), $c.sext); if ($c.sext != 0) then E_sxt(hireg($$)); else E_clr(hireg($$)); end if; }
 gen r8  := CAST41(r32:val)    { E_movb(loreg($val), $$); }
 
-gen r16 := CAST42(r32:val)    { E_move(loreg($val), $$); }
+gen r16 := CAST42(r32:val)    { if loreg($val) != $$ then E_move(loreg($val), $$); end if; }
 gen r32 := CAST24(r16:val):c  { E_move($val, loreg($$)); if ($c.sext != 0) then E_sxt(hireg($$)); else E_clr(hireg($$)); end if; }
 
 // --- Loads ---------------------------------------------------------------
@@ -1230,10 +1245,12 @@ gen r32 := DEREF4(r16:rhs)
 	end if;
 }
 
-gen r8  := DEREF1(ADD1(r16:rhs, CONSTANT():c)) { E_loadix($$, $rhs, $c.value, 1); }
+gen r8  := DEREF1(ADD2(r16:rhs, CONSTANT():c)) { E_loadix($$, $rhs, $c.value, 1); }
 gen r16 := DEREF2(ADD2(r16:rhs, CONSTANT():c)) { E_loadix($$, $rhs, $c.value, 0); }
-gen r8  := DEREF1(ADD1(ADDRESS():a, CONSTANT():c)) { E_load($$, &$a.sym, $a.off + $c.value as uint16, 1); }
+gen r8  := DEREF1(ADD2(ADDRESS():a, CONSTANT():c)) { E_load($$, &$a.sym, $a.off + $c.value as uint16, 1); }
+gen r8  := DEREF1(ADD2(ADDRESS():a, r16:rhs)) { E_loadii($$, $rhs, &$a.sym, $a.off as uint16, 1); }
 gen r16 := DEREF2(ADD2(ADDRESS():a, CONSTANT():c)) { E_load($$, &$a.sym, $a.off + $c.value as uint16, 0); }
+gen r16 := DEREF2(ADD2(ADDRESS():a, r16:rhs)) { E_loadii($$, $rhs, &$a.sym, $a.off as uint16, 0); }
 
 gen r8  := DEREF1(ADDRESS():a) { E_load($$, &$a.sym, $a.off, 1); }
 gen r16 := DEREF2(ADDRESS():a) { E_load($$, &$a.sym, $a.off, 0); }
@@ -1276,11 +1293,13 @@ gen STORE1(CONSTANT():v, DEREF1(r16:rhs)) { E_storeixc($v.value, $rhs, 0, 1); }
 gen STORE1(r8:lhs, DEREF1(r16:rhs))       { E_storeix($lhs, $rhs, 0, 1); }
 gen STORE1(r8:lhs, DEREF1(ADDRESS():a))   { E_store($lhs, &$a.sym, $a.off, 1); }
 gen STORE1(r8:lhs, DEREF1(ADD2(r16:rhs, CONSTANT():c))) { E_storeix($lhs, $rhs, $c.value, 1); }
+gen STORE1(r8:lhs, DEREF1(ADD2(ADDRESS():a, r16:rhs))) { E_storeii($lhs, $rhs, &$a.sym, $a.off as uint16, 1); }
 
 gen STORE2(CONSTANT():v, DEREF2(r16:rhs)) { E_storeixc($v.value, $rhs, 0, 0); }
 gen STORE2(r16:lhs, DEREF2(r16:rhs))      { E_storeix($lhs, $rhs, 0, 0); }
 gen STORE2(r16:lhs, DEREF2(ADDRESS():a))  { E_store($lhs, &$a.sym, $a.off, 0); }
 gen STORE2(r16:lhs, DEREF2(ADD2(r16:rhs, CONSTANT():c))) { E_storeix($lhs, $rhs, $c.value, 0); }
+gen STORE2(r16:lhs, DEREF2(ADD2(ADDRESS():a, r16:rhs))) { E_storeii($lhs, $rhs, &$a.sym, $a.off as uint16, 0); }
 
 gen STORE4(r32:val, DEREF4(r16:rhs))
 {
@@ -1335,12 +1354,12 @@ gen r32 := SUB4($$, r32:rhs)
 }
 gen r32 := SUB4($$, CONSTANT():c)     { E_subi4($c.value, $$); }
 
-gen r8  := AND1($$, r8:rhs) uses r5b  { E_and($rhs, $$); }
+gen r8  := AND1($$, r8:rhs)           { E_and($rhs, $$); }
 gen r8  := AND1($$, CONSTANT():c)     { E_andi($c.value, $$); }
-gen r16 := AND2($$, r16:rhs) uses r5  { E_and($rhs, $$); }
+gen r16 := AND2($$, r16:rhs)          { E_and($rhs, $$); }
 gen r16 := AND2($$, CONSTANT():c)     { E_andi($c.value, $$); }
 
-gen r32 := AND4($$, r32:rhs) uses r4r5
+gen r32 := AND4($$, r32:rhs)
 {
 	E_and(loreg($rhs), loreg($$));
 	E_and(hireg($rhs), hireg($$));

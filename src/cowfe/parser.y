@@ -556,7 +556,7 @@ expression(E) ::= expression(E1) OPENSQ expression(E2) CLOSESQ.
 	var w := intptr_type.width as uint8;
 
 	var displacement := MidC2Op(MIDCODE_MUL0, w,
-				MidCCast(intptr_type.width as uint8, E2, 0),
+				MidCCast(w, E2, 0),
 				MidConstant(elementtype.stride as int32));
 	displacement.type := intptr_type;
 
