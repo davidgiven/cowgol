@@ -167,6 +167,15 @@
 		E_insn("MOV", reg);
 	end sub;
 
+	sub E_move(src: RegId, dest: RegId) is
+		R_flush(dest);
+		E_mov(dest);
+		E_reg(src);
+		E(", ");
+		E_reg(dest);
+		E_nl();
+	end sub;
+
 	sub E_loadaddr(reg: RegId, sym: [Symbol], off: Size) is
 		R_flush(reg);
 		E_mov(reg);
@@ -188,9 +197,13 @@
 	end sub;
 
 	sub E_load(reg: RegId, sym: [Symbol], off: Size, byte: uint8) is
-		var cache := RegCacheFindValue(sym, off) & reg;
-		if cache != 0 then
+		var cache := RegCacheFindValue(sym, off);
+		if (cache & reg) != 0 then
 			# The value is already in the desired register.
+			return;
+		elseif cache != 0 then
+			E_move(FindFirst(cache), reg);
+			RegCacheLeavesValue(hireg(reg), sym, off);
 			return;
 		end if;
 
@@ -283,9 +296,14 @@
 			else
 				E_insn16("MOVB");
 			end if;
-			E("#");
-			E_i32(value);
-			E(", ");
+			# from c2
+			if (value == off) then
+				E("(PC), ");
+			else
+				E("#");
+				E_i32(value);
+				E(", ");
+			end if;
 		end if;
 		if off != 0 then
 			E_i32(off);
@@ -330,15 +348,6 @@
 	end sub;
 
 #
-
-	sub E_move(src: RegId, dest: RegId) is
-		R_flush(dest);
-		E_mov(dest);
-		E_reg(src);
-		E(", ");
-		E_reg(dest);
-		E_nl();
-	end sub;
 
 	sub E_movb(src: RegId, dest: RegId) is
 		R_flush(dest);
@@ -1192,6 +1201,9 @@ gen param := ARG1(param, r8:lhs)  { E_push($lhs); }
 gen param := ARG2(param, r16:lhs) { E_push($lhs); }
 gen param := ARG4(param, r32:lhs) { E_push4($lhs); }
 
+gen param := ARG1(param, DEREF1(ADDRESS():a)) { E_insn16("movb"); E_symref(&$a.sym, $a.off); E(", -(SP)\n"); }
+gen param := ARG2(param, DEREF2(ADDRESS():a)) { E_insn16("mov");  E_symref(&$a.sym, $a.off); E(", -(SP)\n"); }
+
 gen r0b  := POPARG1(remaining==0);
 gen r0   := POPARG2(remaining==0);
 gen r0r1 := POPARG4(remaining==0);
@@ -1290,12 +1302,14 @@ gen r16 := SUBREF():a         { E_loadsubref($$, $a.subr); }
 // --- Stores ---------------------------------------------------------------
 
 gen STORE1(CONSTANT():v, DEREF1(r16:rhs)) { E_storeixc($v.value, $rhs, 0, 1); }
+gen STORE1(CONSTANT():v, DEREF1(ADD2(r16:rhs, CONSTANT():c))) { E_storeixc($v.value, $rhs, $c.value, 1); }
 gen STORE1(r8:lhs, DEREF1(r16:rhs))       { E_storeix($lhs, $rhs, 0, 1); }
 gen STORE1(r8:lhs, DEREF1(ADDRESS():a))   { E_store($lhs, &$a.sym, $a.off, 1); }
 gen STORE1(r8:lhs, DEREF1(ADD2(r16:rhs, CONSTANT():c))) { E_storeix($lhs, $rhs, $c.value, 1); }
 gen STORE1(r8:lhs, DEREF1(ADD2(ADDRESS():a, r16:rhs))) { E_storeii($lhs, $rhs, &$a.sym, $a.off as uint16, 1); }
 
 gen STORE2(CONSTANT():v, DEREF2(r16:rhs)) { E_storeixc($v.value, $rhs, 0, 0); }
+gen STORE2(CONSTANT():v, DEREF2(ADD2(r16:rhs, CONSTANT():c))) { E_storeixc($v.value, $rhs, $c.value, 0); }
 gen STORE2(r16:lhs, DEREF2(r16:rhs))      { E_storeix($lhs, $rhs, 0, 0); }
 gen STORE2(r16:lhs, DEREF2(ADDRESS():a))  { E_store($lhs, &$a.sym, $a.off, 0); }
 gen STORE2(r16:lhs, DEREF2(ADD2(r16:rhs, CONSTANT():c))) { E_storeix($lhs, $rhs, $c.value, 0); }
