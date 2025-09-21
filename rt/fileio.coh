@@ -41,14 +41,13 @@ sub _fcb_fillbuffer(fcb: [FCB]): (b: uint8) is
 end sub;
 
 sub FCBFlush(fcb: [FCB]) is
-	var bufpos := fcb.pos;
 	if (fcb.flags & FCB_FLAG_WRITE) != 0 then
-		FCBRawWrite(fcb, bufpos, fcb.index);
+		FCBRawWrite(fcb, fcb.pos, fcb.index);
 		if (fcb.flags & FCB_FLAG_ERROR) != 0 then
 			return;
 		end if;
 	end if;
-	fcb.pos := bufpos + (fcb.index as uint32);
+	fcb.pos := fcb.pos + (fcb.index as uint32);
 	fcb.flags := 0;
 	fcb.index := 0;
 	fcb.buflen := 0;
@@ -68,11 +67,10 @@ sub FCBGetChar(fcb: [FCB]): (b: uint8) is
 	if (fcb.flags & FCB_FLAG_WRITE) != 0 then
 		FCBFlush(fcb);
 	end if;
-	var i := fcb.index;
-	if i == fcb.buflen then
+	if fcb.index == fcb.buflen then
 		b := _fcb_fillbuffer(fcb);
 	else
-		b := fcb.buffer[i];
+		b := fcb.buffer[fcb.index];
 		_fcb_advance(fcb);
 	end if;
 end sub;
@@ -81,11 +79,10 @@ sub FCBPutChar(fcb: [FCB], b: uint8) is
 	if (fcb.flags & FCB_FLAG_READ) != 0 then
 		FCBFlush(fcb);
 	end if;
-	var i := fcb.index;
-	if i == FCB_BUFFER_SIZE then
+	if fcb.index == FCB_BUFFER_SIZE then
 		_fcb_flushbuffer(fcb, b);
 	else
-		fcb.buffer[i] := b;
+		fcb.buffer[fcb.index] := b;
 		_fcb_advance(fcb);
 	end if;
 	fcb.flags := fcb.flags | FCB_FLAG_WRITE;

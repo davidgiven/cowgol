@@ -19,11 +19,10 @@ sub UIToA(value: uint32, base: uint8, buffer: [uint8]): (ptr: [uint8]) is
 		var rem := (value % (base as uint32)) as uint8;
 		value := value / (base as uint32);
 		if rem < 10 then
-			rem := rem + '0';
+			[ptr] := rem + '0';
 		else
-			rem := rem + ('a' - 10);
+			[ptr] := rem + ('a' - 10);
 		end if;
-		[ptr] := rem;
 		ptr := @next ptr;
 
 		if value == 0 then
