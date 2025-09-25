@@ -116,6 +116,8 @@ sub signed4() is
 	var one: int32 := 1;
 	var pbig: int32 := PBIG;
 
+	print("zero<one"); if zero<one then yes(); else no(); end if;
+	print("mone<zero"); if mone<zero then yes(); else no(); end if;
 	print("zero<ONE"); if zero<ONE then yes(); else no(); end if;
 	print("mone<ONE"); if mone<ONE then yes(); else no(); end if;
 	print("mone<=MONE"); if mone<=MONE then yes(); else no(); end if;

@@ -15,6 +15,7 @@ sub lshift() is
 	print("one16<<zero == 1"); if one16<<zero == 1 then yes(); else no(); end if;
 	print("one16<<one == 2"); if one16<<one == 2 then yes(); else no(); end if;
 	print("one16<<two == 4"); if one16<<two == 4 then yes(); else no(); end if;
+	print("bug1<<8 == 0x8800");   if bug1<<8 == 0x8800 then yes(); else no(); end if;
 end sub;
 lshift();
 
@@ -23,6 +24,7 @@ sub rshiftu() is
 	print("big>>one == 0x4000");  if big>>one == 0x4000 then yes(); else no(); end if;
 	print("big>>two == 0x2000");  if big>>two == 0x2000 then yes(); else no(); end if;
 	print("bug1>>10 == 0x30");    if bug1>>10 == 0x30 then yes(); else no(); end if;
+	print("bug1>>8 == 0xc3");     if bug1>>8 == 0xc3 then yes(); else no(); end if;
 end sub;
 rshiftu();
 

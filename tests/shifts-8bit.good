@@ -1,6 +1,7 @@
 one<<zero == 1: yes
 one<<one == 2: yes
 one<<two == 4: yes
+onetwoeight<<one == 0: yes
 onetwoeight>>zero == 128: yes
 onetwoeight>>one == 64: yes
 onetwoeight>>two == 32: yes

@@ -11,6 +11,7 @@ sub lshift() is
 	print("one<<zero == 1"); if one<<zero == 1 then yes(); else no(); end if;
 	print("one<<one == 2"); if one<<one == 2 then yes(); else no(); end if;
 	print("one<<two == 4"); if one<<two == 4 then yes(); else no(); end if;
+	print("onetwoeight<<one == 0"); if onetwoeight<<one == 0 then yes(); else no(); end if;
 end sub;
 lshift();
 

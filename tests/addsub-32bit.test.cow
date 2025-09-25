@@ -4,6 +4,8 @@ include "tests/_framework.coh";
 const THREE := 0x0330_0303;
 const TWO := 0x0220_0202;
 const ONE := 0x0110_0101;
+const FF := 0x0000_FFFF;
+const FF1 := 0x0001_0000;
 const ZERO := 0;
 const MONE := -ONE;
 const MTWO := -TWO;
@@ -13,6 +15,8 @@ var mthree: int32 := MTHREE;
 var mtwo: int32 := MTWO;
 var mone: int32 := MONE;
 var zero: int32 := ZERO;
+var ff: int32 := FF;
+var ff1: int32 := FF1;
 var one: int32 := ONE;
 var two: int32 := TWO;
 var three: int32 := THREE;
@@ -22,6 +26,7 @@ sub add_test() is
     print("one+mtwo==mone"); if one+mtwo==mone then yes(); else no(); end if;
     print("one+one==two"); if one+one==two then yes(); else no(); end if;
     print("zero+one==one"); if zero+one==one then yes(); else no(); end if;
+    print("ff+one==ff1"); if ff+1==ff1 then yes(); else no(); end if;
     print("two+mtwo==zero"); if two+mtwo==zero then yes(); else no(); end if;
 
     print("one+TWO==three"); if one+TWO==three then yes(); else no(); end if;
@@ -42,6 +47,7 @@ sub sub_test() is
     print("one-two==mone"); if one-two==mone then yes(); else no(); end if;
     print("one-mtwo==three"); if one-mtwo==three then yes(); else no(); end if;
     print("one-one==zero"); if one-one==zero then yes(); else no(); end if;
+    print("ff1-one==ff"); if ff1-1==ff then yes(); else no(); end if;
     print("zero-one==mone"); if zero-one==mone then yes(); else no(); end if;
     print("two-mone==three"); if two-mone==three then yes(); else no(); end if;
 
