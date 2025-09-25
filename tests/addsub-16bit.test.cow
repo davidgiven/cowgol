@@ -4,6 +4,7 @@ include "tests/_framework.coh";
 const THREE := 0x0303;
 const TWO := 0x0202;
 const ONE := 0x0101;
+const FF := 0x0100;
 const ZERO := 0;
 const MONE := -ONE;
 const MTWO := -TWO;
@@ -12,6 +13,7 @@ const MTHREE := -THREE;
 var mthree: int16 := MTHREE;
 var mtwo: int16 := MTWO;
 var mone: int16 := MONE;
+var ff: int16 := FF;
 var zero: int16 := ZERO;
 var one: int16 := ONE;
 var two: int16 := TWO;
@@ -19,10 +21,12 @@ var three: int16 := THREE;
 
 print("one+ONE=TWO"); if one+ONE==TWO then yes(); else no(); end if;
 print("one-ONE=ZERO"); if one-ONE==ZERO then yes(); else no(); end if;
+print("ff+1=ONE"); if ff+1==ONE then yes(); else no(); end if;
 
 var i: int16;
 print("i:=one+ONE=TWO"); i := one+ONE; if i==TWO then yes(); else no(); end if;
 print("i:=one-ONE=ZERO"); i := one-ONE; if i==ZERO then yes(); else no(); end if;
+print("i:=ff+1=ONE"); i := ff+1; if i==ONE then yes(); else no(); end if;
 
 print("one+two==three"); if one+two==three then yes(); else no(); end if;
 print("one+mtwo==mone"); if one+mtwo==mone then yes(); else no(); end if;

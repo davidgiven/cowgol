@@ -2,6 +2,7 @@ one+two==three: yes
 one+mtwo==mone: yes
 one+one==two: yes
 zero+one==one: yes
+ff+one==ff1: yes
 two+mtwo==zero: yes
 one+TWO==three: yes
 one+MTWO==mone: yes
@@ -16,6 +17,7 @@ TWO+mtwo==zero: yes
 one-two==mone: yes
 one-mtwo==three: yes
 one-one==zero: yes
+ff1-one==ff: yes
 zero-one==mone: yes
 two-mone==three: yes
 one-TWO==mone: yes

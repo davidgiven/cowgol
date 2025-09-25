@@ -10,15 +10,15 @@ sub test_simple_record() is
 	end record;
 
 	var r1: TestRecord;
-	r1.a := 0;
-	r1.b := 0;
-	r1.c := 1;
-	r1.d := 0;
+	r1.a := 1;
+	r1.b := ~0;
+	r1.c := 2;
+	r1.d := 3;
 
-	print("r1.a==0"); if r1.a == 0 then yes(); else no(); end if;
-	print("r1.b==0"); if r1.b == 0 then yes(); else no(); end if;
-	print("r1.c==1"); if r1.c == 1 then yes(); else no(); end if;
-	print("r1.d==0"); if r1.d == 0 then yes(); else no(); end if;
+	print("r1.a==1"); if r1.a == 1 then yes(); else no(); end if;
+	print("r1.b==~0"); if r1.b == ~0 then yes(); else no(); end if;
+	print("r1.c==2"); if r1.c == 2 then yes(); else no(); end if;
+	print("r1.d==3"); if r1.d == 3 then yes(); else no(); end if;
 end sub;
 
 sub test_nested_record() is

@@ -1,7 +1,7 @@
-r1.a==0: yes
-r1.b==0: yes
-r1.c==1: yes
-r1.d==0: yes
+r1.a==1: yes
+r1.b==~0: yes
+r1.c==2: yes
+r1.d==3: yes
 r2.a==0: yes
 r2.b.a==0: yes
 r2.b.b==0: yes

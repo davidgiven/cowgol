@@ -1,7 +1,9 @@
 one+ONE=TWO: yes
 one-ONE=ZERO: yes
+ff+1=ONE: yes
 i:=one+ONE=TWO: yes
 i:=one-ONE=ZERO: yes
+i:=ff+1=ONE: yes
 one+two==three: yes
 one+mtwo==mone: yes
 one+one==two: yes
