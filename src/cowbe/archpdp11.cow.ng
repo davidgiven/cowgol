@@ -220,7 +220,7 @@
 		RegCacheLeavesValue(hireg(reg), sym, off);
 	end sub;
 
-	sub E_loadix(reg: RegId, ptr: RegId, off: Arith, byte: uint8) is
+	sub E_loadix(reg: RegId, ptr: RegId, off: Arith) is
 		R_flush(reg);
 		E_mov(reg);
 		if off != 0 then
@@ -261,7 +261,7 @@
 		E_nl();
 	end sub;
 
-	sub E_storeix(reg: RegId, ptr: RegId, off: Arith, byte: uint8) is
+	sub E_storeix(reg: RegId, ptr: RegId, off: Arith) is
 		E_mov(reg);
 		E_reg(reg);
 		E(", ");
@@ -315,13 +315,17 @@
 
 #
 
-	sub E_jump(insn: string, label: LabelRef) is
-		R_flushall();
+	sub E_jump_noflush(insn: string, label: LabelRef) is
 		E_tab();
 		E(insn);
 		E_tab();
 		E_labelref(label);
 		E_nl();
+	end sub;
+
+	sub E_jump(insn: string, label: LabelRef) is
+		R_flushall();
+		E_jump_noflush(insn, label);
 	end sub;
 
 	sub E_jmp(label: LabelRef) is
@@ -480,35 +484,21 @@
 		E_alu2i_noflush(insn, value, dest);
 	end sub;
 
-	sub E_alu2wi(insn: string, value: Arith, dest: RegId) is
-		R_flush(dest);
-		E_insn16(insn);
-		E_b8('#');
-		if value < 0 then
-			E_b8('-');
-			value := -value;
-		end if;
-		E_u32(value as uint32);
-		E(", ");
-		E_reg(dest);
-		E_nl();
-	end sub;
-
 	sub E_addi(value: Arith, dest: RegId) is
 		case value is
 			when 1: E_inc(dest);
 			when -1: E_dec(dest);
-			when else: E_alu2wi("ADD", value, dest);
+			when else: E_alu2i("ADD", value, hireg(dest));
 		end case;
 	end sub;
 
 	sub E_addi4(value: Arith, dest: RegId) is
 		if (value & 0xffff) != 0 then
-			E_alu2wi("ADD", value & 0xffff, loreg(dest));
+			E_alu2i("ADD", value & 0xffff, loreg(dest));
 			E_adc(hireg(dest));
 		end if;
 		if (value >> 16) != 0 then
-			E_alu2wi("ADD", value >> 16, hireg(dest));
+			E_alu2i("ADD", value >> 16, hireg(dest));
 		end if;
 	end sub;
 
@@ -516,17 +506,17 @@
 		case value is
 			when 1: E_dec(dest);
 			when -1: E_inc(dest);
-			when else: E_alu2wi("SUB", value, dest);
+			when else: E_alu2i("SUB", value, hireg(dest));
 		end case;
 	end sub;
 
 	sub E_subi4(value: Arith, dest: RegId) is
 		if (value & 0xffff) != 0 then
-			E_alu2wi("SUB", value & 0xffff, loreg(dest));
+			E_alu2i("SUB", value & 0xffff, loreg(dest));
 			E_sbc(hireg(dest));
 		end if;
 		if (value >> 16) != 0 then
-			E_alu2wi("SUB", value >> 16, hireg(dest));
+			E_alu2i("SUB", value >> 16, hireg(dest));
 		end if;
 	end sub;
 
@@ -556,19 +546,28 @@
 		E_sub(hireg(rhs), hireg(lhs));
 	end sub;
 
+	# can skip TST iff previous insn affected src and set flags
 	sub E_cmpi(value: Arith, src: RegId) is
-		E_insn("CMP", src);
+		if value == 0 then
+			E_insn("TST", src);
+		else
+			E_insn("CMP", src);
+		end if;
 		E_reg(src);
-		E(", ");
-		E_b8('#');
-		E_i32(value);
+		if value != 0 then
+			E(", ");
+			E_b8('#');
+			E_i32(value);
+		end if;
 		E_nl();
 	end sub;
 
 	sub E_cmpi4(value: Arith, reg: RegId) is
+		var label := AllocPLabel();
 		E_cmpi(value >> 16, hireg(reg));
-		E("\tbne\t$+6\n");
+		E_jump_noflush("bne", label);
 		E_cmpi(value & 0xffff, loreg(reg));
+		E_label(label);
 	end sub;
 
 	sub E_sxtb(reg: RegId) is
@@ -904,6 +903,21 @@
 		elseif hireg(src) != dest then
 			E_movb(src, dest);
 		end if;
+	end sub;
+
+	# sym is R8, dest is R16
+	sub E_loadext(reg: RegId, sym: [Symbol], off: Size, sext: uint8) is
+		R_flush(reg);
+		if sext == 0 then
+			E_clr(reg);
+			E_insn("BIS", loreg(reg));
+		else
+			E_mov(loreg(reg));
+		end if;
+		E_symref(sym, off);
+		E_comma();
+		E_reg(reg);
+		E_nl();
 	end sub;
 
 	var stringid: uint16 := 0;
@@ -1246,25 +1260,27 @@ gen r32 := CAST24(r16:val):c  { E_move($val, loreg($$)); if ($c.sext != 0) then 
 
 // --- Loads ---------------------------------------------------------------
 
-gen r8  := DEREF1(r16:rhs)     { E_loadix($$, $rhs, 0, 1); }
-gen r16 := DEREF2(r16:rhs)     { E_loadix($$, $rhs, 0, 0); }
+gen r8  := DEREF1(r16:rhs)     { E_loadix($$, $rhs, 0); }
+gen r16 := DEREF2(r16:rhs)     { E_loadix($$, $rhs, 0); }
 gen r32 := DEREF4(r16:rhs)
 {
 	if $rhs == loreg($$) then
-		E_loadix(hireg($$), $rhs, 2, 0); E_loadix(loreg($$), $rhs, 0, 0);
+		E_loadix(hireg($$), $rhs, 2); E_loadix(loreg($$), $rhs, 0);
 	else
-		E_loadix(loreg($$), $rhs, 0, 0); E_loadix(hireg($$), $rhs, 2, 0);
+		E_loadix(loreg($$), $rhs, 0); E_loadix(hireg($$), $rhs, 2);
 	end if;
 }
 
-gen r8  := DEREF1(ADD2(r16:rhs, CONSTANT():c)) { E_loadix($$, $rhs, $c.value, 1); }
-gen r16 := DEREF2(ADD2(r16:rhs, CONSTANT():c)) { E_loadix($$, $rhs, $c.value, 0); }
+gen r8  := DEREF1(ADD2(r16:rhs, CONSTANT():c)) { E_loadix($$, $rhs, $c.value); }
+gen r16 := DEREF2(ADD2(r16:rhs, CONSTANT():c)) { E_loadix($$, $rhs, $c.value); }
 gen r8  := DEREF1(ADD2(ADDRESS():a, CONSTANT():c)) { E_load($$, &$a.sym, $a.off + $c.value as uint16, 1); }
 gen r8  := DEREF1(ADD2(ADDRESS():a, r16:rhs)) { E_loadii($$, $rhs, &$a.sym, $a.off as uint16, 1); }
 gen r16 := DEREF2(ADD2(ADDRESS():a, CONSTANT():c)) { E_load($$, &$a.sym, $a.off + $c.value as uint16, 0); }
 gen r16 := DEREF2(ADD2(ADDRESS():a, r16:rhs)) { E_loadii($$, $rhs, &$a.sym, $a.off as uint16, 0); }
 
 gen r8  := DEREF1(ADDRESS():a) { E_load($$, &$a.sym, $a.off, 1); }
+gen r16 := CAST12(DEREF1(ADDRESS():a)):c { E_loadext($$, &$a.sym, $a.off, $c.sext); }
+
 gen r16 := DEREF2(ADDRESS():a) { E_load($$, &$a.sym, $a.off, 0); }
 
 gen r32 := DEREF4(ADDRESS():a)
@@ -1275,11 +1291,11 @@ gen r32 := DEREF4(ADDRESS():a)
 gen r32 := DEREF4(ADD2(r16:rhs, CONSTANT():c))
 {
 	if $rhs == loreg($$) then
-		E_loadix(hireg($$), $rhs, $c.value + 2, 0);
-		E_loadix(loreg($$), $rhs, $c.value, 0);
+		E_loadix(hireg($$), $rhs, $c.value + 2);
+		E_loadix(loreg($$), $rhs, $c.value);
 	else
-		E_loadix(loreg($$), $rhs, $c.value, 0);
-		E_loadix(hireg($$), $rhs, $c.value + 2, 0);
+		E_loadix(loreg($$), $rhs, $c.value);
+		E_loadix(hireg($$), $rhs, $c.value + 2);
 	end if;
 }
 gen r32 := DEREF4(ADD2(ADDRESS():a, CONSTANT():c))
@@ -1294,8 +1310,7 @@ gen r16 := SUBREF():a         { E_loadsubref($$, $a.subr); }
 
 // XXX otherwise regs get destroyed?
 //n r8  := CAST21(DEREF2(ADDRESS():a)):c { E_load($$, &$a.sym, $a.off, 0); }
-//n r16 := CAST12(DEREF1(r16:rhs)):c     { E_loadix($$, $rhs, 0, 1); E_ext($$, $$, $c.sext); } // XXX bad code in FCBExt
-//n r16 := CAST12(DEREF1(ADDRESS():a)):c { E_load($$, &$a.sym, $a.off, 1); }
+//n r16 := CAST12(DEREF1(r16:rhs)):c     { E_loadix($$, $rhs, 0); E_ext($$, $$, $c.sext); } // XXX bad code in FCBExt
 //n r32 := CAST24(DEREF2(ADDRESS():a)):c { E_load(loreg($$), &$a.sym, $a.off, 0); if ($c.sext == 0) then E_clr(hireg($$)); else E_sxt(hireg($$)); end if; }
 //n r32 := CAST14(DEREF1(ADDRESS():a)):c { E_load(loreg($$), &$a.sym, $a.off, 1); E_ext(loreg($$), loreg($$), $c.sext); if ($c.sext != 0) then E_sxt(hireg($$)); else E_clr(hireg($$)); end if; }
 
@@ -1303,22 +1318,22 @@ gen r16 := SUBREF():a         { E_loadsubref($$, $a.subr); }
 
 gen STORE1(CONSTANT():v, DEREF1(r16:rhs)) { E_storeixc($v.value, $rhs, 0, 1); }
 gen STORE1(CONSTANT():v, DEREF1(ADD2(r16:rhs, CONSTANT():c))) { E_storeixc($v.value, $rhs, $c.value, 1); }
-gen STORE1(r8:lhs, DEREF1(r16:rhs))       { E_storeix($lhs, $rhs, 0, 1); }
+gen STORE1(r8:lhs, DEREF1(r16:rhs))       { E_storeix($lhs, $rhs, 0); }
 gen STORE1(r8:lhs, DEREF1(ADDRESS():a))   { E_store($lhs, &$a.sym, $a.off, 1); }
-gen STORE1(r8:lhs, DEREF1(ADD2(r16:rhs, CONSTANT():c))) { E_storeix($lhs, $rhs, $c.value, 1); }
+gen STORE1(r8:lhs, DEREF1(ADD2(r16:rhs, CONSTANT():c))) { E_storeix($lhs, $rhs, $c.value); }
 gen STORE1(r8:lhs, DEREF1(ADD2(ADDRESS():a, r16:rhs))) { E_storeii($lhs, $rhs, &$a.sym, $a.off as uint16, 1); }
 
 gen STORE2(CONSTANT():v, DEREF2(r16:rhs)) { E_storeixc($v.value, $rhs, 0, 0); }
 gen STORE2(CONSTANT():v, DEREF2(ADD2(r16:rhs, CONSTANT():c))) { E_storeixc($v.value, $rhs, $c.value, 0); }
-gen STORE2(r16:lhs, DEREF2(r16:rhs))      { E_storeix($lhs, $rhs, 0, 0); }
+gen STORE2(r16:lhs, DEREF2(r16:rhs))      { E_storeix($lhs, $rhs, 0); }
 gen STORE2(r16:lhs, DEREF2(ADDRESS():a))  { E_store($lhs, &$a.sym, $a.off, 0); }
-gen STORE2(r16:lhs, DEREF2(ADD2(r16:rhs, CONSTANT():c))) { E_storeix($lhs, $rhs, $c.value, 0); }
+gen STORE2(r16:lhs, DEREF2(ADD2(r16:rhs, CONSTANT():c))) { E_storeix($lhs, $rhs, $c.value); }
 gen STORE2(r16:lhs, DEREF2(ADD2(ADDRESS():a, r16:rhs))) { E_storeii($lhs, $rhs, &$a.sym, $a.off as uint16, 0); }
 
 gen STORE4(r32:val, DEREF4(r16:rhs))
 {
-	E_storeix(loreg($val), $rhs, 0, 0);
-	E_storeix(hireg($val), $rhs, 2, 0);
+	E_storeix(loreg($val), $rhs, 0);
+	E_storeix(hireg($val), $rhs, 2);
 }
 gen STORE4(r32:val, DEREF4(ADDRESS():a))
 {
@@ -1334,7 +1349,7 @@ gen r32 := NEG4($$)
 {
 	E_not(hireg($$));
 	E_not(loreg($$));
-	E_alu2wi("add", 1, loreg($$)); # inc does not set the carry
+	E_alu2i("add", 1, loreg($$)); # inc does not set the carry
 	E_adc(hireg($$));
 }
 
@@ -1494,15 +1509,16 @@ gen r32   := RSHIFTS4($$:lhs, CONSTANT():c)      { E_sari4($c.value as uint8, $l
 gen BEQ0(CONSTANT():c1, CONSTANT():c2):b uses all { beqc(self.n[0], $c1.value, $c2.value); }
 
 gen BEQ1(r8:lhs, r8:rhs):b         uses all { E_cmp($lhs, $rhs);      CmpJumpsJe(self.n[0]); }
-gen BEQ1(r8:lhs, CONSTANT():c):b   uses all { if ($c.value == 0) then E_tst($lhs); else E_cmpi($c.value, $lhs); end if; CmpJumpsJe(self.n[0]); }
+gen BEQ1(r8:lhs, CONSTANT():c):b   uses all { E_cmpi($c.value, $lhs); CmpJumpsJe(self.n[0]); }
 gen BEQ1(AND1(r8:lhs, r8:rhs), CONSTANT(value==0)):b { E_alu2("BIT", $rhs, $lhs); CmpJumpsJe(self.n[0]); }
 gen BEQ1(AND1(r8:lhs, CONSTANT(value!=0):c), CONSTANT(value==0)):b
 {
 	E_alu2i("BIT", $c.value, $lhs);
 	CmpJumpsJe(self.n[0]);
 }
+
 gen BEQ2(r16:lhs, r16:rhs):b       uses all { E_cmp($lhs, $rhs);      CmpJumpsJe(self.n[0]); }
-gen BEQ2(r16:lhs, CONSTANT():c):b  uses all { if ($c.value == 0) then E_tst($lhs); else E_cmpi($c.value, $lhs); end if; CmpJumpsJe(self.n[0]); }
+gen BEQ2(r16:lhs, CONSTANT():c):b  uses all { E_cmpi($c.value, $lhs); CmpJumpsJe(self.n[0]); }
 gen BEQ2(AND2(r16:lhs, r16:rhs), CONSTANT(value==0)):b { E_alu2("BIT", $rhs, $lhs); CmpJumpsJe(self.n[0]); }
 gen BEQ2(AND2(r16:lhs, CONSTANT(value!=0):c), CONSTANT(value==0)):b
 {
