@@ -1,21 +1,23 @@
 # System call numbers are here:
-# http://mdfs.net/Docs/Comp/PDP11/Unix/SYSCalls
+# https://mdfs.net/Docs/Comp/PDP11/Unix/SYSCalls
 
 const FCB_BUFFER_SIZE := 512;
 typedef FCBIndexType is uint16;
 
 record RawFCB is
-	fd: uint16;
+    fd: uint16;
 end record;
 
 
 include "fileio.coh";
 
 @impl sub FCBRawRead is
-	var fd := fcb.fd;
-	var dma := &fcb.buffer[0];
+    var fd := fcb.fd;
+    var dma := &fcb.buffer[0];
     var i: int16;
+    var errno: int16 := 0;
 
+    amount := 0;
     @asm "mov #0087h, -(sp)"; # ret
     @asm "mov #0, -(sp)"; # whence
     @asm "mov ", pos, "+0, -(sp)"; # pos lo
@@ -23,28 +25,35 @@ include "fileio.coh";
     @asm "mov #8913h, -(sp)"; # lseek
     @asm "mov ", fd, ", r0";
     @asm "call @sp";
-    @asm "add #8, sp";
+    @asm "adc ", errno;
+    @asm "add #10, sp";
 
+    if errno != 0 then
+        fcb.flags := fcb.flags | FCB_FLAG_ERROR;
+        return;
+    end if;
+
+    @asm "mov #0087h, -(sp)"; # ret
     @asm "mov ", len, ", -(sp)";
     @asm "mov ", dma, ", -(sp)";
     @asm "mov #8903h, -(sp)"; # read
     @asm "mov ", fd, ", r0";
     @asm "call @sp";
+    @asm "adc ", errno;
     @asm "add #8, sp";
     @asm "mov r0,", i;
 
-    if i < 0 then
-		amount := 0;
-		fcb.flags := fcb.flags | FCB_FLAG_ERROR;
-	else
-		amount := i as FCBIndexType;
-	end if;
+    if errno != 0 then
+        fcb.flags := fcb.flags | FCB_FLAG_ERROR;
+    else
+        amount := i as FCBIndexType;
+    end if;
 end sub;
 
 @impl sub FCBRawWrite is
-	var fd := fcb.fd;
-	var dma := &fcb.buffer[0];
-    var i: int16;
+    var fd := fcb.fd;
+    var dma := &fcb.buffer[0];
+    var i: int16 := 0;
 
     @asm "mov #0087h, -(sp)"; # ret
     @asm "mov #0, -(sp)"; # whence
@@ -53,38 +62,48 @@ end sub;
     @asm "mov #8913h, -(sp)"; # lseek
     @asm "mov ", fd, ", r0";
     @asm "call @sp";
-    @asm "add #8, sp";
+    @asm "adc ", i;
+    @asm "add #10, sp";
 
+    if i != 0 then
+        fcb.flags := fcb.flags | FCB_FLAG_ERROR;
+        return;
+    end if;
+
+    @asm "mov #0087h, -(sp)"; # ret
     @asm "mov ", len, ", -(sp)";
     @asm "mov ", dma, ", -(sp)";
     @asm "mov #8904h, -(sp)"; # write
     @asm "mov ", fd, ", r0";
     @asm "call @sp";
+    @asm "adc ", i;
     @asm "add #8, sp";
 
-    if i < 0 then
+    if i != 0 then
         fcb.flags := fcb.flags | FCB_FLAG_ERROR;
     end if;
 end sub;
 
 sub fcb_i_open(fcb: [FCB], filename: [uint8], flags: uint32): (errno: uint8) is
     _fcb_init(fcb);
+    var fd: int16;
 
+    errno := 0;
+    fd := flags as int16;
     @asm "mov #0087h, -(sp)"; # ret
-    @asm "mov #666o, -(sp)";
+    @asm "mov ", fd, ", -(sp)";
     @asm "mov ", filename, ", -(sp)";
-    @asm "mov #8905h, -(sp)"; # trap 5
+    @asm "mov #8905h, -(sp)"; # open
     @asm "call @sp";
+    @asm "adcb ", errno;
     @asm "add #8, sp";
-
-	var fd: int16;
     @asm "mov r0, ", fd;
-	fcb.fd := fd as uint16;
-	if fd < 0 then
-		errno := (-fd) as uint8;
-	else
-		errno := 0;
-	end if;
+
+    if errno == 0 then
+        fcb.fd := fd as uint16;
+    else
+        errno := fd as uint8;
+    end if;
 end sub;
 
 sub FCBOpenIn(fcb: [FCB], filename: [uint8]): (errno: uint8) is
@@ -96,9 +115,26 @@ sub FCBOpenUp(fcb: [FCB], filename: [uint8]): (errno: uint8) is
 end sub;
 
 sub FCBOpenOut(fcb: [FCB], filename: [uint8]): (errno: uint8) is
-	(errno) := fcb_i_open(fcb, filename, 0o1102); # O_RDWR|O_CREAT|O_TRUNC
+    _fcb_init(fcb);
+    var fd: int16;
+
+    errno := 0;
+    @asm "mov #0087h, -(sp)"; # ret
+    @asm "mov #644o, -(sp)";
+    @asm "mov ", filename, ", -(sp)";
+    @asm "mov #8908h, -(sp)"; # creat
+    @asm "call @sp";
+    @asm "adcb ", errno;
+    @asm "add #8, sp";
+    @asm "mov r0, ", fd;
+
+    if errno == 0 then
+        fcb.fd := fd as uint16;
+    else
+        errno := fd as uint8;
+    end if;
 end sub;
-	
+
 sub FCBClose(fcb: [FCB]): (errno: uint8) is
 	FCBFlush(fcb);
 

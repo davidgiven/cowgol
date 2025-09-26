@@ -1,6 +1,7 @@
 var LOMEM: [uint8];
 var HIMEM: [uint8];
 
+# NB: apout ignores brk()
 sub _find_himem() is
 	@asm "mov #0087h, -(sp)"; # ret
 	@asm "mov himem, -(sp)"; # brk address
