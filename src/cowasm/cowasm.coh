@@ -196,6 +196,7 @@ end sub;
 sub HeapifyToken(): (sout: string) is
 	sout := LOMEM;
 	LOMEM := AlignUp((LOMEM as intptr) + (tokenLength as intptr) + 1) as [uint8];
+	if LOMEM >= HIMEM then SimpleError("out of memory"); EndError(); end if;
 
 	CopyString(&tokenBuffer[0], sout);
 end sub;
@@ -203,6 +204,7 @@ end sub;
 sub AddSymbol(psymbol: [[Symbol]], name: string) is
 	tokenSymbol := LOMEM as [Symbol];
 	LOMEM := AlignUp((LOMEM as intptr) + @bytesof Symbol) as [uint8];
+	if LOMEM >= HIMEM then SimpleError("out of memory"); EndError(); end if;
 
 	tokenSymbol.value := 0;
 	tokenSymbol.callback := UndefinedLabelCb;

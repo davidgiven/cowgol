@@ -35,6 +35,7 @@ sub ReadOperand(): (token: Token) is
     var reg: uint8;
     var value: uint16;
     case token is
+        # FIXME: accept negative offsets like -2(reg)
         when '-':
             Expect('(');
             ReadRegister();
@@ -278,7 +279,7 @@ end sub;
 
 sub EmtTrapCb implements SymbolCallback is
     ExpectExpression();
-    if tokenNumber > 0o77 then
+    if tokenNumber > 0o377 then
         SimpleError("EMT/TRAP value out of range");
     end if;
 
