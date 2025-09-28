@@ -1,0 +1,187 @@
+
+const FCB_BUFFER_SIZE := 512;
+typedef FCBIndexType is uint16;
+
+var usrerr: [uint8] := 0o52;
+
+# DX-DOS FCB
+
+record DXCB is
+	unit: uint8;		#  0 F$NDRV
+	name: uint8[0o13];	#  1 F$FLNM
+	curblk: uint16;		# 14 F$CBLK
+	reclen: uint16;		# 16 F$RCSZ
+	size: uint32;		# 20 F$FLSZ
+	date: uint16;		# 24 F$FLDT
+	addr: uint16;		# 26 F$FLLD
+	media: uint8;		# 30 F$IDEV
+	diroff: uint8;		# 31 F$DIRP
+	cluster: uint16;	# 32 F$STCL
+	res1: uint16[2];	# 34 F$TMP1-2
+	curseq: uint8;		# 40 F$CURR
+	res2: uint8;		# 41 F$FOPN
+	currec: uint32;		# 42 F$RECN
+	res3: uint8;		# 46 F$TMP3
+	attr: uint8;		# 47 F$ATTR
+	buf: [uint8];		# 50 F$DTAD
+end record;
+
+#
+
+record RawFCB is
+	dxcb: DXCB;
+end record;
+
+include "fileio.coh";
+
+sub FCBRawReadMany(fcb: [FCB], pos: uint32, len: FCBIndexType, buf: [uint8]): (amount: FCBIndexType) is
+	var dxcb := &fcb.dxcb;
+	var failed: int16 := 0;
+	var i: FCBIndexType;
+
+	# API calls:
+	#
+	# fn 20. -- sequential read
+	# fn 36. -- switch from sequential to random
+	# fn 33. -- random read single
+	# fn 39. -- random read multiple
+	#
+	# all are record-oriented
+
+	amount := 0;
+	if len == 0 or pos >= fcb.dxcb.size then
+		return;
+	end if;
+
+	fcb.dxcb.buf := buf;
+	fcb.dxcb.reclen := 1;
+	fcb.dxcb.currec := pos;
+	@asm "mov", len, ", r0";
+	@asm "mov", dxcb, ", r4";
+	@asm "iot";
+	@asm "dw 39"; # random read multiple
+	@asm "adc", failed;
+	@asm "mov r0,", i;
+
+	# ignore 'read past eof' errors
+	if failed != 0 and [usrerr] != 0o26 and [usrerr] != 0o27 then
+		amount := 0;
+		fcb.flags := fcb.flags | FCB_FLAG_ERROR;
+	else
+		amount := i;
+	end if;
+end sub;
+
+@impl sub FCBRawRead is
+	amount := FCBRawReadMany(fcb, pos, len, &fcb.buffer[0]);
+end sub;
+
+@impl sub FCBRawWrite is
+	var dxcb := &fcb.dxcb;
+	var failed: int16 := 0;
+
+	# API calls:
+	#
+	# fn 21. -- sequential write
+	# fn 36. -- switch from sequential to random
+	# fn 34. -- random write
+	# fn 40. -- random write multiple
+	#
+	# all are record-oriented
+
+	if len == 0 then return; end if;
+
+	if len > FCB_BUFFER_SIZE then
+		fcb.flags := fcb.flags | FCB_FLAG_ERROR;
+		return;
+	end if;
+
+	fcb.dxcb.buf := &fcb.buffer[0];
+	fcb.dxcb.reclen := 1;
+	fcb.dxcb.currec := pos;
+	@asm "mov", len, ", r0";
+	@asm "mov", dxcb, ", r4";
+	@asm "iot";
+	@asm "dw 40"; # random write multiple
+	@asm "adc", failed;
+
+	if failed != 0 then
+		fcb.flags := fcb.flags | FCB_FLAG_ERROR;
+	end if;
+end sub;
+
+#
+
+sub FCBOpenIn(fcb: [FCB], filename: [uint8]): (errno: uint8) is
+	var dxcb := &fcb.dxcb;
+	errno := 0;
+	_fcb_init(fcb);
+
+	@asm "mov", filename, ", r1";
+	@asm "mov", dxcb, ", r4";
+	@asm "clr r2";
+	@asm "iot";
+	@asm "dw 41"; # parse filename
+	@asm "adcb", errno;
+	if errno != 0 then return; end if;
+
+	errno := 0;
+	@asm "mov", dxcb, ", r4";
+	@asm "iot";
+	@asm "dw 15"; # open by fcb
+	@asm "adcb", errno;
+end sub;
+
+sub FCBOpenUp(fcb: [FCB], filename: [uint8]): (errno: uint8) is
+	errno := FCBOpenIn(fcb, filename);
+end sub;
+
+sub FCBOpenOut(fcb: [FCB], filename: [uint8]): (errno: uint8) is
+	var dxcb := &fcb.dxcb;
+	errno := 0;
+	_fcb_init(fcb);
+
+	@asm "mov", filename, ", r1";
+	@asm "mov", dxcb, ", r4";
+	@asm "clr r2";
+	@asm "iot";
+	@asm "dw 41"; # parse filename
+	@asm "adcb", errno;
+	if errno != 0 then return; end if;
+
+	errno := 0;
+	@asm "mov", dxcb, ", r4";
+	@asm "iot";
+	@asm "dw 22"; # create by fcb
+	@asm "adcb", errno;
+end sub;
+
+# FIXME possible OS bug -- doesn't always flush to disk?
+sub FCBClose(fcb: [FCB]): (errno: uint8) is
+	FCBFlush(fcb);
+
+	var dxcb := &fcb.dxcb;
+	fcb.dxcb.addr := 0o1000;
+	errno := 0;
+	@asm "mov", dxcb, ", r4";
+	@asm "iot";
+	@asm "dw 16";
+	@asm "adcb", errno;
+end sub;
+
+sub FCBExt(fcb: [FCB]): (len: uint32) is
+	FCBFlush(fcb);
+
+	var dxcb := &fcb.dxcb;
+	@asm "mov", dxcb, ", r4";
+	@asm "iot";
+	@asm "dw 35";
+	@asm "mov r0, r2";
+	@asm "mov r1, r0";
+	@asm "mov r2, r1";
+	@asm "ret";
+end sub;
+
+include "common-file.coh";
+
+# vim: ts=4 sw=4 noet

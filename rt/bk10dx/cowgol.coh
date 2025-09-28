@@ -1,0 +1,59 @@
+var LOMEM: [uint8];
+var HIMEM: [uint8];
+var HW: int16;
+var API: int16;
+
+@asm "mov himem, ", HIMEM;
+@asm "mov #bss_end+2, ", LOMEM;
+@asm "mov hw, ", HW;
+@asm "mov api, ", API;
+
+sub Exit() is
+	@asm "br exit";
+end sub;
+
+sub ExitWithError() is
+	@asm "br exit";
+end sub;
+
+sub AlignUp(in: intptr): (out: intptr) is
+	out := (in + 1) & ~1;
+end sub;
+
+sub print_char(c: uint8) is
+	if API > 0 and c == '\n' then
+		@asm "mov #15o, r0";
+		@asm "iot";
+		@asm "dw 2";
+	end if;
+	@asm "mov", c, ", r0";
+	@asm "iot";
+	@asm "dw 2";
+end sub;
+
+sub MemSet(buf: [uint8], byte: uint8, len: uint16) is
+	var bufend := buf + len;
+	@asm "mov", buf, ", r0";
+	@asm "mov", len, ", r1";
+	@asm "movb", byte, ", r2";
+	@asm "movb r2, (r0)+";
+	@asm "sob r1, $-2";
+end sub;
+
+sub print_oct_i16(value: uint16) is
+	var i: uint8 := 5;
+	if (value & 0o100000) != 0 then print_char('1'); else print_char('0'); end if;
+	loop
+		var digit := (((value >> 12) & 7) + '0') as uint8;
+		print_char(digit);
+		value := value << 3;
+		i := i - 1;
+		if i == 0 then
+			break;
+		end if;
+	end loop;
+end sub;
+
+include "common.coh";
+
+# vim: ts=4 sw=4 noet

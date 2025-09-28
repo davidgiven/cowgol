@@ -1,0 +1,48 @@
+var argv_pointer: [uint8];
+
+# Returns null is there's no next argument.
+sub ArgvNext(): (arg: [uint8]) is
+	# No more arguments?
+
+	if (argv_pointer == nil) or ([argv_pointer] == 0) then
+		arg := 0 as [uint8];
+		return;
+	end if;
+
+	# Skip leading whitespace.
+
+	var c: uint8;
+	loop
+		c := [argv_pointer];
+		if c != ' ' then
+			break;
+		end if;
+		argv_pointer := argv_pointer + 1;
+	end loop;
+
+	arg := argv_pointer;
+
+	# Skip to end of word and terminate.
+
+	loop
+		c := [argv_pointer];
+		if (c == ' ') or (c == '\n') or (c == 0) then
+			break;
+		end if;
+		argv_pointer := argv_pointer + 1;
+	end loop;
+	[argv_pointer] := 0;
+
+	if c == 0 and [argv_pointer+1] == 0 then
+		argv_pointer := 0 as [uint8];
+	else
+		argv_pointer := argv_pointer + 1;
+	end if;
+end sub;
+
+sub ArgvInit() is
+	@asm "mov argv, ", argv_pointer;
+	var a := ArgvNext(); # arg 0 is command name
+end sub;
+
+# vim: ts=4 sw=4 noet

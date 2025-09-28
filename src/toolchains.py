@@ -270,6 +270,20 @@ TOOLCHAINS.append(
 
 TOOLCHAINS.append(
     toolchain(
+        name="bk10dx",
+        cowfe="src/cowfe+cowfe-for-pdp11-with-nncgen",
+        cowbe="src/cowbe+cowbe-for-pdp11-with-ncgen",
+        cowlink="src/cowlink+cowlink-for-bk10dx-with-ncgen",
+        cowwrap="src/cowwrap+cowwrap-with-ncgen",
+        runtime="rt/bk10dx",
+        asmext=".asm",
+        binext=".exe",
+        assembler=buildcowasmpdp11,
+    )
+)
+
+TOOLCHAINS.append(
+    toolchain(
         name="fuzix6303",
         cowfe="src/cowfe+cowfe-for-16bit-with-nncgen",
         cowbe="src/cowbe+cowbe-for-6303-with-ncgen",
