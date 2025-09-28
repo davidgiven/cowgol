@@ -1221,6 +1221,9 @@ gen STORE4(CONSTANT():c, DEREF4(ADDRESS():a)) uses hl
 gen a := ADD1(a, b|d|h:lhs)
 		{ E_add(REG_A, $lhs); }
 
+gen a := ADD1(a, DEREF1(hl))
+		{ R_flush(REG_A); E("\tadd a,(hl)\n"); }
+
 gen a|b|d|h := ADD1($$, CONSTANT(value==-1))
 		{ E_dec($$); }
 
@@ -1232,6 +1235,9 @@ gen a := ADD1(a, CONSTANT():c)
 
 gen a := SUB1(a, b|d|h:rhs)
 		{ E_sub($rhs); }
+
+gen a := SUB1(a, DEREF1(hl))
+		{ R_flush(REG_A); E("\tsub a,(hl)\n"); }
 
 gen a|b|d|h := SUB1($$, CONSTANT(value==1))
 		{ E_dec($$); }
@@ -1254,17 +1260,26 @@ gen a := NEG1(b|d|h:lhs)
 gen a := OR1(a, b|d|h:lhs)
 		{ E_or($lhs); }
 
+gen a := OR1(a, DEREF1(hl))
+		{ R_flush(REG_A); E("\tor a,(hl)\n"); }
+
 gen a := OR1(a, CONSTANT():c)
 		{ E_ori($c.value as uint8); }
 
 gen a := AND1(a, b|d|h:lhs)
 		{ E_and($lhs); }
 
+gen a := AND1(a, DEREF1(hl))
+		{ R_flush(REG_A); E("\tand a,(hl)\n"); }
+
 gen a := AND1(a, CONSTANT():c)
 		{ E_andi($c.value as uint8); }
 
 gen a := EOR1(a, b|d|h:lhs)
 		{ E_xor($lhs); }
+
+gen a := EOR1(a, DEREF1(hl))
+		{ R_flush(REG_A); E("\txor a,(hl)\n"); }
 
 gen a := EOR1(a, CONSTANT():c)
 		{ E_xori($c.value as uint8); }
