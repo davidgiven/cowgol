@@ -35,7 +35,9 @@
 	end sub;
 
 	sub E_label(label: LabelRef) is
+		if (label & 1) != 0 then
 		R_flushall();
+		end if;
 		E_labelref(label);
 		E(":\n");
 	end sub;
@@ -1122,7 +1124,7 @@ gen STARTSUB() uses all
 
 gen ENDSUB() uses all
 {
-	R_flushall();
+#	R_flushall();
 
 	E("end_");
 	E_subref(current_subr);
@@ -1474,10 +1476,10 @@ gen r32   := RSHIFTS4($$:lhs, CONSTANT():c)      { E_sari4($c.value as uint8, $l
 %{
 	sub CmpJumps(trueinsn: string, falseinsn: string, node: [Node]) is
 		if node.beq.truelabel != node.beq.fallthrough then
-			E_jump(trueinsn, node.beq.truelabel);
+			E_jump_noflush(trueinsn, node.beq.truelabel);
 		end if;
 		if node.beq.falselabel != node.beq.fallthrough then
-			E_jump(falseinsn, node.beq.falselabel);
+			E_jump_noflush(falseinsn, node.beq.falselabel);
 		end if;
 	end sub;
 

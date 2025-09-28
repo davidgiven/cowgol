@@ -1,6 +1,6 @@
 sub AllocLabel(): (label: LabelRef) is
 	label := next_label_id;
-	next_label_id := next_label_id + 1;
+	next_label_id := next_label_id + 2;
 end sub;
 
 sub AllocSubrId(): (id: uint16) is
@@ -100,7 +100,7 @@ sub GenerateConditional(rootnode: [Node]) is
 		var rr: LabelRef;
 		case op is
 			when MIDCODE_BOR:
-				rr := AllocLabel();
+				rr := AllocLabel() + 1;
 
 				lhs.beq.truelabel := t;
 				lhs.beq.falselabel := rr;
@@ -109,7 +109,7 @@ sub GenerateConditional(rootnode: [Node]) is
 				push_and_free();
 
 			when MIDCODE_BAND:
-				rr := AllocLabel();
+				rr := AllocLabel() + 1;
 
 				lhs.beq.truelabel := rr;
 				lhs.beq.falselabel := f;
