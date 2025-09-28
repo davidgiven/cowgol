@@ -1,0 +1,82 @@
+# API==0 only
+
+const T_3264  := 0o233;
+const T_DC    := 0o202;
+const T_GRAPH := 0o225;
+
+const T_RED   := 0o221;
+const T_GREEN := 0o222;
+const T_BLUE  := 0o223;
+const T_BLACK := 0o224;
+
+const T_LIGHT := 0o235;
+const T_CURSOR:= 0o232;
+const T_UL    := 0o237;
+const T_RV    := 0o234;
+
+#
+
+# write to system (status) line
+sub putsysc(c: uint8, x: uint8) is
+	if API == 0 then
+		@asm "movb", c, ", r0";
+		@asm "movb", x, ", r1";
+		@asm "emt 22o";
+	elseif API == 2 then
+		@asm "clr -(sp)";
+		@asm "bisb", c, ", (sp)";
+		@asm "clr -(sp)";
+		@asm "bisb", x, ", (sp)";
+		@asm "emt 22o";
+	end if;
+end sub;
+
+sub puts(s: [uint8]) is
+	@asm "mov r0, r1";
+	@asm "iot";
+	@asm "dw 9";
+end sub;
+
+sub crtstatus(): (ret: uint16) is
+	@asm "emt 34o";
+	@asm "mov r0,", ret;
+end sub;
+
+sub crtsane() is
+	case API is
+		when 0:
+			var crt := crtstatus();
+			if (crt & ((1 << 0) | (1 << 4) | (1 << 5) | (1 << 6) | (1 << 8) | (1 << 14))) == 0 then return; end if;
+			if (crt & (1 << 0)) != 0 then print_char(T_3264); end if;	# reset 32-char mode
+			if (crt & (1 << 4)) != 0 then print_char(T_UL); end if;	# reset underline attr
+			if (crt & (1 << 5)) != 0 then print_char(T_RV); end if;	# reset inverse attr
+			if (crt & (1 << 6)) != 0 then print_char(T_DC); end if;	# reset display controls mode
+			if (crt & (1 << 8)) != 0 then print_char(T_GRAPH); end if;	# reset graphics mode
+			if (crt & (1 << 14)) != 0 then print_char(T_CURSOR); end if;	# enable cursor
+		when 2:
+			var buf: uint16[] := { 2, 0, 0, 0, 0, 0o200 | (0o200 << 8) };
+			var pcrt: [uint16] := &buf[0];
+			@asm "mov", pcrt, ", r0";
+			@asm "emt 64o";
+		when 1:
+			puts("\e1\e4\e7\e8\eO\eU");
+		end case;
+end sub;
+
+# turn off cursor for faster text output
+sub crtcursor() is
+	case API is
+		when 0: print_char(T_CURSOR);
+		when 2:
+			var buf: uint16[6];
+			var pcrt: [uint16] := &buf[0];
+			@asm "mov", pcrt, ", r0";
+			@asm "emt 34o";
+			buf[0] := buf[0] | 0x2000;
+			@asm "mov", pcrt, ", r0";
+			@asm "emt 64o";
+		when 1: puts("\e9");
+	end case;
+end sub;
+
+# vim: ts=4 sw=4 noet

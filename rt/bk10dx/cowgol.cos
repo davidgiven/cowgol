@@ -1,0 +1,84 @@
+# Unsigned 32-bit division.
+# Computes r2r3/r0r1, putting the quotient in r2r3 and the remainder in r4r5.
+&X _divremu4
+	; _divremu4
+``:
+	; The PDP11 has a 32/16->16%16 signed division instruction. Synthesising
+	; 32/32->32%32 unsigned division from this is surprisingly hard, so for
+    ; now we don't bother and just use long division.
+
+    clr r4              ; reset remainder
+    clr r5
+    mov r0, -(sp)       ; move hi(RHS) onto the stack, as we need r0...
+    mov #32, r0         ; ...for the loop counter
+    br ``_entry
+
+``_loop:
+    dec r0
+    beq ``_exit
+``_entry:
+    ashc #1, r2         ; left shift LHS
+    rol r5              ; ...moving the shifted out top bit into the remainder
+    rol r4
+
+    cmp r4, 0(sp)       ; if remainder < RHS, loop without subtracting
+    bcs ``_loop
+    cmp r5, r1
+    bcs ``_loop
+
+    inc r3              ; set the bottom bit of the quotient (guaranteed to be 0)
+    sub 0(sp), r4       ; remainder = remainder - RHS
+    sbc r5
+    sub r1, r5
+    br ``_loop
+``_exit:
+    mov (sp)+, r0       ; retract stack
+    ret
+
+# Signed 32-bit division.
+# Computes r2r3/r0r1, putting the quotient in r2r3 and the remainder in r4r5.
+# This is a wrapper around _divremu4 above.
+&X _divrems4
+	; _divrems4
+``:
+    xor r2, r0          ; discover sign of result
+    mov r0, -(sp)       ; save for later
+    xor r2, r0          ; recover result
+    mov r2, -(sp)       ; save result for sign of remainder
+
+    tst r0              ; set flags from hi(rhs)
+    bpl ``_1
+    com r0              ; negate r0r1
+    com r1
+    add #1, r1          ; add (setting carry)
+    adc r0
+``_1:
+    tst r2              ; set flags from hi(lhs)
+    bpl ``_2
+    com r2              ; negate r2r3
+    com r3
+    add #1, r3
+    adc r2
+``_2:
+
+    call `_divremu4     ; perform unsigned division
+
+    tst 0(sp)           ; check sign of remainder
+    bpl ``_3
+    com r4
+    com r5
+    add #1, r5
+    adc r4
+``_3:
+    tst 2(sp)           ; check sign of quotient
+    bpl ``_4
+    com r2
+    com r3
+    add #1, r3
+    adc r2
+``_4:
+    add #4, sp          ; retract over stack
+    ret
+
+# vim: ts=4 sw=4 et
+

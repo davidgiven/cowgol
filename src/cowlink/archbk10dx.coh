@@ -1,0 +1,105 @@
+const STACK_SIZE := 128;
+
+var workspaceSize: Size[NUM_WORKSPACES];
+
+sub E_nl() is
+	E_b8('\n');
+end sub;
+
+sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
+	var a := (alignment-1) as Size;
+	newvalue := (value+a) & ~a;
+end sub;
+
+sub ArchEmitSubRef(subr: [Subroutine]) is
+	E_b8('f');
+	E_u16(subr.id);
+	E_b8('_');
+	E(subr.name);
+end sub;
+
+sub ArchEmitWSRef(wid: uint8, address: Size) is
+	E("ws+");
+	E_u16(address);
+end sub;
+
+sub ArchEmitHeader(coo: [Coo]) is
+	E("\tcseg\n");
+	E("\torg 1000o\n");
+	E("start:\n");
+
+	#
+	# which hardware do we have?
+	#
+	# hw=0 -- bk10
+	# hw=1 -- bk11m
+	# hw=2 -- bk11
+	#
+	# which API do we use?
+	#
+	# api=0 -- bk10 EMT calls, may be available on bk11(m) with bk10 BIOS loaded by OS
+	# api=1 -- bk11m ROM calls
+	# api=2 -- bk11 EMT calls, partially compatible with bk10
+	#
+
+	E("\tclr hw\n");
+	E("\tclr api\n");
+	E("\tiot\n");
+	E("\tdw 49\n"); # get address of system variables table
+	E("\tbisb 104o(r1), hw\n");
+	E("\tbisb 105o(r1), api\n");
+	E("\tmov 164o(r1), himem\n"); # XXX does not detect 'expanded memory' mode on bk10
+
+	E("\ttst api\n");
+	E("\tbne bk11\n");
+	E("\tmov @#202o, himem\n");
+	E("\tbk11:\n");
+
+	E("\tiot\n");
+	E("\tdw 52\n"); # get address of command line
+	E("\tmov r1, argv\n");
+
+	E("\tcmp @#160016o, #167o\n"); # enable EIS emulator if present
+	E("\tbne noeis\n");
+	E("\tmov #160016o, @#10o\n");
+	E("\tcmp @#167776o, #176000o\n"); # force EIS emulator in SMK ROM if on SMK00
+	E("\tbge noeis\n");
+	E("\tclr @#175774o\n");
+	E("noeis:\n");
+
+	while coo != nil loop
+		var main := coo.index.subroutines[0];
+		if main != nil then
+			E("\tcall ");
+			ArchEmitSubRef(main);
+			E_nl();
+		end if;
+		coo := coo.next;
+	end loop;
+
+	E("exit:\n");
+	E("\tiot\n");
+	E("\tdw 0\n");
+end sub;
+
+sub ArchEmitFooter(coo: [Coo]) is
+	E("\n\tdseg\n");
+	E("\talign 2\n");
+
+	E("argv: ds 2\n");
+	E("himem: ds 2\n");
+	E("api: ds 2\n");
+	E("hw: ds 2\n");
+	E("ws: ds ");
+	E_u16(workspaceSize[0]);
+	E_nl();
+	E("\talign 2\n");
+	E("bss_end:\n");
+
+	var padding := (FCBExt(&outfcb) - FCBPos(&outfcb)) as uint16;
+	while padding != 0 loop
+		E_b8(' ');
+		padding := padding - 1;
+	end loop;
+end sub;
+
