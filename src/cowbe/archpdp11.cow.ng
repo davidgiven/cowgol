@@ -127,7 +127,7 @@
 	end sub;
 
 	sub E_imm(value: int16) is
-		E("#");
+		E_b8('#');
 		E_i16(value);
 	end sub;
 
@@ -171,7 +171,7 @@
 		R_flush(dest);
 		E_mov(dest);
 		E_reg(src);
-		E(", ");
+		E_comma();
 		E_reg(dest);
 		E_nl();
 	end sub;
@@ -179,9 +179,9 @@
 	sub E_loadaddr(reg: RegId, sym: [Symbol], off: Size) is
 		R_flush(reg);
 		E_mov(reg);
-		E("#");
+		E_b8('#');
 		E_symref(sym, off);
-		E(", ");
+		E_comma();
 		E_reg(reg);
 		E_nl();
 	end sub;
@@ -189,9 +189,9 @@
 	sub E_loadsubref(reg: RegId, subr: [Subroutine]) is
 		R_flush(reg);
 		E_mov(reg);
-		E("#");
+		E_b8('#');
 		E_subref(subr);
-		E(", ");
+		E_comma();
 		E_reg(reg);
 		E_nl();
 	end sub;
@@ -214,7 +214,7 @@
 			E_mov(reg);
 		end if;
 		E_symref(sym, off);
-		E(", ");
+		E_comma();
 		E_reg(reg);
 		E_nl();
 		RegCacheLeavesValue(hireg(reg), sym, off);
@@ -226,7 +226,7 @@
 		if off != 0 then
 			E_i32(off);
 		end if;
-		E_b8('(');
+		E_openp();
 		E_reg(ptr);
 		E("), ");
 		E_reg(reg);
@@ -249,7 +249,7 @@
 		RegCacheFlushValue(sym, off);
 		E_mov(reg);
 		E_reg(reg);
-		E(", ");
+		E_comma();
 		E_symref(sym, off);
 		E_nl();
 		RegCacheLeavesValue(reg, sym, off);
@@ -264,11 +264,11 @@
 	sub E_storeix(reg: RegId, ptr: RegId, off: Arith) is
 		E_mov(reg);
 		E_reg(reg);
-		E(", ");
+		E_comma();
 		if off != 0 then
 			E_i32(off);
 		end if;
-		E_b8('(');
+		E_openp();
 		E_reg(ptr);
 		E(")\n");
 	end sub;
@@ -300,15 +300,15 @@
 			if (value == off) then
 				E("(PC), ");
 			else
-				E("#");
+				E_b8('#');
 				E_i32(value);
-				E(", ");
+				E_comma();
 			end if;
 		end if;
 		if off != 0 then
 			E_i32(off);
 		end if;
-		E_b8('(');
+		E_openp();
 		E_reg(ptr);
 		E(")\n");
 	end sub;
@@ -342,7 +342,7 @@
 	sub E_callreg(reg: RegId) is
 		R_flushall();
 		E_insn16("call");
-		E(" @");
+		E_b8('@');
 		E_reg(reg);
 		E_nl();
 	end sub;
@@ -357,7 +357,7 @@
 		R_flush(dest);
 		E_insn16("movb");
 		E_reg(src);
-		E(", ");
+		E_comma();
 		E_reg(dest);
 		E_nl();
 	end sub;
@@ -401,7 +401,7 @@
 	sub E_alu2_noflush(insn: string, src: RegId, dest: RegId) is
 		E_insn(insn, src);
 		E_reg(src);
-		E(", ");
+		E_comma();
 		E_reg(dest);
 		E_nl();
 	end sub;
@@ -419,7 +419,7 @@
 		R_flush(dest);
 		E_insn16(insn);
 		E_reg(src);
-		E(", ");
+		E_comma();
 		E_reg(dest);
 		E_nl();
 	end sub;
@@ -428,7 +428,7 @@
 		R_flush(dest);
 		E_insn16("XOR");
 		E_reg(src);
-		E(", ");
+		E_comma();
 		E_reg(dest);
 		E_nl();
 		if src == dest then
@@ -474,7 +474,7 @@
 			value := -value;
 		end if;
 		E_u32(value as uint32);
-		E(", ");
+		E_comma();
 		E_reg(dest);
 		E_nl();
 	end sub;
@@ -555,7 +555,7 @@
 		end if;
 		E_reg(src);
 		if value != 0 then
-			E(", ");
+			E_comma();
 			E_b8('#');
 			E_i32(value);
 		end if;
@@ -574,7 +574,7 @@
 		R_flush(reg);
 		E_insn16("movb");
 		E_reg(reg);
-		E(", ");
+		E_comma();
 		E_reg(reg);
 		E_nl();
 	end sub;
@@ -587,7 +587,7 @@
 		R_flush(reg);
 		E_insn16("ASH");
 		E_reg(value);
-		E(", ");
+		E_comma();
 		E_reg(reg);
 		E_nl();
 	end sub;
@@ -620,7 +620,7 @@
 		E_neg(amount);
 		E_insn16("ASH");
 		E_reg(amount);
-		E(", ");
+		E_comma();
 		E_reg(value);
 		E_nl();
 		E_sxtb(value);
@@ -631,7 +631,7 @@
 		E_neg(amount);
 		E_insn16("ASH");
 		E_reg(amount);
-		E(", ");
+		E_comma();
 		E_reg(value);
 		E_nl();
 	end sub;
@@ -642,7 +642,7 @@
 
 		# load mask
 		E_mov(REG_R5);
-		E("#");
+		E_b8('#');
 		E_u32(0x8000);
 		E_comma();
 		E_reg(REG_R5);
@@ -674,7 +674,7 @@
 		E_neg(value);
 		E_insn16("ASH");
 		E_reg(value);
-		E(", ");
+		E_comma();
 		E_reg(reg);
 		E_nl();
 	end sub;
@@ -703,22 +703,20 @@
 	end sub;
 
 	sub E_shl4(value: RegId, reg: RegId) is
-		R_flush(loreg(reg));
-		R_flush(hireg(reg));
+		R_flush(reg);
 		E_insn16("ASHC");
 		E_reg(value);
-		E(", ");
+		E_comma();
 		E_reg(reg);
 		E_nl();
 	end sub;
 
 	sub E_shli4(value: uint8, reg: RegId) is
-		R_flush(loreg(reg));
-		R_flush(hireg(reg));
+		R_flush(reg);
 		E_insn16("ASHC");
-		E("#");
+		E_b8('#');
 		E_u8(value);
-		E(", ");
+		E_comma();
 		E_reg(reg);
 		E_nl();
 	end sub;
@@ -728,7 +726,7 @@
 		E_insn16("ASH");
 		E("#-");
 		E_u8(value);
-		E(", ");
+		E_comma();
 		E_reg(reg);
 		E_nl();
 	end sub;
@@ -740,7 +738,7 @@
 		E_insn16("ASH");
 		E_b8('#');
 		E_i32(-value);
-		E(", ");
+		E_comma();
 		E_reg(REG_R5);
 		E_nl();
 		E_movb(REG_R5, reg);
@@ -757,7 +755,7 @@
 
 		E_insn16("ASHC");
 		E_reg(amount);
-		E(", ");
+		E_comma();
 		E_reg(value);
 		E_nl();
 
@@ -765,7 +763,7 @@
 
 		E_insn16("ASHC");
 		E_reg(amount);
-		E(", ");
+		E_comma();
 		E_reg(REG_R4);
 		E_nl();
 
@@ -778,7 +776,7 @@
 		E_neg(amount);
 		E_insn16("ASHC");
 		E_reg(amount);
-		E(", ");
+		E_comma();
 		E_reg(value);
 		E_nl();
 	end sub;
@@ -811,7 +809,7 @@
 		R_flush(src|dest);
 		E_insn16("MUL");
 		E_reg(dest);
-		E(", ");
+		E_comma();
 		E_reg(src);
 		E_nl();
 	end sub;
@@ -836,7 +834,7 @@
 		R_flush(lhs);
 		E_insn16("DIV");
 		E_reg(rhs);
-		E(", ");
+		E_comma();
 		E_reg(lhs);
 		E_nl();
 	end sub;
@@ -853,9 +851,9 @@
 			E_clr(reg);
 		else
 			E_mov(reg);
-			E("#");
+			E_b8('#');
 			E_i32(value);
-			E(", ");
+			E_comma();
 			E_reg(reg);
 			E_nl();
 		end if;
@@ -1672,16 +1670,16 @@ gen ASMSYMBOL():s
 
 gen ASMSUBREF():s
 {
-	E("#");
+	E_b8('#');
 	E_subref($s.subr);
 	E_space();
 }
 
 gen ASMVALUE():c
 {
-	E_b8('(');
+	E_openp();
 	E_i32($c.value);
-	E_b8(')');
+	E_closep();
 }
 
 gen ASMEND()
