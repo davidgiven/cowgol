@@ -7,6 +7,7 @@ ARCHS = [
     "basic",
     "bbct",
     "bbctn",
+    "bk10",
     "bk10dx",
     "cgen",
     "fuzix6303",

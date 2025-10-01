@@ -1,0 +1,203 @@
+
+const FCB_BUFFER_SIZE := 512;
+typedef FCBIndexType is uint16;
+
+# cassette I/O CB (EMT 36 API)
+
+record IOCB is
+	req: uint8;			# 0
+	resp: uint8;		# 1
+	addr: uint16;		# 2
+	len: uint16;		# 4
+	name: uint8[16];	# 6
+	curaddr: uint16;	# 26
+	curlen: uint16;		# 30
+	curname: uint8[16];	# 32
+end record;
+
+const IO_REPACK	   := 0;
+const IO_MOTOR_OFF := 1;
+const IO_WRITE	   := 2;
+const IO_READ	   := 3;
+const IO_NOOP	   := 4;
+const IO_DELETE	   := 0o200;
+const IO_ALTWRITE  := 0o202;
+const IO_FASTREAD  := 0o203;
+const IO_PRINTDIR  := 0o204;
+
+# ANDOS FAT directory entry
+
+record DIRENT is
+	name: uint8[8];		# 0
+	ext: uint8[3];		# 10
+	attr: uint8;		# 13
+	res: uint8[8];		# 14
+	dir: uint8;			# 24
+	parent: uint8;		# 25
+	addr: uint16;		# 26
+	date: uint16;		# 30
+	cluster: uint16;	# 32
+	size: uint32;		# 34
+end record;
+
+#
+
+record RawFCB is
+	dirent: DIRENT;
+	iocb: IOCB;
+	blk: uint16;
+	rawblock: uint16;
+	clusters: uint16;
+	fat: [uint16];
+end record;
+
+# ANDOS -- documented offsets
+
+const ANDOS_NAMBUF := 0o120114;
+const ANDOS_USRERR := 0o120146;
+const ANDOS_SCREEN := 0o120150;
+const ANDOS_DEVICE := 0o120154;
+const ANDOS_DEVTEK := 0o120155;
+const ANDOS_DEVSYS := 0o120156;
+const ANDOS_SIZE   := 0o120162;
+const ANDOS_VERS   := 0o120170;
+const ANDOS_MDOSEM := 0o120176;
+
+include "fileio.coh";
+
+# FIXME handle out of bounds access
+sub fcb_i_mapblock(fcb: [FCB], pos: uint32): (rawblock: uint16) is
+	rawblock := [fcb.fat + ((pos as int32 >> 11) << 1) as uint16] + (((pos as int32 >> 9) as uint16) & 3);
+end sub;
+
+	# RWBLOK reads one disk block (amount <= 512) to user buffer; buffer and amount must be aligned to 2
+	# RDBLOK reads one disk block (amount == 512) to OS buffer with caching
+	# RWCLAS reads sequential clusters (amount <= N*2048) to user buffer
+
+@impl sub FCBRawRead is
+	var failed: int16 := 0;
+	var block: uint16;
+	var buf := &fcb.buffer[0];
+
+	amount := 0;
+	if len != FCB_BUFFER_SIZE or (pos % FCB_BUFFER_SIZE) != 0 or pos >= fcb.dirent.size then
+		fcb.flags := fcb.flags | FCB_FLAG_ERROR;
+		return;
+	end if;
+
+	block := fcb_i_mapblock(fcb, pos);
+	@asm "mov", block, ", r0";
+	@asm "mov #256, r1";
+	@asm "mov", buf, ", r2";
+	@asm "call @120226o"; # RWBLOK
+	@asm "adc", failed;
+	if failed != 0 then
+		fcb.flags := fcb.flags | FCB_FLAG_ERROR;
+	else
+		amount := len;
+	end if;
+end sub;
+
+# FIXME
+@impl sub FCBRawWrite is
+	fcb.flags := fcb.flags | FCB_FLAG_ERROR;
+end sub;
+
+@decl sub file_i_mapfat(fcb: [FCB]): (errno: uint8);
+
+sub file_i_init(fcb: [FCB], filename: [uint8]): (errno: uint8) is
+	var iocb := &fcb.iocb;
+	var diroff: [uint8];
+
+	errno := 0;
+	MemSet(&fcb.iocb.name as [uint8], 0x20, 16); # @bytesof crashes cowfe
+	CopyString(filename, &fcb.iocb.name as [uint8]);
+
+	@asm "mov", iocb, ", r1";
+	@asm "call @120272o"; # DONAME
+	@asm "adcb", errno;
+	if errno != 0 then return; end if;
+
+	@asm "call @120204o"; # INIDRV
+	@asm "adcb", errno;
+	if errno != 0 then errno := 2; return; end if;
+
+	@asm "call @120260o"; # DIRFI2; ignores directories
+	@asm "adcb", errno;
+	@asm "mov r2,", diroff;
+	if errno != 0 then errno := 3; return; end if;
+
+	MemCopy(diroff, @bytesof DIRENT, &fcb.dirent as [uint8]);
+
+	# map cluster chain starting from fcb.dirent.cluster
+	errno := file_i_mapfat(fcb);
+end sub;
+
+@impl sub file_i_mapfat is
+	var e: uint16 := fcb.dirent.cluster;
+	var max: uint16 := 0;
+
+	errno := 0;
+	@asm "call @120230o";	# RDFAT
+
+	# find length of cluster chain
+	loop
+		@asm "mov", e, ", r0";
+		@asm "call @120234o";	# GETFAT
+		@asm "mov r0,", e;
+		max := max + 1;
+		# end of cluster chain?
+		if (e == 0o7777 or e == 0) then
+			break;
+		end if;
+	end loop;
+
+	# fetch cluster chain and translate cluster numbers into raw block numbers
+	fcb.clusters := max;
+	fcb.fat := RawAlloc(max + max) as [uint16];
+	if fcb.fat == nil then
+		errno := 4; return;
+	end if;
+
+	e := fcb.dirent.cluster;
+	max := 0;
+	loop
+		# convert to disk sector number
+		[fcb.fat + max] := (e + 1) << 2;
+		@asm "mov", e, ", r0";
+		@asm "call @120234o";	# GETFAT
+		@asm "mov r0,", e;
+		if (e == 0o7777 or e == 0) then
+			break;
+		end if;
+		max := max + 2;
+	end loop;
+end sub;
+
+sub FCBOpenIn(fcb: [FCB], filename: [uint8]): (errno: uint8) is
+	errno := file_i_init(fcb, filename);
+end sub;
+
+# FIXME
+sub FCBOpenUp(fcb: [FCB], filename: [uint8]): (errno: uint8) is
+	errno := 1;
+end sub;
+
+sub FCBOpenOut(fcb: [FCB], filename: [uint8]): (errno: uint8) is
+	errno := FCBOpenUp(fcb, filename);
+end sub;
+
+sub FCBClose(fcb: [FCB]): (errno: uint8) is
+	FCBFlush(fcb);
+	Free(fcb.fat as [uint8]);
+	errno := 0;
+end sub;
+
+sub FCBExt(fcb: [FCB]): (len: uint32) is
+#	FCBFlush(fcb);
+	len := fcb.dirent.size;
+end sub;
+
+include "common-file.coh";
+
+# vim: ts=4 sw=4 noet
