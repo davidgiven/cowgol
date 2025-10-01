@@ -1,0 +1,134 @@
+const STACK_SIZE := 128;
+
+var workspaceSize: Size[NUM_WORKSPACES];
+
+sub E_nl() is
+	E_b8('\n');
+end sub;
+
+sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
+	var a := (alignment-1) as Size;
+	newvalue := (value+a) & ~a;
+end sub;
+
+sub ArchEmitSubRef(subr: [Subroutine]) is
+	E_b8('f');
+	E_u16(subr.id);
+	E_b8('_');
+	E(subr.name);
+end sub;
+
+sub ArchEmitWSRef(wid: uint8, address: Size) is
+	E("ws+");
+	E_u16(address);
+end sub;
+
+#
+# This produces standalone binaries that can be loaded from (virtual) tape.
+#
+# Delete leading 4 bytes before saving them to ANDOS disk,
+# then set starting address manually from ANDOS file manager.
+#
+sub ArchEmitHeader(coo: [Coo]) is
+	E("\tcseg\n");
+	E("\torg 0\n");
+	E("\tdw 2000o\n"); # high start address to avoid stack corruption if loaded after bk11 BASIC (sets SP to 2000)
+	E("\tdw bss_end - start\n");
+
+	E("\torg 2000o\n");
+	E("start:\n");
+
+	#
+	# which hardware do we have?
+	#
+	# hw=0 -- bk10
+	# hw=1 -- bk11m
+	# hw=2 -- bk11
+	#
+	# which API do we use?
+	#
+	# api=0 -- bk10 EMT calls, may be available on bk11(m) with bk10 BIOS loaded by OS
+	# api=1 -- bk11m ROM calls
+	# api=2 -- bk11 EMT calls
+	#
+
+	# himem pointers, valid only on real bk10
+	E("\tmov @#202o, r0\n");
+	E("\tmov @#206o, r1\n");
+
+	# check CPU start address
+	E("\tmov @#177716o, r2\n");
+	E("\tbic #255, r2\n");
+	E("\tcmp r2, #100000o\n");
+	E("\tbeq bk10\n");
+
+	# check known value in ROM BIOS
+	E("\tcmp @#144444o, #177716o\n"); # bk11?
+	E("\tbne bk11hw\n");
+	E("\tmov #2, hw\n");
+	E("\tbr apitest\n");
+	E("bk11hw:\tmov #1, hw\n");
+
+	# test if bk10 BIOS is loaded on bk11(m)
+	E("apitest:\n");
+	E("\tcmp r0, #40000o\n");
+	E("\tbeq ap2\n");
+	E("\tcmp r0, #70000o\n");
+	E("\tbne bk11\n");
+	E("\tcmp r1, #10000o\n");
+	E("\tbeq bk10api\n");
+	E("\tbr bk11\n");
+	E("ap2:\tcmp r1, #40000o\n");
+	E("\tbeq bk10api\n");
+
+	E("bk11:\tmov hw, api\n");
+	E("\tmov #040000o, himem\n");
+	E("\tbr out\n");
+
+	E("bk10:\tclr hw\n");
+	E("bk10api:\tclr api\n");
+	E("\tmov @#202o, himem\n");
+
+	E("out:\n");
+	E("\tcmp @#160016o, #167o\n"); # enable EIS emulator if present
+	E("\tbne noeis\n");
+	E("\tmov #160016o, @#10o\n");
+	E("\tcmp @#167776o, #176000o\n"); # force EIS emulator in SMK ROM if on SMK00
+	E("\tbge noeis\n");
+	E("\tclr @#175774o\n");
+	E("noeis:\n");
+
+	while coo != nil loop
+		var main := coo.index.subroutines[0];
+		if main != nil then
+			E("\tcall ");
+			ArchEmitSubRef(main);
+			E_nl();
+		end if;
+		coo := coo.next;
+	end loop;
+
+	E("exit:\n");
+	E("\tcmp api, #1\n");
+	E("\tblt exit10\n");
+	E("\tbge exit11\n");
+	E("\tcall @140012o\n");
+	E("exit11:\tmov #1, r0\n");
+	E("\temt 0\n");
+	E("exit10\tjmp @#100442o\n");
+end sub;
+
+sub ArchEmitFooter(coo: [Coo]) is
+	E("\n\tdseg\n");
+	E("\talign 2\n");
+
+	E("himem: ds 2\n");
+	E("api: ds 2\n");
+	E("hw: ds 2\n");
+	E("ws: ds ");
+	E_u16(workspaceSize[0]);
+	E_nl();
+	E("\talign 2\n");
+	E("bss_end:\n");
+end sub;
+
