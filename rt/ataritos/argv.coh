@@ -1,9 +1,9 @@
 var argv_pointer: [uint8];
 
 sub ArgvInit() is
-	@asm "move.l (basepage), d0";
-	@asm "add.l #129, d0";
-	@asm "move.l d0, (", argv_pointer, ")";
+	@asm "move.l (basepage), %d0";
+	@asm "add.l #129, %d0";
+	@asm "move.l %d0, (", argv_pointer, ")";
 
 	var len := [argv_pointer-1];
 	[argv_pointer+(len as intptr)] := 0;

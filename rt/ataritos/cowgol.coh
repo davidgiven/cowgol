@@ -21,15 +21,15 @@ end sub;
 
 sub print_char(c: uint8) is
 	if c == 10 then
-		@asm "move.b #13, d0";
-		@asm "move.w d0, -(%sp)";
+		@asm "move.b #13, %d0";
+		@asm "move.w %d0, -(%sp)";
 		@asm "move.w #2, -(%sp)"; # Cconout
 		@asm "trap #1";
 		@asm "add.l #4, %sp";
 	end if;
 
-	@asm "move.b (", c, "), d0";
-	@asm "move.w d0, -(%sp)";
+	@asm "move.b (", c, "), %d0";
+	@asm "move.w %d0, -(%sp)";
 	@asm "move.w #2, -(%sp)"; # Cconout
 	@asm "trap #1";
 	@asm "add.l #4, %sp";
