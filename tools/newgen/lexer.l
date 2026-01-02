@@ -17,6 +17,7 @@
 %x NUMBERSTATE
 %x IMPLSTATE
 %x DECLSTATE
+%option noyywrap
 
 LF (\r\n)|\r|\n
 SP [ \t]+
