@@ -61,6 +61,11 @@ def buildgasataritos(self, name, srcs: Targets = None):
 
 
 @Rule
+def buildgasamigacpm(self, name, srcs: Targets = None):
+    buildgasimpl(self, "m68k-elf")
+
+
+@Rule
 def buildtass64(self, name, srcs: Targets = None):
     tass64(replaces=self, srcs=srcs)
 
@@ -438,5 +443,21 @@ if config.has_ataritos:
             binext=".tos",
             assembler=buildgasataritos,
             tester=ataritostest,
+        )
+    )
+
+if config.has_amigacpm:
+    TOOLCHAINS.append(
+        toolchain(
+            name="amigacpm",
+            cowfe="src/cowfe+cowfe-for-32bita2-with-nncgen",
+            cowbe="src/cowbe+cowbe-for-68000-with-ncgen",
+            cowlink="src/cowlink+cowlink-for-amigacpm-with-ncgen",
+            cowwrap="src/cowwrap+cowwrap-with-ncgen",
+            runtime="rt/amigacpm",
+            asmext=".asm",
+            binext=".68k",
+            assembler=buildgasamigacpm,
+            tester=None,
         )
     )

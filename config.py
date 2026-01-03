@@ -6,6 +6,7 @@ def enable_if(command):
 
 
 has_gccataritos = enable_if("m68k-atari-mint-as")
+has_gcc68kbaremetal = enable_if("m68k-elf-as")
 has_nasm = enable_if("nasm")
 has_gcc386 = enable_if("i686-linux-gnu-as")
 has_gcc68k = enable_if("m68k-linux-gnu-as")
@@ -18,6 +19,7 @@ has_qemuppc = enable_if("qemu-ppc")
 has_qemu68k = enable_if("qemu-m68k")
 
 has_ataritos = has_gccataritos
+has_amigacpm = has_gcc68kbaremetal
 has_msdos = has_nasm
 has_lx386 = has_gcc386
 has_lxthumb2 = has_gccthumb2
