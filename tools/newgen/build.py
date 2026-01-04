@@ -18,7 +18,7 @@ cprogram(
         ".+lexer",
         "src+iburgcodes",
     ],
-    cflags=["-DCOWGOL"], ldflags=["-lfl"],
+    cflags=["-DCOWGOL"],
 )
 
 

@@ -7,7 +7,11 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
+#if defined(__APPLE__)
+#include <machine/endian.h>
+#else
 #include <endian.h>
+#endif
 
 #if BYTE_ORDER == BIG_ENDIAN
 #error "Sorry, cowgol cgen doesn't work on big endian machines yet."
