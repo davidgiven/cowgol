@@ -748,10 +748,10 @@ gen al := REMU1(al, mem1|bl|cl|dl:rhs)         { E("\txor ah, ah\n"); E_insn("di
 gen al := DIVS1(al, mem1|bl|cl|dl:rhs)         { E("\tcbw\n"); E_insn("idiv"); E_op0($rhs, &$@rhs.operand); E_nl(); }
 gen al := REMS1(al, mem1|bl|cl|dl:rhs)         { E("\tcbw\n"); E_insn("idiv"); E_op0($rhs, &$@rhs.operand); E_nl(); E("\tmov al, ah\n"); }
 
-gen ax := DIVU2(ax, mem2|bx|cx|dx:rhs) uses dx { E("\txor dx, dx\n"); E_insn("div"); E_op0($rhs, &$@rhs.operand); E_nl(); }
-gen dx := REMU2(ax, mem2|bx|cx|dx:rhs)         { E("\txor dx, dx\n"); E_insn("div"); E_op0($rhs, &$@rhs.operand); E_nl(); }
-gen ax := DIVS2(ax, mem2|bx|cx|dx:rhs) uses dx { E("\tcwd\n"); E_insn("idiv"); E_op0($rhs, &$@rhs.operand); E_nl(); }
-gen dx := REMS2(ax, mem2|bx|cx|dx:rhs)         { E("\tcwd\n"); E_insn("idiv"); E_op0($rhs, &$@rhs.operand); E_nl(); }
+gen ax := DIVU2(ax, mem2|bx|cx|di|si:rhs) uses dx    { E("\txor dx,dx\n"); E_insn("div"); E_op0($rhs, &$@rhs.operand); E_nl(); }
+gen dx := REMU2(ax, mem2|bx|cx|di|si:rhs)            { E("\txor dx,dx\n"); E_insn("div"); E_op0($rhs, &$@rhs.operand); E_nl(); }
+gen ax := DIVS2(ax, mem2|bx|cx|di|si:rhs) uses dx    { E("\tcwd\n"); E_insn("idiv"); E_op0($rhs, &$@rhs.operand); E_nl(); }
+gen dx := REMS2(ax, mem2|bx|cx|di|si:rhs)            { E("\tcwd\n"); E_insn("idiv"); E_op0($rhs, &$@rhs.operand); E_nl(); }
 
 gen al|bl|dl       := LSHIFT1($$:lhs, cl:rhs)  { E_insn("shl"); E_reg($lhs); E(", cl\n"); }
 gen ax|bx|dx|si|di := LSHIFT2($$:lhs, cl:rhs)  { E_insn("shl"); E_reg($lhs); E(", cl\n"); }
