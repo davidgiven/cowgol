@@ -1420,7 +1420,15 @@ void int21()
         else
         {
             unsigned n = fwrite(buf, 1, len, f);
-            cpuSetAX(n);
+            if (n < len)
+            {
+                debug(debug_dos, "\taccess denied\n");
+                cpuSetAX(5);
+                cpuSetFlag(cpuFlag_CF);
+                break;
+            }
+            else
+                cpuSetAX(n);
         }
         cpuClrFlag(cpuFlag_CF);
         break;
