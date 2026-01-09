@@ -183,7 +183,7 @@ sub FCBExt(fcb: [FCB]): (len: uint32) is
 	@asm "trap #2";
 
 
-	@asm "move.w #35, %d0";
+	@asm "move.w #35, %d0"; # BDOS compute file size
 	@asm "move.l (", cpmfcb, "), %d1";
 	@asm "trap #2";
 
