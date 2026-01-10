@@ -62,7 +62,7 @@ def buildgasataritos(self, name, srcs: Targets = None):
 
 @Rule
 def buildgasamigacpm(self, name, srcs: Targets = None):
-    buildgasimpl(self, "m68k-elf", lflags="-T third_party/amigacpm/amigacpm.ld")
+    buildgasimpl(self, "m68k-atari-mint", lflags="-T third_party/amigacpm/amigacpm.ld")
 
 
 @Rule
