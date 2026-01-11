@@ -510,11 +510,12 @@
     ; _cmpu4
 ``:
     and a               ; clear carry
+    exx
     sbc hl, de
+    exx
+    ret c
     ret nz
-    exx
     sbc hl, de
-    exx
     ret
 
 # Signed comparison of HLHL and DEDE. Uses A.

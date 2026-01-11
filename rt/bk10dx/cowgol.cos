@@ -6,7 +6,7 @@
 	; The PDP11 has a 32/16->16%16 signed division instruction. Synthesising
 	; 32/32->32%32 unsigned division from this is surprisingly hard, so for
     ; now we don't bother and just use long division.
-
+    
     clr r4              ; reset remainder
     clr r5
     mov r0, -(sp)       ; move hi(RHS) onto the stack, as we need r0...
@@ -21,15 +21,17 @@
     rol r5              ; ...moving the shifted out top bit into the remainder
     rol r4
 
-    cmp r4, 0(sp)       ; if remainder < RHS, loop without subtracting
+    cmp r4, (sp)        ; if remainder < RHS, loop without subtracting
     bcs ``_loop
+    bne ``_skip
     cmp r5, r1
     bcs ``_loop
 
+``_skip:
     inc r3              ; set the bottom bit of the quotient (guaranteed to be 0)
-    sub 0(sp), r4       ; remainder = remainder - RHS
-    sbc r5
     sub r1, r5
+    sbc r4              ; remainder = remainder - RHS
+    sub (sp), r4
     br ``_loop
 ``_exit:
     mov (sp)+, r0       ; retract stack
@@ -49,21 +51,21 @@
     tst r0              ; set flags from hi(rhs)
     bpl ``_1
     com r0              ; negate r0r1
-    com r1
+    com r1    
     add #1, r1          ; add (setting carry)
     adc r0
 ``_1:
     tst r2              ; set flags from hi(lhs)
     bpl ``_2
     com r2              ; negate r2r3
-    com r3
+    com r3     
     add #1, r3
     adc r2
 ``_2:
 
     call `_divremu4     ; perform unsigned division
 
-    tst 0(sp)           ; check sign of remainder
+    tst (sp)            ; check sign of remainder
     bpl ``_3
     com r4
     com r5

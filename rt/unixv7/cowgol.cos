@@ -23,13 +23,15 @@
 
     cmp r4, (sp)        ; if remainder < RHS, loop without subtracting
     bcs ``_loop
+    bne ``_skip
     cmp r5, r1
     bcs ``_loop
 
+``_skip:
     inc r3              ; set the bottom bit of the quotient (guaranteed to be 0)
-    sub (sp), r4        ; remainder = remainder - RHS
-    sbc r5
     sub r1, r5
+    sbc r4              ; remainder = remainder - RHS
+    sub (sp), r4
     br ``_loop
 ``_exit:
     mov (sp)+, r0       ; retract stack

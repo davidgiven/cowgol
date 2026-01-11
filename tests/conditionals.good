@@ -50,8 +50,11 @@ pbig>ZERO: yes
 unsigned4
 zero<one: yes
 one<one: no
+one<=one: yes
 one<zero: no
 pbig>ZERO: yes
+pbig<pbig1: yes
+pbig>pbig2: yes
 and1
 isletter(70): yes
 isletter(200): no
