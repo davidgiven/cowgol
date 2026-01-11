@@ -8,6 +8,7 @@
 #include <poll.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <termios.h>
 #include "sim.h"
 #include "m68k.h"
 #include "fileio.h"
@@ -88,17 +89,23 @@ void bdos_syscall(void)
 
 		case 1: /* console input */
 		{
-			char c = 0;
-			(void) read(0, &c, 1);
+			struct termios term_old, term_new;
+			tcgetattr(STDIN_FILENO, &term_old);
+			term_new = term_old;
+			term_new.c_lflag &= ~ICANON; /* no buffering */
+			tcsetattr(STDIN_FILENO, TCSANOW, &term_new);
+			char c = getchar();
 			if (c == '\n')
 				c = '\r';
 			m68k_set_reg(M68K_REG_D0, c);
+			tcsetattr(STDIN_FILENO, TCSANOW, &term_old);
 			break;
 		}
 
 		case 2: /* console output */
 		{
 			putchar((char) (m68k_get_reg(NULL, M68K_REG_D1)&0xff));
+			fflush(stdout);
 			break;
 		}
 
@@ -112,6 +119,7 @@ void bdos_syscall(void)
 					break;
 				putchar(c);
 			}
+			fflush(stdout);
 			break;
 		}
 

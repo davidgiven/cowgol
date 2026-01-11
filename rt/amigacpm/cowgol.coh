@@ -18,6 +18,12 @@ sub AlignUp(in: intptr): (out: intptr) is
 	out := in;
 end sub;
 
+sub get_char(): (c: uint8) is
+	@asm "move.w #1, %d0"; # BDOS console input
+	@asm "trap #2";
+	@asm "move.b %d0, (", c ,")";
+end sub;
+
 sub print_char(c: uint8) is
 	if c == 10 then
 		@asm "move.w #13, %d1";
@@ -26,7 +32,7 @@ sub print_char(c: uint8) is
 	end if;
 
 	@asm "move.b (", c, "), %d1";
-	@asm "and.w #255,%d1";
+	@asm "and.w #255, %d1";
 	@asm "move.w #2, %d0"; # BDOS console output
 	@asm "trap #2";
 end sub;
