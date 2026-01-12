@@ -113,6 +113,17 @@ $ ./helloworld
 Hello, world!
 ```
 
+Building of Amiga CP/M-68k binary uses m68k-atari-mint binutis and a custom `amigacpm.ld` linker
+script. To run the cross compiler to generate a Amiga CP/M-68k binary, do: 
+
+```
+$ bin/cowfe-for-32bita2-with-nncgen -Irt/ -Irt/amigacpm/ examples/helloworld.cow helloworld.cob
+$ bin/cowbe-for-68000-with-nncgen helloworld.cob helloworld.coo
+$ bin/cowlink-for-amigacpm-with-nncgen .obj/rt/amigacpm/+cowgolcoo/cowgol.coo helloworld.coo -o helloworld.s
+$ m68k-atari-mint-as helloworld.s -o helloworld.o 
+$ m68k-atari-mint-ld -T third_party/amigacpm/amigacpm.ld -o hello.68k helloworld.o
+```
+
 cowfe and cowbe
 ---------------
 

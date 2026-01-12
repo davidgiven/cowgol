@@ -34,5 +34,6 @@ export(
     ]
     + (["dist/msdos"] if config.has_msdos else [])
     + (["dist/ataritos"] if config.has_ataritos else [])
+    + (["dist/amigacpm"] if config.has_amigacpm else [])
     + (["dist/bbct"] if config.has_bbct else []),
 )

@@ -3,6 +3,7 @@ from src.build import cowgol
 from src.toolchains import TOOLCHAINS
 
 ARCHS = [
+    "amigacpm",
     "ataritos",
     "basic",
     "bbct",

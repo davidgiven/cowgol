@@ -1,0 +1,54 @@
+var LOMEM: [uint8];
+@asm "move.l #LOMEM, (", LOMEM, ")";
+
+var HIMEM: [uint8];
+@asm "move.l #HIMEM, (", HIMEM, ")";
+
+sub Exit() is
+	@asm "move.w #0, %d0"; # BDOS system reset
+	@asm "trap #2";
+end sub;
+
+sub ExitWithError() is
+	@asm "move.w #0, %d0"; # BDOS system reset
+	@asm "trap #2";
+end sub;
+
+sub AlignUp(in: intptr): (out: intptr) is
+	out := in;
+end sub;
+
+sub get_char(): (c: uint8) is
+	@asm "move.w #1, %d0"; # BDOS console input
+	@asm "trap #2";
+	@asm "move.b %d0, (", c ,")";
+end sub;
+
+sub print_char(c: uint8) is
+	if c == 10 then
+		@asm "move.w #13, %d1";
+		@asm "move.w #2, %d0"; # BDOS console output
+		@asm "trap #2";
+	end if;
+
+	@asm "move.b (", c, "), %d1";
+	@asm "and.w #255, %d1";
+	@asm "move.w #2, %d0"; # BDOS console output
+	@asm "trap #2";
+end sub;
+
+sub MemSet(buf: [uint8], byte: uint8, len: intptr) is
+	var bufend := buf + len;
+	loop
+		if buf == bufend then
+			return;
+		end if;
+		[buf] := byte;
+		buf := buf + 1;
+	end loop;
+end sub;
+
+include "common.coh";
+
+
+

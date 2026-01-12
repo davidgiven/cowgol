@@ -22,14 +22,14 @@ def cgen(self, name, srcs: Targets = []):
     cprogram(replaces=self, srcs=srcs + ["rt/cgen/cowgol.h"])
 
 
-def buildgasimpl(self, prefix, flags=""):
+def buildgasimpl(self, prefix, flags="", lflags=""):
     normalrule(
         replaces=self,
         ins=self.args["srcs"],
         outs=[self.localname + ".elf"],
         commands=[
             prefix + "-as " + flags + " -g {ins} -o {outs[0]}.s",
-            prefix + "-ld -g {outs[0]}.s -o {outs[0]}",
+            prefix + "-ld " + lflags + " -g {outs[0]}.s -o {outs[0]}",
         ],
         label="ASM-" + prefix.upper(),
     )
@@ -58,6 +58,11 @@ def buildgasppc(self, name, srcs: Targets = None):
 @Rule
 def buildgasataritos(self, name, srcs: Targets = None):
     buildgasimpl(self, "m68k-atari-mint")
+
+
+@Rule
+def buildgasamigacpm(self, name, srcs: Targets = None):
+    buildgasimpl(self, "m68k-atari-mint", lflags="-T third_party/amigacpm/amigacpm.ld")
 
 
 @Rule
@@ -133,6 +138,11 @@ def fuzix6303test(self, name, goodfile: Target = None, exe: Target = None):
 @Rule
 def ataritostest(self, name, goodfile: Target = None, exe: Target = None):
     testimpl(self, ["tools/ataritosemu"], "{ins[0]} {ins[1]}")
+
+
+@Rule
+def amigacpmtest(self, name, goodfile: Target = None, exe: Target = None):
+    testimpl(self, ["tools/amigacpmemu"], "{ins[0]} {ins[1]}")
 
 
 @Rule
@@ -438,5 +448,21 @@ if config.has_ataritos:
             binext=".tos",
             assembler=buildgasataritos,
             tester=ataritostest,
+        )
+    )
+
+if config.has_amigacpm:
+    TOOLCHAINS.append(
+        toolchain(
+            name="amigacpm",
+            cowfe="src/cowfe+cowfe-for-32bita2-with-nncgen",
+            cowbe="src/cowbe+cowbe-for-68000-with-ncgen",
+            cowlink="src/cowlink+cowlink-for-amigacpm-with-ncgen",
+            cowwrap="src/cowwrap+cowwrap-with-ncgen",
+            runtime="rt/amigacpm",
+            asmext=".asm",
+            binext=".68k",
+            assembler=buildgasamigacpm,
+            tester=amigacpmtest,
         )
     )

@@ -1,0 +1,61 @@
+const STACK_SIZE := 128;
+
+var workspaceSize: Size[NUM_WORKSPACES];
+
+sub E_nl() is
+	E_b8('\n');
+end sub;
+
+sub ArchAlignUp(value: Size, alignment: uint8): (newvalue: Size) is
+	newvalue := value;
+	if (alignment != 1) and ((newvalue & 1) == 1) then
+		newvalue := newvalue + 1;
+	end if;
+end sub;
+
+sub ArchEmitSubRef(subr: [Subroutine]) is
+	E_b8('f');
+	E_u16(subr.id);
+	E_b8('_');
+	E(subr.name);
+end sub;
+
+sub ArchEmitWSRef(wid: uint8, address: Size) is
+	E("ws+");
+	E_u16(address);
+end sub;
+
+sub ArchEmitHeader(coo: [Coo]) is
+	E(".global _start\n");
+	E("\t.text\n");
+	E("\t_start:\n");
+
+	E("\tlea (ws), %a6\n");
+
+	while coo != nil loop
+		var main := coo.index.subroutines[0];
+		if main != nil then
+			E("\tjsr ");
+			ArchEmitSubRef(main);
+			E_nl();
+		end if;
+		coo := coo.next;
+	end loop;
+
+	E("_exit:\n");
+	E("\tmove.w #0, %d0\n"); # BDOS system reset
+	E("\ttrap #2\n");
+end sub;
+
+sub ArchEmitFooter(coo: [Coo]) is
+	E("\t.bss\n");
+	E("\t.align 2\n");
+	E("ws: .space ");
+	E_u16(workspaceSize[0]);
+	E_nl();
+	E("\t.align 2\n");
+	E("LOMEM: .space 64*1024\n");
+	E("HIMEM:\n");
+end sub;
+
+

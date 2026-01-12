@@ -53,7 +53,7 @@ The following targets are supported. Adding more is easy.
 
   - PowerPC, on Linux.
 
-  - 68000, on Atari ST TOS (although most of the system calls aren't hooked up
+  - 68000, on Atari ST TOS and Amiga CP/M-68k (although most of the system calls aren't hooked up
 	yet so you can't do anything more than print stuff) and Linux m68k (if you
 	can still find a machine which will run this).
 
@@ -257,6 +257,10 @@ The exceptions are the contents of the `third_party` directory, which were
 written by other people and are not covered by this license. This directory as
 a whole contains GPL software, which means that if you redistribute the entire
 directory, you must conform to the terms of the GPL.
+
+`third_party/amigacpm` contains a ld linker script for Amiga CP/M-68k,
+(https://github.com/juollila/cpm68k-amiga). The linker script is in the public
+domain.
 
 `third_party/lib6502` contains a hacked copy of the lib6502 library, which is ©
 2005 Ian Plumarta and is available under the terms of the MIT license. See

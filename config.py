@@ -18,6 +18,7 @@ has_qemuppc = enable_if("qemu-ppc")
 has_qemu68k = enable_if("qemu-m68k")
 
 has_ataritos = has_gccataritos
+has_amigacpm = has_gccataritos
 has_msdos = has_nasm
 has_lx386 = has_gcc386
 has_lxthumb2 = has_gccthumb2
