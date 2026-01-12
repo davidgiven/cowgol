@@ -7,6 +7,7 @@ var three: uint32 := 3;
 var two: uint32 := 2;
 var one: uint32 := 1;
 var zero: uint32 := 0;
+var mil: uint32 := 1000000;
 
 print("four/two==two");  if four/two==two  then yes(); else no(); end if;
 print("three/two==one"); if three/two==one then yes(); else no(); end if;
@@ -20,8 +21,8 @@ print("two%two==zero");  if two%two==zero  then yes(); else no(); end if;
 print("one%two==one");   if one%two==one   then yes(); else no(); end if;
 print("zero%two==zero"); if zero%two==zero then yes(); else no(); end if;
 
-print("big/three==bigdivthree"); if big/three==(0x12345678/3) then yes(); else no(); end if;
-print("big%three==bigmodthree"); if big%three==(0x12345678%3) then yes(); else no(); end if;
+print("big/mil==bigdivmil"); if big/mil==(0x12345678/1000000) then yes(); else no(); end if;
+print("big%mil==bigmodmil"); if big%mil==(0x12345678%1000000) then yes(); else no(); end if;
 
 #var q: uint32;
 #var r: uint32;

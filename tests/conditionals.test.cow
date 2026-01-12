@@ -4,7 +4,9 @@ include "tests/_framework.coh";
 const ZERO := 0;
 const ONE := 1;
 const MONE := -1;
-const PBIG := 0xabcdef;
+const PBIG :=  0xabcdef;
+const PBIG1 := 0xacbdef;
+const PBIG2 := 0xaaddef;
 
 sub equality1() is
 	print("equality1\n");
@@ -129,12 +131,17 @@ sub unsigned4() is
 	print("unsigned4\n");
 	var zero: uint32 := 0;
 	var one: uint32 := 1;
-	var pbig: int32 := PBIG;
+	var pbig: uint32 := PBIG;
+	var pbig1: uint32 := PBIG1;
+	var pbig2: uint32 := PBIG2;
 
 	print("zero<one"); if zero<one then yes(); else no(); end if;
 	print("one<one"); if one<one then yes(); else no(); end if;
+	print("one<=one"); if one<=one then yes(); else no(); end if;
 	print("one<zero"); if one<zero then yes(); else no(); end if;
 	print("pbig>ZERO"); if pbig>ZERO then yes(); else no(); end if;
+	print("pbig<pbig1"); if pbig<pbig1 then yes(); else no(); end if;
+	print("pbig>pbig2"); if pbig>pbig2 then yes(); else no(); end if;
 end sub;
 unsigned4();
 

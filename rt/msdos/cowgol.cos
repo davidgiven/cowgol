@@ -80,8 +80,10 @@
     rcl bp, 1
     cmp bp, bx      ; compare remainder against RHS
     jc ``_noadd
+    jnz ``_skip
     cmp di, cx
     jc ``_noadd
+``_skip:
     inc ax          ; set bottom bit of result (guaranteed clear)
     sub di, cx      ; decrease remainder
     sbb bp, bx

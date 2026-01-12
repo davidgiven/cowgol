@@ -535,9 +535,12 @@
 	end sub;
 
 	sub E_cmpu4(lhs: RegId, rhs: RegId) is
+		var label := AllocPLabel();
 		E_alu2_noflush("CMP", hireg(lhs), hireg(rhs));
-		E("\tblo\t$+4\n");
+		E_jump_noflush("blo", label);
+		E_jump_noflush("bne", label);
 		E_alu2_noflush("CMP", loreg(lhs), loreg(rhs));
+		E_label(label);
 	end sub;
 
 	sub E_cmps4(lhs: RegId, rhs: RegId) is
