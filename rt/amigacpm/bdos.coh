@@ -1,0 +1,294 @@
+# vim: ts=4 sw=4 noet
+
+# BIOS Parameter Block
+record BPB is
+	function: uint16;
+	parameter1: uint32;
+	parameter2: uint32;
+end record;
+
+# Exception Parameter Block
+record EPB is
+	vectorNumber: uint16;
+	newVector: uint32;
+	oldVector: uint32;
+end record;
+
+# Load Parameter Block
+record LPB is
+	fcb: [CpmFCB];
+	lowAddress: uint32;
+	highAddress: uint32;
+	basePage: uint32;
+	userStackPointer: uint32;
+	flags: uint16;
+end record;
+
+# Transient Program Parameter Block
+record TPPB is
+	parameters: uint16;
+	lowTPA: uint32;
+	highTPA: uint32;
+end record;
+
+# Current Drive Parameter Block
+record CDPB is
+	spt: uint8;
+	bsh: uint8;
+	blm: uint8;
+	exm: uint8;
+	res1: uint8;
+	dsm: uint8;
+	drm: uint8;
+	res2: uint8;
+	cks: uint8;
+	off: uint8;
+end record;
+ 
+const BDOS_SYSTEM_RESET				:= 0;
+const BDOS_CONSOLE_INPUT			:= 1;
+const BDOS_CONSOLE_OUTPUT			:= 2;
+const BDOS_AUX_INPUT				:= 3;
+const BDOS_AUX_OUTPUT				:= 4;
+const BDOS_LIST_OUTPUT				:= 5;
+const BDOS_DIRECT_CONSOLE_IO		:= 6;
+const BDOS_GET_IO_BYTE				:= 7;
+const BDOS_SET_IO_BYTE				:= 8;
+const BDOS_PRINT_STRING				:= 9;
+const BDOS_READ_CONSOLE_BUFFER		:= 10;
+const BDOS_GET_CONSOLE_STATUS		:= 11;
+const BDOS_GET_VERSION_NUMBER		:= 12;
+const BDOS_RESET_DISK_SYSTEM		:= 13;
+const BDOS_SELECT_DISK				:= 14;
+const BDOS_OPEN_FILE				:= 15;
+const BDOS_CLOSE_FILE				:= 16;
+const BDOS_SEARCH_FOR_FIRST			:= 17;
+const BDOS_SEARCH_FOR_NEXT			:= 18;
+const BDOS_DELETE_FILE				:= 19;
+const BDOS_READ_SEQUENTIAL			:= 20;
+const BDOS_WRITE_SEQUENTIAL			:= 21;
+const BDOS_MAKE_FILE				:= 22;
+const BDOS_RENAME_FILE				:= 23;
+const BDOS_GET_LOGIN_VECTOR			:= 24;
+const BDOS_GET_CURRENT_DISK			:= 25;
+const BDOS_SET_DMA_ADDRESS			:= 26;
+const BDOS_WRITE_PROTECT_DISK		:= 28;
+const BDOS_GET_READ_ONLY_VECTOR		:= 29;
+const BDOS_SET_FILE_ATTRIBUTES		:= 30;
+const BDOS_GET_DISK_PARAMETERS		:= 31;
+const BDOS_SET_GET_USER_CODE		:= 32;
+const BDOS_READ_RANDOM				:= 33;	
+const BDOS_WRITE_RANDOM				:= 34;
+const BDOS_COMPUTE_FILE_SIZE		:= 35;
+const BDOS_SET_RANDOM_RECORD		:= 36;
+const BDOS_RESET_DRIVE				:= 37;
+const BDOS_WRITE_RANDOM_ZERO_FILL	:= 40;
+const BDOS_GET_DISK_FREE_SPACE		:= 46;
+const BDOS_CHAIN_TO_PROGRAM			:= 47;
+const BDOS_FLUSH_BUFFERS			:= 48;
+const BDOS_DIRECT_BIOS_CALL			:= 50;
+const BDOS_PROGRAM_LOAD				:= 59;
+const BDOS_SET_EXCEPTION_VECTOR		:= 61;
+const BDOS_SET_SUPERVISOR_STATE		:= 62;
+const BDOS_GET_SET_TPA_LIMITS		:= 63;
+
+sub BdosWithReturnValue(function: uint16, param: uint32): (result: uint32) is
+	@asm "move.w (", function, "), d0";
+	@asm "move.l (", param, "), d1";
+	@asm "trap #2";
+	@asm "move.l d0,(", result, ")";
+end sub;
+
+sub Bdos(function: uint16, param: uint32) is
+	@asm "move.w (", function, "), d0";
+	@asm "move.l (", param, "), d1";
+	@asm "trap #2";
+end sub;
+
+sub BdosSystemReset() is
+	Bdos(BDOS_SYSTEM_RESET, 0); # Function 0
+end sub;
+
+sub BdosConsoleInput(): (char: uint8) is
+	char := BdosWithReturnValue(BDOS_CONSOLE_INPUT, 0) as uint8; # Function 1
+end sub;
+
+sub BdosConsoleOutput(char: uint8) is
+	Bdos(BDOS_CONSOLE_OUTPUT, char as uint32); # Function 2
+end sub;
+
+sub BdosAuxInput(): (char: uint8) is
+	char := BdosWithReturnValue(BDOS_AUX_INPUT, 0) as uint8; # Function 3
+end sub;
+
+sub BdosAuxOutput(char: uint8) is
+	Bdos(BDOS_AUX_OUTPUT, char as uint32); # Function 4
+end sub;
+
+# Not supported by Amiga CP/M-68 yet
+sub BdosListOutput(char: uint8) is
+	Bdos(BDOS_LIST_OUTPUT, char as uint32); # Function 5
+end sub;
+
+sub BdosDirectConsoleIo(char: uint8): (result: uint8) is
+	result := BdosWithReturnValue(BDOS_DIRECT_CONSOLE_IO, char as uint32) as uint8; # Function 6
+end sub;
+
+# Not supported by Amiga CP/M-68 yet
+sub BdosGetIoByte(): (iobyte: uint8) is
+	iobyte := BdosWithReturnValue(BDOS_GET_IO_BYTE, 0) as uint8; # Function 7
+end sub;
+
+# Not supported by Amiga CP/M-68 yet
+sub BdosSetIoByte(iobyte: uint8) is
+	Bdos(BDOS_SET_IO_BYTE, iobyte as uint32); # Function 8
+end sub;
+
+sub BdosPrintString(str: [uint8]) is
+	Bdos(BDOS_PRINT_STRING, str as uint32); # Function 9
+end sub;
+
+sub BdosReadConsoleBuffer(buffer: [uint8]) is
+	Bdos(BDOS_READ_CONSOLE_BUFFER, buffer as uint32); # Function 10
+end sub;
+
+sub BdosGetConcoleStatus(): (status: uint8) is
+	status := BdosWithReturnValue(BDOS_GET_CONSOLE_STATUS, 0) as uint8; # Function 11
+end sub;
+
+sub BdosGetVersionNumber(): (version: uint16) is
+	version := BdosWithReturnValue(BDOS_GET_VERSION_NUMBER, 0) as uint16; # Function 12
+end sub;
+
+sub BdosResetDiskSystem() is
+	Bdos(BDOS_RESET_DISK_SYSTEM, 0); # Function 13
+end sub;
+
+sub BdosSelectDisk(disk: uint8) is
+	Bdos(BDOS_SELECT_DISK, disk as uint32); # Function 14
+end sub;
+
+sub BdosOpenFile(fcb: [CpmFCB]): (result: uint8) is
+	result := BdosWithReturnValue(BDOS_OPEN_FILE, fcb as uint32) as uint8; # Function 15
+end sub;
+
+sub BdosCloseFile(fcb: [CpmFCB]): (result: uint8) is
+	result := BdosWithReturnValue(BDOS_CLOSE_FILE, fcb as uint32) as uint8; # Function 16
+end sub;
+
+sub BdosSearchForFirst(fcb: [CpmFCB]): (result: uint8) is
+	result := BdosWithReturnValue(BDOS_SEARCH_FOR_FIRST, fcb as uint32) as uint8; # Function 17
+end sub;
+
+sub BdosSearchForNext(fcb: [CpmFCB]): (result: uint8) is
+	result := BdosWithReturnValue(BDOS_SEARCH_FOR_NEXT, fcb as uint32) as uint8; # Function 18
+end sub;
+
+sub BdosDeleteFile(fcb: [CpmFCB]): (result: uint8) is
+	result := BdosWithReturnValue(BDOS_DELETE_FILE, fcb as uint32) as uint8; # Function 19
+end sub;
+
+sub BdosReadSequential(fcb: [CpmFCB]): (result: uint8) is
+	result := BdosWithReturnValue(BDOS_READ_SEQUENTIAL, fcb as uint32) as uint8; # Function 20
+end sub;
+
+sub BdosWriteSequential(fcb: [CpmFCB]): (result: uint8) is
+	result := BdosWithReturnValue(BDOS_WRITE_SEQUENTIAL, fcb as uint32) as uint8; # Function 21
+end sub;
+
+sub BdosMakeFile(fcb: [CpmFCB]): (result: uint8) is
+	result := BdosWithReturnValue(BDOS_MAKE_FILE, fcb as uint32) as uint8; # Function 22
+end sub;
+
+sub BdosRenameFile(fcb: [CpmFCB]): (result: uint8) is
+	result := BdosWithReturnValue(BDOS_RENAME_FILE, fcb as uint32) as uint8; # Function 23
+end sub;
+
+sub BdosGetLoginVector(): (vector: uint16) is
+	vector := BdosWithReturnValue(BDOS_GET_LOGIN_VECTOR, 0) as uint16; # Function 24
+end sub;
+
+sub BdosGetCurrentDisk(): (disk: uint8) is
+	disk := BdosWithReturnValue(BDOS_GET_CURRENT_DISK, 0) as uint8; # Function 25
+end sub;
+
+sub BdosSetDmaAddress(dma: [uint8]) is
+	Bdos(BDOS_SET_DMA_ADDRESS, dma as uint32); # Function 26
+end sub;
+
+sub BdosWriteProtectDisk() is
+	Bdos(BDOS_WRITE_PROTECT_DISK, 0); # Function 28
+end sub;
+
+sub BdosGetReadOnlyVector(): (vector: uint16) is
+	vector := BdosWithReturnValue(BDOS_GET_READ_ONLY_VECTOR, 0) as uint16; # Function 29
+end sub;
+
+sub BdosSetFileAttributes(fcb: [CpmFCB]): (result: uint8) is
+	result := BdosWithReturnValue(BDOS_SET_FILE_ATTRIBUTES, fcb as uint32) as uint8; # Function 30
+end sub;
+
+sub BdosGetDiskParameters(cdpb: [CDPB]) is
+	Bdos(BDOS_GET_DISK_PARAMETERS, cdpb as uint32); # Function 31
+end sub;
+
+sub BdosSetGetUserCode(user_code: uint8): (current_user: uint8) is
+	current_user := BdosWithReturnValue(BDOS_SET_GET_USER_CODE, user_code as uint32) as uint8; # Function 32
+end sub;
+
+sub BdosReadRandom(fcb: [CpmFCB]): (result: uint8) is
+	result := BdosWithReturnValue(BDOS_READ_RANDOM, fcb as uint32) as uint8; # Function 33
+end sub;
+
+sub BdosWriteRandom(fcb: [CpmFCB]): (result: uint8) is
+	result := BdosWithReturnValue(BDOS_WRITE_RANDOM, fcb as uint32) as uint8; # Function 34
+end sub;
+
+sub BdosComputeFileSize(fcb: [CpmFCB]) is
+	Bdos(BDOS_COMPUTE_FILE_SIZE, fcb as uint32); # Function 35
+end sub;
+
+sub BdosSetRandomRecord(fcb: [CpmFCB]) is
+	Bdos(BDOS_SET_RANDOM_RECORD, fcb as uint32); # Function 36
+end sub;
+
+sub BdosResetDrive(vector: uint16) is
+	Bdos(BDOS_RESET_DRIVE, vector as uint32); # Function 37
+end sub;
+
+sub BdosWriteRandomZeroFill(fcb: [CpmFCB]): (result: uint8) is
+	result := BdosWithReturnValue(BDOS_WRITE_RANDOM_ZERO_FILL, fcb as uint32) as uint8; # Function 40
+end sub;
+
+sub BdosGetDiskFreeSpace(disk: uint8) is
+	Bdos(BDOS_GET_DISK_FREE_SPACE, disk as uint32); # Function 46
+end sub;
+
+sub BdosChainToProgram() is
+	Bdos(BDOS_CHAIN_TO_PROGRAM, 0); # Function 47
+end sub;
+
+sub BdosFlushBuffers(): (result: uint8) is
+	result := BdosWithReturnValue(BDOS_FLUSH_BUFFERS, 0) as uint8; # Function 48
+end sub;
+
+sub BdosDirectBiosCall(bpb: [BPB]): (result: uint32) is
+	result := BdosWithReturnValue(BDOS_DIRECT_BIOS_CALL, bpb as uint32); # Function 50
+end sub;
+
+sub BdosProgramLoad(lpb: [LPB]): (result: uint8) is
+	result := BdosWithReturnValue(BDOS_PROGRAM_LOAD, lpb as uint32) as uint8; # Function 59
+end sub;
+
+sub BdosSetExceptionVector(epb: [EPB]): (result: uint8) is
+	result := BdosWithReturnValue(BDOS_SET_EXCEPTION_VECTOR, epb as uint32) as uint8; # Function 61
+end sub;
+
+sub BdosSetSuperVisorState() is
+	Bdos(BDOS_SET_SUPERVISOR_STATE, 0); # Function 62
+end sub;
+
+sub BdosGetSetTpaLimits(tppb: [TPPB]) is
+	Bdos(BDOS_GET_SET_TPA_LIMITS, tppb as uint32); # Function 63
+end sub;
+
