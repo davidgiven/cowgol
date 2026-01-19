@@ -18,5 +18,6 @@ print("two&one==ZERO");  if (two&one) == ZERO  then yes(); else no(); end if;
 print("two&ONE==ZERO");  if (two&ONE) == ZERO  then yes(); else no(); end if;
 print("two^one==three"); if (two^one) == three then yes(); else no(); end if;
 print("three^one==two"); if (three^one) == two then yes(); else no(); end if;
+print("three&~one==two"); if (three&~one) == two then yes(); else no(); end if;
 print("~zero==mone");    if ~zero == mone      then yes(); else no(); end if;
 print("~four==NOTFOUR"); if ~four == NOTFOUR   then yes(); else no(); end if;

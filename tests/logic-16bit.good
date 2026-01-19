@@ -4,5 +4,6 @@ two&one==ZERO: yes
 two&ONE==ZERO: yes
 two^one==three: yes
 three^one==two: yes
+three&~one==two: yes
 ~zero==mone: yes
 ~four==NOTFOUR: yes
