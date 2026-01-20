@@ -4,3 +4,4 @@ two*2==4: yes
 mone*two=mtwo: yes
 two*mtwo=-4: yes
 mtwo*mtwo=4: yes
+mtwo*MTWO=4: yes

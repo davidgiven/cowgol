@@ -34,6 +34,10 @@
 		RegCacheFlush(FindConflictingRegisters(reg));
 	end sub;
 
+	sub E_const() is
+		E_b8('#');
+	end sub;
+
 	sub E_label(label: LabelRef) is
 		R_flushall();
 		E_labelref(label);
@@ -126,22 +130,22 @@
 		E_tab();
 	end sub;
 
-	sub E_imm(value: int16) is
-		E_b8('#');
-		E_i16(value);
+	sub E_imm(value: int32) is
+		E_const();
+		E_i32(value);
 	end sub;
 
 	sub E_push(src: RegId) is
-		E("\tMOV\t");
+		E_insn16("MOV");
 		E_reg(src);
 		E(", -(SP)\n");
 	end sub;
 
 	sub E_push4(src: RegId) is
-		E("\tMOV\t");
+		E_insn16("MOV");
 		E_reg(loreg(src));
 		E(", -(SP)\n");
-		E("\tMOV\t");
+		E_insn16("MOV");
 		E_reg(hireg(src));
 		E(", -(SP)\n");
 	end sub;
@@ -179,7 +183,7 @@
 	sub E_loadaddr(reg: RegId, sym: [Symbol], off: Size) is
 		R_flush(reg);
 		E_mov(reg);
-		E_b8('#');
+		E_const();
 		E_symref(sym, off);
 		E_comma();
 		E_reg(reg);
@@ -189,7 +193,7 @@
 	sub E_loadsubref(reg: RegId, subr: [Subroutine]) is
 		R_flush(reg);
 		E_mov(reg);
-		E_b8('#');
+		E_const();
 		E_subref(subr);
 		E_comma();
 		E_reg(reg);
@@ -298,12 +302,11 @@
 			end if;
 			# from c2
 			if (value == off) then
-				E("(PC), ");
+				E("(PC)");
 			else
-				E_b8('#');
-				E_i32(value);
-				E_comma();
+				E_imm(value);
 			end if;
+			E_comma();
 		end if;
 		if off != 0 then
 			E_i32(off);
@@ -348,19 +351,11 @@
 	end sub;
 
 	sub E_ret() is
-		E("\tret\n");
+		E_insn16("rts pc");
+		E_nl();
 	end sub;
 
 #
-
-	sub E_movb(src: RegId, dest: RegId) is
-		R_flush(dest);
-		E_insn16("movb");
-		E_reg(src);
-		E_comma();
-		E_reg(dest);
-		E_nl();
-	end sub;
 
 	sub E_alu1(insn: string, reg: RegId) is
 		R_flush(reg);
@@ -462,18 +457,17 @@
 		E_not(src);
 	end sub;
 
+	sub E_bic(src: RegId, dest: RegId) is
+		E_alu2("BIC", src, dest);
+	end sub;
+
 	sub E_or(src: RegId, dest: RegId) is
 		E_alu2("BIS", src, dest);
 	end sub;
 
 	sub E_alu2i_noflush(insn: string, value: Arith, dest: RegId) is
 		E_insn(insn, dest);
-		E_b8('#');
-		if value < 0 then
-			E_b8('-');
-			value := -value;
-		end if;
-		E_u32(value as uint32);
+		E_imm(value);
 		E_comma();
 		E_reg(dest);
 		E_nl();
@@ -559,8 +553,7 @@
 		E_reg(src);
 		if value != 0 then
 			E_comma();
-			E_b8('#');
-			E_i32(value);
+			E_imm(value);
 		end if;
 		E_nl();
 	end sub;
@@ -606,6 +599,7 @@
 		end if;
 		if value == 0 then
 			return;
+		# asl,asl is faster than ash on some impls
 		elseif value > 1 then
 			E_insn16("ash");
 			E_b8('#');
@@ -645,7 +639,7 @@
 
 		# load mask
 		E_mov(REG_R5);
-		E_b8('#');
+		E_const();
 		E_u32(0x8000);
 		E_comma();
 		E_reg(REG_R5);
@@ -734,19 +728,6 @@
 		E_nl();
 	end sub;
 
-	sub E_sari1(value: Arith, reg: RegId) is
-		R_flush(reg);
-		R_flush(REG_R5);
-		E_movb(reg, REG_R5);
-		E_insn16("ASH");
-		E_b8('#');
-		E_i32(-value);
-		E_comma();
-		E_reg(REG_R5);
-		E_nl();
-		E_movb(REG_R5, reg);
-	end sub;
-
 	sub E_shr4(amount: RegId, value: RegId) is
 		R_flush(amount);
 		# load mask
@@ -809,7 +790,7 @@
 	end sub;
 
 	sub E_mul(src: RegId, dest: RegId) is
-		R_flush(src|dest);
+		R_flush(src);
 		E_insn16("MUL");
 		E_reg(dest);
 		E_comma();
@@ -854,8 +835,7 @@
 			E_clr(reg);
 		else
 			E_mov(reg);
-			E_b8('#');
-			E_i32(value);
+			E_imm(value);
 			E_comma();
 			E_reg(reg);
 			E_nl();
@@ -902,7 +882,7 @@
 				E_andi(255, dest);
 			end if;
 		elseif hireg(src) != dest then
-			E_movb(src, dest);
+			E_move(src, loreg(dest));
 		end if;
 	end sub;
 
@@ -1163,8 +1143,7 @@ gen ENDSUB() uses all
 				E_load(REG_R0, param as [Symbol], 2, 0);
 				if count != (params-1) then
 					push_return_address();
-					E_push(REG_R1);
-					E_push(REG_R0);
+					E_push4(REG_R0R1);
 				end if;
 		end case;
 
@@ -1254,7 +1233,7 @@ gen r16 := CAST12(r8:val):c   { E_ext($val, $$, $c.sext); }
 gen r8  := CAST21(r16:val):c  { if ($val != hireg($$)) then E_move($val, hireg($$)); end if; }
 
 gen r32 := CAST14(r8:val):c   { E_ext($val, loreg($$), $c.sext); if ($c.sext != 0) then E_sxt(hireg($$)); else E_clr(hireg($$)); end if; }
-gen r8  := CAST41(r32:val)    { E_movb(loreg($val), $$); }
+gen r8  := CAST41(r32:val)    { E_move(loreg($val), $$); }
 
 gen r16 := CAST42(r32:val)    { if loreg($val) != $$ then E_move(loreg($val), $$); end if; }
 gen r32 := CAST24(r16:val):c  { E_move($val, loreg($$)); if ($c.sext != 0) then E_sxt(hireg($$)); else E_clr(hireg($$)); end if; }
@@ -1388,6 +1367,7 @@ gen r8  := AND1($$, r8:rhs)           { E_and($rhs, $$); }
 gen r8  := AND1($$, CONSTANT():c)     { E_andi($c.value, $$); }
 gen r16 := AND2($$, r16:rhs)          { E_and($rhs, $$); }
 gen r16 := AND2($$, CONSTANT():c)     { E_andi($c.value, $$); }
+gen r16 := AND2($$, NOT2(r16:rhs))    { E_bic($rhs, $$); }
 
 gen r32 := AND4($$, r32:rhs)
 {
@@ -1426,13 +1406,9 @@ gen r32 := EOR4($$, r32:rhs)
 	E_xor(hireg($rhs), hireg($$));
 }
 
-// always use odd registers for 8- and 16-bit multiply and division; NB: do not use register lists
-gen r1b := MUL1(r0b:rhs, $$)                     { E_mul($rhs, $$); }
-gen r3b := MUL1(r2b:rhs, $$)                     { E_mul($rhs, $$); }
-gen r5b := MUL1(r4b:rhs, $$)                     { E_mul($rhs, $$); }
-gen r1 := MUL2(r0:rhs, $$)                       { E_mul($rhs, $$); }
-gen r3 := MUL2(r2:rhs, $$)                       { E_mul($rhs, $$); }
-gen r5 := MUL2(r4:rhs, $$)                       { E_mul($rhs, $$); }
+// always use odd registers for 8- and 16-bit multiply and division
+gen r1b|r3b|r5b := MUL1($$, r8:rhs)              { E_mul($$, $rhs); } // fixme sxtb?
+gen r1|r3|r5 := MUL2($$, r16:rhs)                { E_mul($$, $rhs); }
 gen r4r5 := MUL4(r2r3:lhs, r0r1:rhs)             { E_mul4($$, $lhs, $rhs); }
 
 gen r0b := DIVU1(r1b, r8n01:rhs)                 { E_uxtb($rhs); E_uxtb(REG_R1); E_clr(REG_R0); E_div($rhs, REG_R0); }
@@ -1673,7 +1649,7 @@ gen ASMSYMBOL():s
 
 gen ASMSUBREF():s
 {
-	E_b8('#');
+	E_const();
 	E_subref($s.subr);
 	E_space();
 }
