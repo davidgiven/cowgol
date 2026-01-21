@@ -212,8 +212,8 @@ if_begin ::= .
 
 if_conditional ::= conditional(C).
 {
-	var t := AllocLabel();
-	var f := AllocLabel();
+	var t := AllocLabel() + 1;
+	var f := AllocLabel() + 1;
 	current_if.true_label := t;
 	current_if.false_label := f;
 	C.beq.truelabel := t;
