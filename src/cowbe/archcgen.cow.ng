@@ -354,7 +354,9 @@ gen v8 := DEREF8(v8:addr) { LoadVV(8); }
 		E_u8(width);
 		E(" v");
 		E_u16(vid);
-		E(" = v");
+		E(" = (s");
+		E_u8(width);
+		E(")v");
 		E_u16(lhsid);
 		E(op);
 		E("(");
