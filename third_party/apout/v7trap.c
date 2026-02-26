@@ -604,6 +604,7 @@ dostat:
     if (i == -1) {
         SET_CC_C();
         TrapDebug((dbg_file, "errno is %s\n", strerror(errno)));
+        regs[0] = errno;
     } else {
         CLR_CC_C();
         regs[0] = i;
