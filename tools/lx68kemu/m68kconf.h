@@ -203,7 +203,7 @@
 
 #endif /* M68K_COMPILE_FOR_MAME */
 
-#include "sim.h"
+extern void cpu_instr_callback(int pc);
 
 #define m68k_read_memory_8(A) cpu_read_byte(A)
 #define m68k_read_memory_16(A) cpu_read_word(A)

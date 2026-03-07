@@ -1,23 +1,31 @@
-from build.ab import normalrule, Rule, Targets
+from build.ab import simplerule, Rule, Target, Targets, emit, G
+
+G.setdefault("BISON", "bison")
+G.setdefault("FLEX", "flex")
 
 
 @Rule
-def yacc(self, name, srcs: Targets = []):
-    normalrule(
+def bison(self, name, src: Target, deps: Targets = [], stem=None):
+    if not stem:
+        stem = self.localname
+    simplerule(
         replaces=self,
-        ins=srcs,
-        outs=["y.tab.c", "y.tab.h"],
-        commands=["bison -y -t -o {outs[0]} --defines={outs[1]} {ins}"],
-        label="YACC",
+        ins=[src],
+        outs=[f"={stem}.c", f"={stem}.h"],
+        deps=deps,
+        commands=[
+            "$(BISON) --defines=$[outs[1]] --output=$[outs[0]] $[ins[0]]"
+        ],
+        label="BISON",
     )
 
 
 @Rule
-def flex(self, name, srcs: Targets = []):
-    normalrule(
+def flex(self, name, src: Target, deps: Targets = []):
+    simplerule(
         replaces=self,
-        ins=srcs,
-        outs=["lexer.c"],
-        commands=["flex -8 -Cem -s -t {ins[0]} > {outs[0]}"],
+        ins=[src],
+        outs=[f"={self.localname}.yy.c"],
+        commands=["$(FLEX) -s -t $[ins[0]] > $[outs[0]]"],
         label="FLEX",
     )
