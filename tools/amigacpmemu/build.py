@@ -11,10 +11,11 @@ cprogram(
     srcs=[
         "./bdos.c",
         "./bios.c",
-        "./xbios.c",
+        "./fileio.c",
+        "./fileio.h",
         "./sim.c",
         "./sim.h",
-        "./fileio.c",
+        "./xbios.c",
         "third_party/musashi/m68k.h",
     ],
     deps=[".+musashi"],
