@@ -1,13 +1,15 @@
-from build.ab import Rule, Target, normalrule
+from build.ab import Rule, Target, simplerule
 from build.c import clibrary, cprogram
 
 cprogram(name="m68kmake", srcs=["./m68kmake.c"])
 
-normalrule(
+simplerule(
     name="m68kops",
     ins=[".+m68kmake", "./m68k_in.c"],
-    outs=["m68kops.c", "m68kops.h"],
-    commands=["{ins[0]} {dirname(outs[0])} {ins[1]} > /dev/null"],
+    outs=["=m68kops.c", "=m68kops.h"],
+    commands=[
+        "$[ins[0]] $[dirname(filenameof(outs[0]))] $[ins[1]] > /dev/null"
+    ],
     label="MUSASHILIB",
 )
 
@@ -25,6 +27,14 @@ def musashilib(self, name, m68kconf: Target = None):
             "third_party/musashi/m68kmmu.h",
             "third_party/musashi/softfloat/softfloat.c",
             "third_party/musashi/softfloat/softfloat.h",
+            "third_party/musashi/softfloat/milieu.h",
+            "third_party/musashi/softfloat/mamesf.h",
             "third_party/musashi+m68kops",
         ],
+        deps=[
+            "third_party/musashi/softfloat/softfloat-macros",
+            "third_party/musashi/softfloat/softfloat-specialize",
+            "third_party/musashi/m68kfpu.c",
+        ],
+        hdrs={"m68kconf.h": m68kconf},
     )

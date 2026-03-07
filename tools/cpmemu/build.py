@@ -9,12 +9,13 @@ objectify(name="biosbdosdata", src=".+biosbdos", symbol="biosbdosdata")
 cprogram(
     name="cpmemu",
     srcs=[
-        "./main.c",
+        ".+biosbdosdata",
+        "./biosbdos.c",
         "./emulator.c",
         "./fileio.c",
-        "./biosbdos.c",
-        ".+biosbdosdata",
+        "./globals.h",
+        "./main.c",
     ],
-    ldflags= ["-lreadline"],
-    deps = ["third_party/z80ex"],
+    ldflags=["-lreadline"],
+    deps=["third_party/z80ex"],
 )

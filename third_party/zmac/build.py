@@ -1,33 +1,31 @@
-from build.yacc import yacc
+from build.yacc import bison
 from build.c import cprogram
-from build.ab import Rule, Targets, normalrule, filenameof
+from build.ab import Rule, Targets, simplerule, filenameof
 from os.path import *
 
-yacc(
+bison(
     name="parser",
-    srcs=["third_party/zmac/zmac.y"],
+    src="third_party/zmac/zmac.y",
 )
 
 cprogram(
     name="zmac",
-    srcs=[".+parser", "./mio.c", "./zi80dis.cpp", "./zi80dis.h"],
+    srcs=[".+parser", "./mio.c", "./zi80dis.cpp", "./zi80dis.h", "./mio.h"],
     cflags=["-Ithird_party/zmac"],
 )
 
 
 @Rule
 def zmac(self, name, srcs: Targets = []):
-    filename, ext = splitext(filenameof(srcs))
+    filename, ext = splitext(filenameof(srcs[0]))
     archflag = "-z" if (ext == ".z80") else "-8"
 
-    normalrule(
+    simplerule(
         replaces=self,
         ins=["third_party/zmac", srcs[0]],
-        outs=[self.localname + ".cim"],
+        outs=["=" + self.localname + ".cim"],
         commands=[
-            "{ins[0]} -j -m "
-            + archflag
-            + " -o {outs[0]} -o {outs[0]}.lst {ins[1]}"
+            f"$[ins[0]] -j -m {archflag} -o $[outs[0]] -o $[outs[0]].lst $[ins[1]]"
         ],
         label="ZMAC",
     )

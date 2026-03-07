@@ -262,8 +262,8 @@
     sec
 ``_1:
     lda #0
-    sbc @b`$_mathpad.1.0+4, x
-    sta @b`$_mathpad.1.0+4, x
+    sbc @b `$_mathpad.1.0+4, x
+    sta @b `$_mathpad.1.0+4, x
     inx
     bne ``_1
     rts
@@ -275,8 +275,8 @@
     sec
 ``_1:
     lda #0
-    sbc @b`$_mathpad.1.4+4, x
-    sta @b`$_mathpad.1.4+4, x
+    sbc @b `$_mathpad.1.4+4, x
+    sta @b `$_mathpad.1.4+4, x
     inx
     bne ``_1
     rts
@@ -288,8 +288,8 @@
     sec
 ``_1:
     lda #0
-    sbc @b`$_mathpad.1.8+4, x
-    sta @b`$_mathpad.1.8+4, x
+    sbc @b `$_mathpad.1.8+4, x
+    sta @b `$_mathpad.1.8+4, x
     inx
     bne ``_1
     rts

@@ -2,6 +2,6 @@ from build.c import cprogram
 
 cprogram(
     name="obpemu",
-    srcs=["./emulator.c", "./main.c"],
-    ldflags=["-lreadline"]
+    srcs=["./emulator.c", "./main.c", "./globals.h"],
+    ldflags=["-lreadline"],
 )
