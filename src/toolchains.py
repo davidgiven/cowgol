@@ -22,7 +22,7 @@ def cgen(self, name, srcs: Targets = []):
     cprogram(replaces=self, srcs=srcs + ["rt/cgen/cowgol.h"])
 
 
-def buildgasimpl(self, prefix, flags="", lflags=""):
+def buildgasimpl(self, prefix, flags="", lflags="", deps=[]):
     simplerule(
         replaces=self,
         ins=self.args["srcs"],
@@ -31,6 +31,7 @@ def buildgasimpl(self, prefix, flags="", lflags=""):
             prefix + "-as " + flags + " -g $[ins] -o $[outs[0]].s",
             prefix + "-ld " + lflags + " -g $[outs[0]].s -o $[outs[0]]",
         ],
+        deps=deps,
         label="ASM-" + prefix.upper(),
     )
 
@@ -63,7 +64,10 @@ def buildgasataritos(self, name, srcs: Targets = None):
 @Rule
 def buildgasamigacpm(self, name, srcs: Targets = None):
     buildgasimpl(
-        self, "m68k-atari-mint", lflags="-T third_party/amigacpm/amigacpm.ld"
+        self,
+        "m68k-atari-mint",
+        lflags="-T third_party/amigacpm/amigacpm.ld",
+        deps=["third_party/amigacpm/amigacpm.ld"],
     )
 
 
@@ -119,9 +123,7 @@ def nativetest(self, name, goodfile: Target = None, exe: Target = None):
 
 @Rule
 def tubeemutest(self, name, goodfile: Target = None, exe: Target = None):
-    testimpl(
-        self, ["tools/tubeemu"], "$[ins[0]] -l 0x400 -e 0x400 -f $[ins[1]]"
-    )
+    testimpl(self, ["tools/tubeemu"], "$[ins[0]] -l 0x400 -e 0x400 -f $[ins[1]]")
 
 
 @Rule
