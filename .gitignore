@@ -1,0 +1,6 @@
+.obj
+bin
+.ninja_log
+.vscode
+compile_commands.json
+
