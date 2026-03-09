@@ -1,4 +1,4 @@
-from build.ab import normalrule, export
+from build.ab import simplerule, export
 from src.build import cowgol
 from src.toolchains import TOOLCHAINS
 from tools.newgen.build import newgencowgol

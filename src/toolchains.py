@@ -3,7 +3,7 @@ from build.ab import (
     Target,
     Targets,
     export,
-    normalrule,
+    simplerule,
     filenamesof,
     filenameof,
 )
@@ -22,15 +22,16 @@ def cgen(self, name, srcs: Targets = []):
     cprogram(replaces=self, srcs=srcs + ["rt/cgen/cowgol.h"])
 
 
-def buildgasimpl(self, prefix, flags="", lflags=""):
-    normalrule(
+def buildgasimpl(self, prefix, flags="", lflags="", deps=[]):
+    simplerule(
         replaces=self,
         ins=self.args["srcs"],
-        outs=[self.localname + ".elf"],
+        outs=["=" + self.localname + ".elf"],
         commands=[
-            prefix + "-as " + flags + " -g {ins} -o {outs[0]}.s",
-            prefix + "-ld " + lflags + " -g {outs[0]}.s -o {outs[0]}",
+            prefix + "-as " + flags + " -g $[ins] -o $[outs[0]].s",
+            prefix + "-ld " + lflags + " -g $[outs[0]].s -o $[outs[0]]",
         ],
+        deps=deps,
         label="ASM-" + prefix.upper(),
     )
 
@@ -62,7 +63,12 @@ def buildgasataritos(self, name, srcs: Targets = None):
 
 @Rule
 def buildgasamigacpm(self, name, srcs: Targets = None):
-    buildgasimpl(self, "m68k-atari-mint", lflags="-T third_party/amigacpm/amigacpm.ld")
+    buildgasimpl(
+        self,
+        "m68k-atari-mint",
+        lflags="-T third_party/amigacpm/amigacpm.ld",
+        deps=["third_party/amigacpm/amigacpm.ld"],
+    )
 
 
 @Rule
@@ -71,11 +77,11 @@ def buildtass64(self, name, srcs: Targets = None):
 
 
 def buildcowasmimpl(self, asm):
-    normalrule(
+    simplerule(
         replaces=self,
         ins=[asm] + self.args["srcs"],
-        outs=[self.localname + ".bin"],
-        commands=["chronic {ins[0]} -o {outs[0]} {ins[1]}"],
+        outs=["=" + self.localname + ".bin"],
+        commands=["chronic $[ins[0]] -o $[outs[0]] $[ins[1]]"],
         label="ASM",
     )
 
@@ -98,13 +104,13 @@ def buildnasm(self, name, srcs: Targets = None):
 
 def testimpl(self, dep, command):
     goodfile = self.args["goodfile"]
-    normalrule(
+    simplerule(
         replaces=self,
-        ins=dep + [self.args["exe"]],
-        outs=[self.localname + ".bad"],
+        ins=dep + [self.args["exe"], goodfile],
+        outs=["=" + self.localname + ".bad"],
         commands=[
-            "timeout 5s " + command + " > {outs}; true",
-            "diff -u -w {outs[0]} " + filenameof(goodfile),
+            "timeout 5s " + command + " > $[outs]; true",
+            "diff -u -w $[outs[0]] $[ins[-1]]",
         ],
         label="TEST",
     )
@@ -112,62 +118,62 @@ def testimpl(self, dep, command):
 
 @Rule
 def nativetest(self, name, goodfile: Target = None, exe: Target = None):
-    testimpl(self, [], "{ins[0]}")
+    testimpl(self, [], "$[ins[0]]")
 
 
 @Rule
 def tubeemutest(self, name, goodfile: Target = None, exe: Target = None):
-    testimpl(self, ["tools/tubeemu"], "{ins[0]} -l 0x400 -e 0x400 -f {ins[1]}")
+    testimpl(self, ["tools/tubeemu"], "$[ins[0]] -l 0x400 -e 0x400 -f $[ins[1]]")
 
 
 @Rule
 def cpmtest(self, name, goodfile: Target = None, exe: Target = None):
-    testimpl(self, ["tools/cpmemu"], "{ins[0]} {ins[1]}")
+    testimpl(self, ["tools/cpmemu"], "$[ins[0]] $[ins[1]]")
 
 
 @Rule
 def apouttest(self, name, goodfile: Target = None, exe: Target = None):
-    testimpl(self, ["third_party/apout"], "{ins[0]} {ins[1]}")
+    testimpl(self, ["third_party/apout"], "$[ins[0]] $[ins[1]]")
 
 
 @Rule
 def fuzix6303test(self, name, goodfile: Target = None, exe: Target = None):
-    testimpl(self, ["tools/fuzix6303emu"], "{ins[0]} -f {ins[1]}")
+    testimpl(self, ["tools/fuzix6303emu"], "$[ins[0]] -f $[ins[1]]")
 
 
 @Rule
 def ataritostest(self, name, goodfile: Target = None, exe: Target = None):
-    testimpl(self, ["tools/ataritosemu"], "{ins[0]} {ins[1]}")
+    testimpl(self, ["tools/ataritosemu"], "$[ins[0]] $[ins[1]]")
 
 
 @Rule
 def amigacpmtest(self, name, goodfile: Target = None, exe: Target = None):
-    testimpl(self, ["tools/amigacpmemu"], "{ins[0]} {ins[1]}")
+    testimpl(self, ["tools/amigacpmemu"], "$[ins[0]] $[ins[1]]")
 
 
 @Rule
 def qemuarmtest(self, name, goodfile: Target = None, exe: Target = None):
-    testimpl(self, [], "qemu-arm {ins[0]}")
+    testimpl(self, [], "qemu-arm $[ins[0]]")
 
 
 @Rule
 def qemu386test(self, name, goodfile: Target = None, exe: Target = None):
-    testimpl(self, [], "qemu-i386 {ins[0]}")
+    testimpl(self, [], "qemu-i386 $[ins[0]]")
 
 
 @Rule
 def qemu68ktest(self, name, goodfile: Target = None, exe: Target = None):
-    testimpl(self, [], "qemu-m68k {ins[0]}")
+    testimpl(self, [], "qemu-m68k $[ins[0]]")
 
 
 @Rule
 def qemuppctest(self, name, goodfile: Target = None, exe: Target = None):
-    testimpl(self, [], "qemu-ppc {ins[0]}")
+    testimpl(self, [], "qemu-ppc $[ins[0]]")
 
 
 @Rule
 def msdostest(self, name, goodfile: Target = None, exe: Target = None):
-    testimpl(self, ["third_party/emu2"], "{ins[0]} {ins[1]}")
+    testimpl(self, ["third_party/emu2"], "$[ins[0]] $[ins[1]]")
 
 
 @Rule

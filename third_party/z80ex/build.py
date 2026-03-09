@@ -3,10 +3,24 @@ from build.c import clibrary
 clibrary(
     name="z80ex",
     srcs=[
+        "./include/z80ex_common.h",
+        "./include/z80ex_dasm.h",
+        "./typedefs.h",
         "./z80ex.c",
         "./z80ex_dasm.c",
-        "./include/z80ex_dasm.h",
-        "./include/z80ex_common.h",
+        "./include/z80ex.h",
+        "./macros.h",
+    ],
+    deps=[
+        "./opcodes/opcodes_dasm.c",
+        "./opcodes/opcodes_base.c",
+        "./opcodes/opcodes_ddcb.c",
+        "./opcodes/opcodes_dd.c",
+        "./opcodes/opcodes_fd.c",
+        "./opcodes/opcodes_fdcb.c",
+        "./opcodes/opcodes_ed.c",
+        "./opcodes/opcodes_cb.c",
+        "./ptables.c",
     ],
     hdrs={
         "z80ex/z80ex.h": "./include/z80ex.h",

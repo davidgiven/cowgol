@@ -1,4 +1,4 @@
-from build.ab import normalrule
+from build.ab import simplerule
 from src.build import cowgol
 from src.toolchains import TOOLCHAINS
 
@@ -9,7 +9,10 @@ for toolchain in TOOLCHAINS:
         srcs=[
             "./main.cow",
             "./types.coh",
-            "src+midcodesbecoh",
             "src+cobincoh",
+            "src+midcodesbecoh",
+            "src/cowbe/utils.coh",
+            "src/cowbe/inputter.coh",
+            "src/cowbe/treewalker.coh",
         ],
     )

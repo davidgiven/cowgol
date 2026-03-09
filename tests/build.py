@@ -1,4 +1,4 @@
-from build.ab import normalrule, Rule, Target, export
+from build.ab import simplerule, Rule, Target, export
 from src.build import cowgol
 from src.toolchains import TOOLCHAINS
 
@@ -59,7 +59,7 @@ def testsuite(self, name, toolchain: Target = None):
         for test in TESTS:
             bin = cowgol(
                 name=name + "/" + test + "/bin",
-                srcs=["./" + test + ".test.cow"],
+                srcs=["./" + test + ".test.cow", "tests/_framework.coh"],
                 toolchain=toolchain,
             )
 
@@ -71,11 +71,11 @@ def testsuite(self, name, toolchain: Target = None):
                 )
             )
 
-    normalrule(
+    simplerule(
         replaces=self,
         ins=tests,
-        outs=["stamp"],
-        commands=["touch {outs}"],
+        outs=["=stamp"],
+        commands=["touch $[outs]"],
         label="TESTSUITE",
     )
 
