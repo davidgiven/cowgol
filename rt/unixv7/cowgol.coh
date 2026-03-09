@@ -1,6 +1,6 @@
 var LOMEM: [uint8];
 var HIMEM: [uint8];
-
+ 
 # NB: apout ignores brk()
 sub _find_himem() is
 	@asm "mov #0087h, -(sp)"; # ret
@@ -13,6 +13,9 @@ sub _find_himem() is
 	@asm "sub #256, 2(sp)";
 	@asm "br find_himem_loop";
 	@asm "find_himem_done:";
+
+	# Ensure alignment.
+	@asm "bic #1, r0";
 
 	@asm "mov r0, ", HIMEM;
 	@asm "add #6, sp";
@@ -67,4 +70,3 @@ sub print_oct_i16(value: uint16) is
 end sub;
 
 include "common.coh";
-
