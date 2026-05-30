@@ -415,20 +415,24 @@ gen RETURN() uses all
 
 // --- Miscellaneous --------------------------------------------------------
 
-gen dreg|any|any := CONSTANT():c
+gen dreg|any := CONSTANT():c
 {
 	var r := RegCacheFindConstant($c.value as uint32);
 	if r != 0 then
 		if (r & $$) != 0 then
 			return;
 		end if;
-		r := FindFirst(r);
 		E_insn("move.l");
-		E_reg(r);
+		E_reg(FindFirst(r));
 	else
-		E_insn("move.l");
-		E_const();
-		E_i32($c.value);
+		if $c.value == 0 then
+			E_insn("sub.l");
+			E_reg($$);
+		else
+			E_insn("move.l");
+			E_const();
+			E_i32($c.value);
+		end if;
 	end if;
 	E_comma();
 	E_reg($$);
@@ -445,9 +449,8 @@ gen areg := ADDRESS():a
 		if (r & $$) != 0 then
 			return;
 		end if;
-		r := FindFirst(r);
 		E_insn("move.l");
-		E_reg(r);
+		E_reg(FindFirst(r));
 	else
 		E_insn("lea");
 		E_openp();
@@ -617,13 +620,12 @@ gen imm := CONSTANT():c cost 5
 			if (r & dest) != 0 then
 				return;
 			end if;
-			r := FindFirst(r);
 			E_insn("move.l");
-			E_reg(r);
+			E_reg(FindFirst(r));
 			E_comma();
 			E_reg(dest);
 		else
-			RegCacheFlushValues();
+			RegCacheFlushValue(sym, off);
 
 			E_insn(insn);
 			E_openp();
