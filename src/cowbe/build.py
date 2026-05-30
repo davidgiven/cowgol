@@ -15,6 +15,7 @@ ARCHS = [
     "basic",
     "cgen",
     "pdp11",
+    "pdp11-rt11",
     "powerpc",
     "thumb2",
     "z80",
@@ -23,6 +24,7 @@ ARCHS = [
 extras = {
     "65c02": ["src/cowbe/arch6502.cow.ng"],
     "65c02-tiny": ["src/cowbe/arch6502.cow.ng"],
+    "pdp11-rt11": ["src/cowbe/archpdp11.cow.ng"],
 }
 
 for arch in ARCHS:
