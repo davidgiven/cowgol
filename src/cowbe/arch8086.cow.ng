@@ -250,15 +250,15 @@
 		E_space();
 	end sub;
 
-    sub E_callhelper(name: string) is
-        var helper := GetHelper(name);
-        R_flushall();
-        E_insn("call");
-        E_b8(COO_ESCAPE_SUBREF);
-        E_b16(helper.id);
-        E_nl();
-    end sub;
-        
+	sub E_callhelper(name: string) is
+		var helper := GetHelper(name);
+		R_flushall();
+		E_insn("call");
+		E_b8(COO_ESCAPE_SUBREF);
+		E_b16(helper.id);
+		E_nl();
+	end sub;
+
 	sub E_jump(insn: string, label: LabelRef) is
 		R_flushall();
 		E_insn(insn);
@@ -274,13 +274,13 @@
 		E_jump("jne", label);
 	end sub;
 
-    sub ArchBeginComment() is
-        E("\t; ");
-    end sub;
+	sub ArchBeginComment() is
+		E("\t; ");
+	end sub;
 
-    sub ArchEndComment() is
-        E_nl();
-    end sub;
+	sub ArchEndComment() is
+		E_nl();
+	end sub;
 
 	sub ArchEmitMove(src: RegId, dest: RegId) is
 		print_hex_i32(src);
@@ -557,8 +557,8 @@ gen r16 := SUBREF():s
 	E_insn("mov");
 	E_reg($$);
 	E_comma();
-    E_subref($s.subr);
-    E_nl();
+	E_subref($s.subr);
+	E_nl();
 }
 
 // --- Operands -------------------------------------------------------------
@@ -824,13 +824,13 @@ gen dxax := RSHIFTU4(dxax, cl) { E_callhelper("_lsr4"); }
 
 gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b uses all
 {
-    var label := $b.falselabel;
-    if $lhs.value == $rhs.value then
-        label := $b.truelabel;
-    end if;
-    if label != $b.fallthrough then
-        E_jmp(label);
-    end if;
+	var label := $b.falselabel;
+	if $lhs.value == $rhs.value then
+		label := $b.truelabel;
+	end if;
+	if label != $b.fallthrough then
+		E_jmp(label);
+	end if;
 }
 
 %{
@@ -974,15 +974,15 @@ gen INIT4():c
 gen INITADDRESS():a
 {
 	E("\tdw ");
-    E_symref(&$a.sym, $a.off);
-    E_nl();
+	E_symref(&$a.sym, $a.off);
+	E_nl();
 }
 
 gen INITSUBREF():a
 {
 	E("\tdw ");
-    E_subref($a.subr);
-    E_nl();
+	E_subref($a.subr);
+	E_nl();
 }
 
 gen INITSTRING():s
@@ -990,34 +990,34 @@ gen INITSTRING():s
 	E("\tdw ");
 	var lid := E_string($s.text);
 	E_labelref(lid);
-    E_nl();
+	E_nl();
 }
 
 // --- Strings --------------------------------------------------------------
 
 %{
-    sub E_string(data: string): (lid: uint16) is
-        lid := AllocPLabel();
+	sub E_string(data: string): (lid: uint16) is
+		lid := AllocPLabel();
 
-        EmitterOpenStream(current_subr);
+		EmitterOpenStream(current_subr);
 
-        E("\tsegment data\n");
-        E_label(lid);
+		E("\tsegment data\n");
+		E_label(lid);
 		E_insn("db");
 
-        loop
-            var c := [data];
-            if c == 0 then
-                break;
-            end if;
-            data := data + 1;
-            
-            E_u8(c);
-            E_comma();
-        end loop;
-        E("0\n");
-        EmitterCloseStream();
-    end sub;
+		loop
+			var c := [data];
+			if c == 0 then
+				break;
+			end if;
+			data := data + 1;
+
+			E_u8(c);
+			E_comma();
+		end loop;
+		E("0\n");
+		EmitterCloseStream();
+	end sub;
 %}
 
 gen r16 := STRING():s
@@ -1051,13 +1051,13 @@ gen ASMTEXT():t
 gen ASMSYMBOL():s
 {
 	E_symref(&$s.sym, 0);
-    E_space();
+	E_space();
 }
 
 gen ASMSUBREF():s
 {
 	E_subref($s.subr);
-    E_space();
+	E_space();
 }
 
 gen ASMVALUE():c
@@ -1069,8 +1069,5 @@ gen ASMVALUE():c
 
 gen ASMEND()
 {
-    E_nl();
+	E_nl();
 }
-
-
-

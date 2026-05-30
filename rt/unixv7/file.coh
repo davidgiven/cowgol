@@ -107,11 +107,11 @@ sub fcb_i_open(fcb: [FCB], filename: [uint8], flags: uint32): (errno: uint8) is
 end sub;
 
 sub FCBOpenIn(fcb: [FCB], filename: [uint8]): (errno: uint8) is
-	(errno) := fcb_i_open(fcb, filename, 0o0000); # O_RDONLY
+    (errno) := fcb_i_open(fcb, filename, 0o0000); # O_RDONLY
 end sub;
 
 sub FCBOpenUp(fcb: [FCB], filename: [uint8]): (errno: uint8) is
-	(errno) := fcb_i_open(fcb, filename, 0o0002); # O_RDWR
+    (errno) := fcb_i_open(fcb, filename, 0o0002); # O_RDWR
 end sub;
 
 sub FCBOpenOut(fcb: [FCB], filename: [uint8]): (errno: uint8) is
@@ -136,9 +136,9 @@ sub FCBOpenOut(fcb: [FCB], filename: [uint8]): (errno: uint8) is
 end sub;
 
 sub FCBClose(fcb: [FCB]): (errno: uint8) is
-	FCBFlush(fcb);
+    FCBFlush(fcb);
 
-	var fd := fcb.fd;
+    var fd := fcb.fd;
     @asm "mov ", fd, ", r0";
     @asm "trap 6";
     @asm "neg r0";
@@ -146,9 +146,9 @@ sub FCBClose(fcb: [FCB]): (errno: uint8) is
 end sub;
 
 sub FCBExt(fcb: [FCB]): (len: uint32) is
-	FCBFlush(fcb);
+    FCBFlush(fcb);
 
-	var fd := fcb.fd;
+    var fd := fcb.fd;
     @asm "mov ", fd, ", r0";
     @asm "trap 19";
     @asm "dw 0, 0"; # pos

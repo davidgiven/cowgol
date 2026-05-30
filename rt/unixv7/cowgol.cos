@@ -6,7 +6,7 @@
 	; The PDP11 has a 32/16->16%16 signed division instruction. Synthesising
 	; 32/32->32%32 unsigned division from this is surprisingly hard, so for
     ; now we don't bother and just use long division.
-    
+
     clr r4              ; reset remainder
     clr r5
     mov r0, -(sp)       ; move hi(RHS) onto the stack, as we need r0...
@@ -51,14 +51,14 @@
     tst r0              ; set flags from hi(rhs)
     bpl ``_1
     com r0              ; negate r0r1
-    com r1    
+    com r1
     add #1, r1          ; add (setting carry)
     adc r0
 ``_1:
     tst r2              ; set flags from hi(lhs)
     bpl ``_2
     com r2              ; negate r2r3
-    com r3     
+    com r3
     add #1, r3
     adc r2
 ``_2:
