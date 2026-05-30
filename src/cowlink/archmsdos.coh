@@ -25,13 +25,13 @@ end sub;
 sub ArchEmitHeader(coo: [Coo]) is
 	E("\t[warning -number-overflow]\n");
 	E("\tcpu 8086\n");
-    E("\tbits 16\n");
-    E("\tsegment code align=16\n");
+	E("\tbits 16\n");
+	E("\tsegment code align=16\n");
 
-    E("\tpush ds\n");
-    E("\tpop es\n");
-    E("\tmov ax, dgroup\n");
-    E("\tmov ds, ax\n");
+	E("\tpush ds\n");
+	E("\tpop es\n");
+	E("\tmov ax, dgroup\n");
+	E("\tmov ds, ax\n");
 
 	while coo != nil loop
 		var main := coo.index.subroutines[0];
@@ -45,21 +45,21 @@ sub ArchEmitHeader(coo: [Coo]) is
 
 	E("\tmov ax, 0x4c00\n");
 	E("\tint 0x21\n");
-    E("\tsegment stack stack noprogbits align=16\n");
-    E("\tresb ");
-    E_u16(STACK_SIZE);
-    E_nl();
-    E("stacktop:\n");
-    E("\tsegment data public align=16\n");
-    E("\tsegment bss noprogbits public\n");
-    E("\tgroup dgroup data bss\n");
+	E("\tsegment stack stack noprogbits align=16\n");
+	E("\tresb ");
+	E_u16(STACK_SIZE);
+	E_nl();
+	E("stacktop:\n");
+	E("\tsegment data public align=16\n");
+	E("\tsegment bss noprogbits public\n");
+	E("\tgroup dgroup data bss\n");
 end sub;
 
 sub ArchEmitFooter(coo: [Coo]) is
-    E("\tsegment bss\n");
+	E("\tsegment bss\n");
 
 	E("ws:\n\tresb ");
-    E_u16(workspaceSize[0]);
+	E_u16(workspaceSize[0]);
 	E_nl();
 
 	E("LOMEM:\n");

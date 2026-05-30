@@ -482,7 +482,7 @@
 		case value is
 			when 1: E_inc(dest);
 			when -1: E_dec(dest);
-			when else: E_alu2i("ADD", value, hireg(dest));
+			when else: E_alu2i("ADD", value, hireg(dest)); # force 16-bit register since ADD has no 8-bit variant
 		end case;
 	end sub;
 
@@ -500,7 +500,7 @@
 		case value is
 			when 1: E_dec(dest);
 			when -1: E_inc(dest);
-			when else: E_alu2i("SUB", value, hireg(dest));
+			when else: E_alu2i("SUB", value, hireg(dest)); # see above
 		end case;
 	end sub;
 

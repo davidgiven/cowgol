@@ -1413,7 +1413,7 @@ initialiser ::= expression(E).
 	case E.op is
 		when MIDCODE_CONSTANT:
 			if IsNum(type) == 0 then
-				SimpleError("initialiser must be an number");
+				SimpleError("initialiser must be a number");
 			end if;
 			Generate(MidInit(w as uint8, E.constant.value));
 

@@ -85,7 +85,7 @@
     jc ``_noadd
 ``_skip:
     inc ax          ; set bottom bit of result (guaranteed clear)
-    sub di, cx      ; decrease remainder
+    sub di, cx      ; decrease remainder  in lo(bxcx)
     sbb bp, bx
 ``_noadd:
     dec si
