@@ -23,7 +23,10 @@ sub RegCacheFlush(reg: RegId) is
 	var p := &register_cache[0];
 	while p != &register_cache[@sizeof register_cache] loop
 		if (p.state != CACHE_SLOT_EMPTY) and ((reg & p.reg) != 0) then
-			p.state := CACHE_SLOT_EMPTY;
+			p.reg := p.reg & ~reg;
+			if (p.reg == 0) then
+				p.state := CACHE_SLOT_EMPTY;
+			end if;
 		end if;
 		p := @next p;
 	end loop;

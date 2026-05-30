@@ -577,10 +577,13 @@ register a b c d e h l hl de bc;
 register stk4;
 register param;
 
-regdata a              compatible a|b|d|h;
-regdata b  uses bc|b|c compatible a|b|d|h;
-regdata d  uses de|d|e compatible a|b|d|h;
-regdata h  uses hl|h|l compatible a|b|d|h;
+regdata a  uses a      compatible a|b|c|d|e|h|l;
+regdata b  uses bc|b   compatible a|b|c|d|e|h|l;
+regdata c  uses bc|c   compatible a|b|c|d|e|h|l;
+regdata d  uses de|d   compatible a|b|c|d|e|h|l;
+regdata e  uses de|e   compatible a|b|c|d|e|h|l;
+regdata h  uses hl|h   compatible a|b|c|d|e|h|l;
+regdata l  uses hl|l   compatible a|b|c|d|e|h|l;
 regdata bc uses bc|b|c compatible bc|de|hl;
 regdata de uses de|d|e compatible bc|de|hl;
 regdata hl uses hl|h|l compatible bc|de|hl;
