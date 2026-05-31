@@ -1033,6 +1033,7 @@ gen JUMP():j uses all
 gen STARTSUB() uses all
 {
 	RegCacheReset();
+	PreferredValuesReset();
 
 	EmitterOpenStream(current_subr);
 

@@ -46,8 +46,12 @@ end record;
 
 var imported_values: SimpleValue[REGISTER_COUNT];
 MemZero(&imported_values as [uint8], @bytesof imported_values);
+
 var preferred_values: SimpleValue[REGISTER_COUNT];
-MemZero(&preferred_values as [uint8], @bytesof preferred_values);
+sub PreferredValuesReset() is
+    MemZero(&preferred_values as [uint8], @bytesof preferred_values);
+end sub;
+PreferredValuesReset();
 
 var emitting_asm: uint8 := 0;
 
@@ -86,7 +90,7 @@ end sub;
 end sub;
 
 sub FindConflictingRegisters(inreg: RegId): (conflicting: RegId) is
-	conflicting := 0;
+	conflicting := inreg;
 	var reg := &registers[0];
 	while reg != &registers[REGISTER_COUNT] loop
 		if (reg.id & inreg) != 0 then
