@@ -649,8 +649,7 @@
 			return;
 		elseif cache != 0 then
 			# The value is already in a register, but not this one.
-			cache := FindFirst(cache);
-			ArchEmitMove(cache, reg);
+			ArchEmitMove(FindFirst(cache), reg);
 			return;
 		end if;
 

@@ -142,12 +142,8 @@
 	end sub;
 
 	sub E_push4(src: RegId) is
-		E_insn16("MOV");
-		E_reg(loreg(src));
-		E(", -(SP)\n");
-		E_insn16("MOV");
-		E_reg(hireg(src));
-		E(", -(SP)\n");
+		E_push(loreg(src));
+		E_push(hireg(src));
 	end sub;
 
 	sub E_pop(dest: RegId) is
@@ -158,13 +154,8 @@
 	end sub;
 
 	sub E_pop4(dest: RegId) is
-		R_flush(dest);
-		E("\tMOV\t(SP)+, ");
-		E_reg(hireg(dest));
-		E_nl();
-		E("\tMOV\t(SP)+, ");
-		E_reg(loreg(dest));
-		E_nl();
+		E_pop(hireg(dest));
+		E_pop(loreg(dest));
 	end sub;
 
 	sub E_mov(reg: RegId) is
@@ -606,7 +597,7 @@
 			E_u8(value);
 			E_comma();
 		else
-			E_insn16("asl");
+			E_insn("asl", reg);
 		end if;
 		E_reg(reg);
 		E_nl();
@@ -686,8 +677,7 @@
 			E_nl();
 			value := value - 8;
 		end if;
-		var v := value as uint8;
-		if v > 0 then
+		if value > 0 then
 			while value > 0 loop
 				E_insn16("CLC");
 				E_nl();
