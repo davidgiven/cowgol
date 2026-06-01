@@ -3,3 +3,6 @@ regcache1 sub: yes
 regcache1 or: yes
 regcache1 xor: yes
 regcache1 and: yes
+regcache1 shl: yes
+regcache1 shr: yes
+regcache2: yes

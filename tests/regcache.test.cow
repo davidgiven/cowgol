@@ -27,5 +27,28 @@ sub cache1() is
     c := a & b;
     d := a;
     print("regcache1 and"); if c == 0 and d == 2 then yes(); else no(); end if;
+
+    c := a << b;
+    d := a;
+    print("regcache1 shl"); if c == 4 and d == 2 then yes(); else no(); end if;
+
+    c := a >> b;
+    d := a;
+    print("regcache1 shr"); if c == 1 and d == 2 then yes(); else no(); end if;
 end sub;
 cache1();
+
+# STORE should flush cached pointer value
+sub cache2() is
+    var c: uint8;
+    var d: uint8;
+    var p: [uint8] := "ab";
+
+    c := [p];
+    p := p + 1;
+    d := [p];
+
+    print("regcache2"); if c == 'a' and d == 'b' then yes(); else no(); end if;
+end sub;
+cache2();
+
