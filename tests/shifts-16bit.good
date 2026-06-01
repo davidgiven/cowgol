@@ -5,6 +5,7 @@ bug1<<8 == 0x8800: yes
 big>>zero == 0x8000: yes
 big>>one == 0x4000: yes
 big>>two == 0x2000: yes
+bug1>>14 == 0x3: yes
 bug1>>10 == 0x30: yes
 bug1>>8 == 0xc3: yes
 mbig>>zero == 0x8000: yes

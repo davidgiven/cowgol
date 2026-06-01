@@ -31,6 +31,9 @@ sub IndexTest() is
 
 	var p := &b;
 	print("indirect"); if p.buffer[p.offset] == 42 then yes(); else no(); end if;
+
+	var pb := &b.buffer[3];
+	print("minus1"); if [pb - 1] == 42 then yes(); else no(); end if;
 end sub;
 IndexTest();
 

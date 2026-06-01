@@ -23,6 +23,7 @@ sub rshiftu() is
 	print("big>>zero == 0x8000"); if big>>zero == 0x8000 then yes(); else no(); end if;
 	print("big>>one == 0x4000");  if big>>one == 0x4000 then yes(); else no(); end if;
 	print("big>>two == 0x2000");  if big>>two == 0x2000 then yes(); else no(); end if;
+	print("bug1>>14 == 0x3") ;    if bug1>>14 == 0x3 then yes(); else no(); end if;
 	print("bug1>>10 == 0x30");    if bug1>>10 == 0x30 then yes(); else no(); end if;
 	print("bug1>>8 == 0xc3");     if bug1>>8 == 0xc3 then yes(); else no(); end if;
 end sub;
