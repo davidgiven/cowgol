@@ -753,7 +753,9 @@ gen dx := REMU2(ax, mem2|bx|cx|di|si:rhs)            { E("\txor dx,dx\n"); E_ins
 gen ax := DIVS2(ax, mem2|bx|cx|di|si:rhs) uses dx    { E("\tcwd\n"); E_insn("idiv"); E_op0($rhs, &$@rhs.operand); E_nl(); }
 gen dx := REMS2(ax, mem2|bx|cx|di|si:rhs)            { E("\tcwd\n"); E_insn("idiv"); E_op0($rhs, &$@rhs.operand); E_nl(); }
 
+gen r8             := LSHIFT1($$:lhs, CONSTANT(value==1):c)  { E_insn("shl"); E_reg($lhs); E(",1\n"); }
 gen al|bl|dl       := LSHIFT1($$:lhs, cl:rhs)  { E_insn("shl"); E_reg($lhs); E(", cl\n"); }
+gen r16            := LSHIFT2($$:lhs, CONSTANT(value==1):c)  { E_insn("shl"); E_reg($lhs); E(",1\n"); }
 gen ax|bx|dx|si|di := LSHIFT2($$:lhs, cl:rhs)  { E_insn("shl"); E_reg($lhs); E(", cl\n"); }
 gen al|bl|dl       := RSHIFTU1($$:lhs, cl:rhs) { E_insn("shr"); E_reg($lhs); E(", cl\n"); }
 gen ax|bx|dx|si|di := RSHIFTU2($$:lhs, cl:rhs) { E_insn("shr"); E_reg($lhs); E(", cl\n"); }
@@ -845,10 +847,14 @@ gen BEQ0(CONSTANT():lhs, CONSTANT():rhs):b uses all
 %}
 
 gen BEQ1(r8:lhs, r8|op1:rhs):b    uses all { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("je", "jne", $@$); }
+gen BEQ1(AND1(r8:lhs, r8|op1:rhs), CONSTANT(value==0)) uses all
+	{ Alu2("test", $lhs, $rhs, &$@rhs.operand); CmpJumps("je", "jne", $@$); }
 gen BLTU1(r8:lhs, r8|op1:rhs):b   uses all { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("jb", "jae", $@$); }
 gen BLTS1(r8:lhs, r8|op1:rhs):b   uses all { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("jl", "jge", $@$); }
 
 gen BEQ2(r16:lhs, r16|op2:rhs):b  uses all { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("je", "jne", $@$); }
+gen BEQ2(AND2(r16:lhs, r16|op2:rhs), CONSTANT(value==0)) uses all
+	{ Alu2("test", $lhs, $rhs, &$@rhs.operand); CmpJumps("je", "jne", $@$); }
 gen BLTU2(r16:lhs, r16|op2:rhs):b uses all { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("jb", "jae", $@$); }
 gen BLTS2(r16:lhs, r16|op2:rhs):b uses all { Alu2("cmp", $lhs, $rhs, &$@rhs.operand); CmpJumps("jl", "jge", $@$); }
 
