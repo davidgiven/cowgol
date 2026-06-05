@@ -1,0 +1,38 @@
+typedef StdioType is int16;
+
+sub stdio_pread(fcb: [FCB], dma: [uint8], len: FCBIndexType, pos: uint32): (amount: StdioType) is
+	var dxcb := &fcb.dxcb;
+	var failed: int16 := 0;
+	var i: StdioType;
+
+	amount := 0;
+	if len == 0 or pos >= fcb.dxcb.size then
+		return;
+	end if;
+
+	# amount is signed
+	if len > 16384 then
+		len := 16384;
+	end if;
+
+	amount := -1;
+	fcb.dxcb.buf := dma;
+	fcb.dxcb.reclen := 1;
+	fcb.dxcb.currec := pos;
+	@asm "mov", len, ", r0";
+	@asm "mov", dxcb, ", r4";
+	@asm "iot";
+	@asm "dw 39"; # random read multiple
+	@asm "adc", failed;
+	@asm "mov r0,", i;
+
+	# ignore 'read past eof' errors
+	if failed != 0 and [usrerr] != 0o26 and [usrerr] != 0o27 then
+		fcb.flags := fcb.flags | FCB_FLAG_ERROR;
+	else
+		amount := i;
+	end if;
+end sub;
+
+# vim: ts=4 sw=4 et
+
