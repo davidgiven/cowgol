@@ -689,6 +689,8 @@ gen r8 := DEREF1(ADD2(si|di:lhs, CONSTANT():c)) { IndirectLoad($$, $lhs, &$@lhs.
 gen r16 := DEREF2(ADD2(si|di:lhs, CONSTANT():c)) { IndirectLoad($$, $lhs, &$@lhs.operand, 0, $c.value as uint16, 0, "word"); }
 gen r32 := DEREF4(ADD2(si|di:lhs, CONSTANT():c)) { IndirectLoad4($$, $lhs, &$@lhs.operand, 0, $c.value as uint16); }
 
+gen r16 := DEREF2(ADD2(ADD2(si|di|adr:lhs, bx:rhs), CONSTANT():c)) { IndirectLoad($$, $lhs, &$@lhs.operand, $rhs, $c.value as uint16, 0, "word"); }
+
 gen STORE1(r8|adr|imm:lhs, DEREF1(bx|si|di|adr:ptr)) { IndirectStore($lhs, &$@lhs.operand, $ptr, &$@ptr.operand, 0, 0, 0, "byte"); }
 gen STORE2(r16|adr|imm:lhs, DEREF2(bx|si|di|adr:ptr)) { IndirectStore($lhs, &$@lhs.operand, $ptr, &$@ptr.operand, 0, 0, 0, "word"); }
 gen STORE4(r32:lhs, DEREF4(bx|si|di|adr:ptr)) { IndirectStore4($lhs, &$@lhs.operand, $ptr, &$@ptr.operand, 0, 0); }
@@ -706,6 +708,9 @@ gen STORE2(r16|adr|imm:lhs, DEREF2(ADD2(bx|si|di|adr:ptr, CONSTANT():c)))
 	{ IndirectStore($lhs, &$@lhs.operand, $ptr, &$@ptr.operand, 0, $c.value as uint16, 0, "word"); }
 gen STORE4(r32:lhs, DEREF4(ADD2(bx|si|di|adr:ptr, CONSTANT():c)))
 	{ IndirectStore4($lhs, &$@lhs.operand, $ptr, &$@ptr.operand, 0, $c.value as uint16); }
+
+gen STORE2(r16|adr|imm:lhs, DEREF2(ADD2(ADD2(si|di|adr:ptr, bx:rhs), CONSTANT():c)))
+	{ IndirectStore($lhs, &$@lhs.operand, $ptr, &$@ptr.operand, $rhs, $c.value as uint16, 0, "word"); }
 
 // --- 8- and 16-bit arithmetic ---------------------------------------------
 
