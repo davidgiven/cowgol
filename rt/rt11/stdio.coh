@@ -1,0 +1,115 @@
+typedef StdioType is int16;
+
+# if pos or len are not word-aligned, do multiple reads and use FCB buffer to copy
+
+sub stdio_pread(fcb: [FCB], dma: [uint8], len: FCBIndexType, pos: uint32): (amount: StdioType) is
+    var carry: uint8 := 0;
+    var rtbuf := &fcb.buffer;
+    var words: FCBIndexType;
+    var actual: FCBIndexType;
+    var tail: FCBIndexType := 0;
+    var odd: FCBIndexType := 0;
+
+    amount := 0;
+    if len == 0 then return; end if;
+
+    if dma + len >= HIMEM then
+        len := HIMEM - dma;
+    end if;
+
+    #
+    # 4+ phases:
+    #
+    # 1: read short block ('head') if pos is not block- or word-aligned
+    # 2: read blocks starting at block-aligned pos, adjust len
+    # 3: if original pos was not word aligned, move data 1 byte back
+    # 4: read short block ('tail') if len is not word aligned and copy to dma
+    #
+    # also: dma may not be word aligned too
+    #
+
+    if (pos % FCB_BUFFER_SIZE) != 0 then
+        fcb.blk := (pos >> 9) as uint16;
+        @asm ".readw", fcb, ",,", rtbuf, ", #256";
+        @asm "adcb", carry;
+        @asm "mov r0,", actual;
+
+        if carry != 0 then
+            if [usrerr] != 0 then # ignore reads past EOF
+                amount := -1;
+                fcb.flags := fcb.flags | FCB_FLAG_ERROR;
+            end if;
+            return;
+        end if;
+        # XXX check actual
+        tail := (pos as FCBIndexType % FCB_BUFFER_SIZE);
+        if len <= (FCB_BUFFER_SIZE - tail) then
+            MemCopy(&fcb.buffer[tail], len, dma);
+            amount := len as int16;
+            return;
+        else
+            amount := FCB_BUFFER_SIZE - tail as int16;
+            MemCopy(&fcb.buffer[tail], amount as uint16, dma);
+            pos := pos + amount as uint32;
+            dma := dma + amount as uint16;
+            len := len - amount as uint16;
+        end if;
+    end if;
+
+    # pos is now block aligned, but dma or len may not be word aligned
+    if (pos % FCB_BUFFER_SIZE) != 0 then return; end if;
+
+    # if dma address is odd, make it even and shorten next read; have to copy data later
+    odd := dma as FCBIndexType & 1;
+    if odd != 0 then
+        dma := @next dma;
+        tail := (len - 1) & 1;
+    end if;
+    words := (len - 1) >> 1;
+
+    if words > 0 then
+        fcb.blk := (pos >> 9) as uint16;
+        @asm ".readw", fcb, ",,", dma, ",", words;
+        @asm "adcb", carry;
+        @asm "mov r0,", actual;
+
+        if carry != 0 and [usrerr] != 0 then # ignore reads past EOF XXX
+            amount := -1;
+            fcb.flags := fcb.flags | FCB_FLAG_ERROR;
+            return;
+        end if;
+
+        actual := actual << 1;
+        if odd != 0 then
+            MemCopy(dma, actual, dma - 1);
+            dma := dma - 1 + actual;
+        else
+            dma := dma + actual;
+        end if;
+        amount := amount + actual as StdioType;
+        pos := pos + actual as uint32;
+        len := len - actual;
+    end if;
+
+    # read tail if needed
+
+    if len != 0 then
+        fcb.blk := ((pos + len as uint32 - 1) >> 9) as uint16;
+        words := ((len + 1) % FCB_BUFFER_SIZE) >> 1;
+
+        @asm ".readw", fcb, ",,", rtbuf, ",", words;
+        @asm "adcb", carry;
+        @asm "mov r0,", actual;
+
+        if carry != 0 or actual != words then
+            return;
+        end if;
+
+        MemCopy(&fcb.buffer[(len - 1) % FCB_BUFFER_SIZE], len, dma - odd);
+        amount := amount + len as StdioType;
+        return;
+    end if;
+end sub;
+
+# vim: ts=4 sw=4 et
+
