@@ -154,6 +154,8 @@
 			when REG_DX: E("dx");
 			when REG_SI: E("si");
 			when REG_DI: E("di");
+			when REG_DXAX: E("dxax");
+			when REG_BXCX: E("bxcx");
 			when else:
 				StartError();
 				print("bad reg ");
@@ -169,6 +171,11 @@
 		end if;
 
 		sub memop(kind: string) is
+			var cache := FindFirst(RegCacheFindValue(op.mem.sym, op.mem.off + off));
+			if cache & (REGCLASS_R8|REGCLASS_R16) != 0 then
+				E_reg(cache);
+				return;
+			end if;
 			E(kind);
 			E(" [");
 			E_symref(op.mem.sym, op.mem.off + off);
@@ -283,13 +290,14 @@
 	end sub;
 
 	sub ArchEmitMove(src: RegId, dest: RegId) is
-		print_hex_i32(src);
-		print(" ");
-		print_hex_i32(dest);
-		print_nl();
+		#print_hex_i32(src);
+		#print(" ");
+		#print_hex_i32(dest);
+		#print_nl();
 		E("\t; move\n");
 		if src == 0 then
 			E_pop(dest);
+			R_flush(dest);
 		elseif dest == 0 then
 			E_push(src);
 		elseif (src & REGCLASS_R32) != 0 then
@@ -304,12 +312,16 @@
 			E_comma();
 			E_reg(lowordreg(src));
 			E_nl();
+			R_flush(dest);
+			RegCacheCopy(src, dest);
 		elseif (src & (REGCLASS_R16|REGCLASS_R8)) != 0 then
 			E_insn("mov");
 			E_reg(dest);
 			E_comma();
 			E_reg(src);
 			E_nl();
+			R_flush(dest);
+			RegCacheCopy(src, dest);
 		else
 			StartError();
 			print("bad move ");
@@ -443,11 +455,13 @@ gen STARTSUB() uses all
 					E("\tmov byte [");
 					E_symref(param as [Symbol], 0);
 					E("], al\n");
+					RegCacheLeavesValue(REG_AL, param as [Symbol], 0);
 
 				when 2:
 					E("\tmov word [");
 					E_symref(param as [Symbol], 0);
 					E("], ax\n");
+					RegCacheLeavesValue(REG_AX, param as [Symbol], 0);
 
 				when 4:
 					E("\tmov word [");
@@ -456,6 +470,7 @@ gen STARTSUB() uses all
 					E("\tmov word [");
 					E_symref(param as [Symbol], 2);
 					E("], dx\n");
+					RegCacheLeavesValue(REG_DXAX, param as [Symbol], 0);
 			end case;
 		end if;
 	end loop;
@@ -573,12 +588,14 @@ gen mem4 := DEREF4(ADDRESS():a) cost 5 { $@$.operand.mem.sym := &$a.sym; $@$.ope
 
 %{
 	sub Call(addr: [MidcodeSubref]) is
+		R_flushall();
 		E_insn("call");
 		E_subref(addr.subr);
 		E_nl();
 	end sub;
 
 	sub CallBX() is
+		R_flushall();
 		E("\tcall bx\n");
 	end sub;
 %}
@@ -612,8 +629,8 @@ gen r32 := POPARG4(remaining!=0) { E_pop($$); }
 // These rules ensure that any operand can be loaded into a register if
 // necessary.
 
-gen r8 := FALLBACK(op1:lhs)  { E_insn("mov"); E_reg($$); E_comma(); E_op0($lhs, &$@lhs.operand); E_nl(); }
-gen r16 := FALLBACK(op2:lhs) { E_insn("mov"); E_reg($$); E_comma(); E_op0($lhs, &$@lhs.operand); E_nl(); }
+gen r8 := FALLBACK(op1:lhs)  { Alu2("mov", $$, $lhs, &$@lhs.operand); }
+gen r16 := FALLBACK(op2:lhs) { Alu2("mov", $$, $lhs, &$@lhs.operand); }
 
 gen r32 := FALLBACK(op4:lhs)
 {
@@ -628,6 +645,7 @@ gen r32 := FALLBACK(op4:lhs)
 	E_comma();
 	E_op($lhs, &$@lhs.operand, 2);
 	E_nl();
+	R_flush($$);
 }
 
 // --- Indexed loads and stores ---------------------------------------------
@@ -635,7 +653,7 @@ gen r32 := FALLBACK(op4:lhs)
 %{
 	sub E_indirect(base: RegId, baseop: [Operand], extra: RegId, delta: uint16) is
 		E_b8('[');
-		E_op(base, baseop, 0);
+		E_op0(base, baseop);
 		if extra != 0 then
 			E_b8('+');
 			E_reg(extra);
@@ -647,6 +665,16 @@ gen r32 := FALLBACK(op4:lhs)
 	end sub;
 
 	sub IndirectLoad(dest: RegId, base: RegId, baseop: [Operand], extra: RegId, disp: uint16, delta: uint16, size: string) is
+		if (base == REG_ADR and extra == 0) then
+			var cache := RegCacheFindValue(baseop.mem.sym, baseop.mem.off + delta + disp);
+			if (cache & dest) != 0 then
+				return;
+			elseif (cache != 0) then
+				ArchEmitMove(FindFirst(cache), dest);
+				return;
+			end if;
+		end if;
+		R_flush(dest);
 		E_insn("mov");
 		E_reg(dest);
 		E_comma();
@@ -654,14 +682,32 @@ gen r32 := FALLBACK(op4:lhs)
 		E_space();
 		E_indirect(base, baseop, extra, delta+disp);
 		E_nl();
+		if (base == REG_ADR and extra == 0 and (dest & REGCLASS_R32) == 0) then
+			RegCacheLeavesValue(dest, baseop.mem.sym, baseop.mem.off + delta + disp);
+		end if;
 	end sub;
 
 	sub IndirectLoad4(dest: RegId, base: RegId, baseop: [Operand], extra: RegId, disp: uint16) is
+		if (base == REG_ADR and extra == 0) then
+			var cache := RegCacheFindValue(baseop.mem.sym, baseop.mem.off);
+			if (cache & dest) != 0 then
+				return;
+			elseif (cache != 0) then
+				ArchEmitMove(FindFirst(cache), dest);
+				return;
+			end if;
+		end if;
 		IndirectLoad(lowordreg(dest), base, baseop, extra, disp, 0, "word");
 		IndirectLoad(hiwordreg(dest), base, baseop, extra, disp, 2, "word");
+		if (base == REG_ADR and extra == 0) then
+			RegCacheLeavesValue(dest, baseop.mem.sym, baseop.mem.off + disp);
+		end if;
 	end sub;
 
 	sub IndirectStore(src: RegId, srcop: [Operand], base: RegId, baseop: [Operand], extra: RegId, disp: uint16, delta: uint16, size: string) is
+		if (base == REG_ADR) then
+			RegCacheFlushValue(baseop.mem.sym, baseop.mem.off + disp + delta);
+		end if;
 		E_insn("mov");
 		E(size);
 		E_space();
@@ -669,6 +715,9 @@ gen r32 := FALLBACK(op4:lhs)
 		E_comma();
 		E_op(src, srcop, delta as uint16);
 		E_nl();
+		if (base == REG_ADR and src & (REGCLASS_R8|REGCLASS_R16|REGCLASS_R32) != 0) then
+			RegCacheLeavesValue(src, baseop.mem.sym, baseop.mem.off + disp + delta);
+		end if;
 	end sub;
 
 	sub IndirectStore4(src: RegId, srcop: [Operand], base: RegId, baseop: [Operand], extra: RegId, disp: uint16) is
@@ -709,11 +758,11 @@ gen STORE4(r32:lhs, DEREF4(ADD2(bx|si|di|adr:ptr, CONSTANT():c)))
 
 // --- 8- and 16-bit arithmetic ---------------------------------------------
 
-gen r8  := NEG1($$) { E_insn("neg"); E_reg($$); E_nl(); }
-gen r16 := NEG2($$) { E_insn("neg"); E_reg($$); E_nl(); }
+gen r8  := NEG1($$) { R_flush($$); E_insn("neg"); E_reg($$); E_nl(); }
+gen r16 := NEG2($$) { R_flush($$); E_insn("neg"); E_reg($$); E_nl(); }
 
-gen r8  := NOT1($$) { E_insn("not"); E_reg($$); E_nl(); }
-gen r16 := NOT2($$) { E_insn("not"); E_reg($$); E_nl(); }
+gen r8  := NOT1($$) { R_flush($$); E_insn("not"); E_reg($$); E_nl(); }
+gen r16 := NOT2($$) { R_flush($$); E_insn("not"); E_reg($$); E_nl(); }
 
 %{
 	sub Alu2(insn: string, lhs: RegId, rhs: RegId, rhsop: [Operand]) is
@@ -722,6 +771,7 @@ gen r16 := NOT2($$) { E_insn("not"); E_reg($$); E_nl(); }
 		E_comma();
 		E_op0(rhs, rhsop);
 		E_nl();
+		R_flush(lhs);
 	end sub;
 %}
 
@@ -740,27 +790,28 @@ gen r16 := OR2($$, op2|r16:rhs)  { Alu2("or", $$, $rhs, &$@rhs.operand); }
 gen r8  := EOR1($$, op1|r8:rhs)  { Alu2("xor", $$, $rhs, &$@rhs.operand); }
 gen r16 := EOR2($$, op2|r16:rhs) { Alu2("xor", $$, $rhs, &$@rhs.operand); }
 
-gen al  := MUL1($$, mem1|r8:rhs)  { E_insn("imul"); E_op0($rhs, &$@rhs.operand); E_nl(); }
-gen ax  := MUL2($$, mem2|r16:rhs) { E_insn("imul"); E_op0($rhs, &$@rhs.operand); E_nl(); }
+// E_op0 uses register cache -- do not flush early
+gen al  := MUL1($$, mem1|r8:rhs)  { E_insn("imul"); E_op0($rhs, &$@rhs.operand); E_nl(); R_flush($$); }
+gen ax  := MUL2($$, mem2|r16:rhs) { E_insn("imul"); E_op0($rhs, &$@rhs.operand); E_nl(); R_flush($$); }
 
-gen al := DIVU1(al, mem1|bl|cl|dl:rhs)         { E("\txor ah, ah\n"); E_insn("div"); E_op0($rhs, &$@rhs.operand); E_nl(); }
-gen al := REMU1(al, mem1|bl|cl|dl:rhs)         { E("\txor ah, ah\n"); E_insn("div"); E_op0($rhs, &$@rhs.operand); E_nl(); E("\tmov al, ah\n"); }
-gen al := DIVS1(al, mem1|bl|cl|dl:rhs)         { E("\tcbw\n"); E_insn("idiv"); E_op0($rhs, &$@rhs.operand); E_nl(); }
-gen al := REMS1(al, mem1|bl|cl|dl:rhs)         { E("\tcbw\n"); E_insn("idiv"); E_op0($rhs, &$@rhs.operand); E_nl(); E("\tmov al, ah\n"); }
+gen al := DIVU1(al, mem1|bl|cl|dl:rhs)         { E("\txor ah,ah\n"); E_insn("div"); E_op0($rhs, &$@rhs.operand); E_nl(); R_flush(REG_AX); }
+gen al := REMU1(al, mem1|bl|cl|dl:rhs)         { E("\txor ah,ah\n"); E_insn("div"); E_op0($rhs, &$@rhs.operand); E_nl(); R_flush(REG_AX); E("\tmov al, ah\n"); }
+gen al := DIVS1(al, mem1|bl|cl|dl:rhs)         { E("\tcbw\n"); E_insn("idiv"); E_op0($rhs, &$@rhs.operand); E_nl(); R_flush(REG_AX); }
+gen al := REMS1(al, mem1|bl|cl|dl:rhs)         { E("\tcbw\n"); E_insn("idiv"); E_op0($rhs, &$@rhs.operand); E_nl(); R_flush(REG_AX); E("\tmov al, ah\n"); }
 
-gen ax := DIVU2(ax, mem2|bx|cx|di|si:rhs) uses dx    { E("\txor dx,dx\n"); E_insn("div"); E_op0($rhs, &$@rhs.operand); E_nl(); }
-gen dx := REMU2(ax, mem2|bx|cx|di|si:rhs)            { E("\txor dx,dx\n"); E_insn("div"); E_op0($rhs, &$@rhs.operand); E_nl(); }
-gen ax := DIVS2(ax, mem2|bx|cx|di|si:rhs) uses dx    { E("\tcwd\n"); E_insn("idiv"); E_op0($rhs, &$@rhs.operand); E_nl(); }
-gen dx := REMS2(ax, mem2|bx|cx|di|si:rhs)            { E("\tcwd\n"); E_insn("idiv"); E_op0($rhs, &$@rhs.operand); E_nl(); }
+gen ax := DIVU2(ax, mem2|bx|cx|di|si:rhs) uses dx    { E("\txor dx,dx\n"); E_insn("div"); E_op0($rhs, &$@rhs.operand); E_nl(); R_flush(REG_DXAX); }
+gen dx := REMU2(ax, mem2|bx|cx|di|si:rhs)            { E("\txor dx,dx\n"); E_insn("div"); E_op0($rhs, &$@rhs.operand); E_nl(); R_flush(REG_DXAX); }
+gen ax := DIVS2(ax, mem2|bx|cx|di|si:rhs) uses dx    { E("\tcwd\n"); E_insn("idiv"); E_op0($rhs, &$@rhs.operand); E_nl(); R_flush(REG_DXAX); }
+gen dx := REMS2(ax, mem2|bx|cx|di|si:rhs)            { E("\tcwd\n"); E_insn("idiv"); E_op0($rhs, &$@rhs.operand); E_nl(); R_flush(REG_DXAX); }
 
-gen r8             := LSHIFT1($$:lhs, CONSTANT(value==1):c)  { E_insn("shl"); E_reg($lhs); E(",1\n"); }
-gen al|bl|dl       := LSHIFT1($$:lhs, cl:rhs)  { E_insn("shl"); E_reg($lhs); E(", cl\n"); }
-gen r16            := LSHIFT2($$:lhs, CONSTANT(value==1):c)  { E_insn("shl"); E_reg($lhs); E(",1\n"); }
-gen ax|bx|dx|si|di := LSHIFT2($$:lhs, cl:rhs)  { E_insn("shl"); E_reg($lhs); E(", cl\n"); }
-gen al|bl|dl       := RSHIFTU1($$:lhs, cl:rhs) { E_insn("shr"); E_reg($lhs); E(", cl\n"); }
-gen ax|bx|dx|si|di := RSHIFTU2($$:lhs, cl:rhs) { E_insn("shr"); E_reg($lhs); E(", cl\n"); }
-gen al|bl|dl       := RSHIFTS1($$:lhs, cl:rhs) { E_insn("sar"); E_reg($lhs); E(", cl\n"); }
-gen ax|bx|dx|si|di := RSHIFTS2($$:lhs, cl:rhs) { E_insn("sar"); E_reg($lhs); E(", cl\n"); }
+gen r8             := LSHIFT1($$:lhs, CONSTANT(value==1):c)  { R_flush($lhs); E_insn("shl"); E_reg($lhs); E(",1\n"); }
+gen al|bl|dl       := LSHIFT1($$:lhs, cl:rhs)  { R_flush($lhs); E_insn("shl"); E_reg($lhs); E(",cl\n"); }
+gen r16            := LSHIFT2($$:lhs, CONSTANT(value==1):c)  { R_flush($lhs); E_insn("shl"); E_reg($lhs); E(",1\n"); }
+gen ax|bx|dx|si|di := LSHIFT2($$:lhs, cl:rhs)  { R_flush($lhs); E_insn("shl"); E_reg($lhs); E(",cl\n"); }
+gen al|bl|dl       := RSHIFTU1($$:lhs, cl:rhs) { R_flush($lhs); E_insn("shr"); E_reg($lhs); E(",cl\n"); }
+gen ax|bx|dx|si|di := RSHIFTU2($$:lhs, cl:rhs) { R_flush($lhs); E_insn("shr"); E_reg($lhs); E(",cl\n"); }
+gen al|bl|dl       := RSHIFTS1($$:lhs, cl:rhs) { R_flush($lhs); E_insn("sar"); E_reg($lhs); E(",cl\n"); }
+gen ax|bx|dx|si|di := RSHIFTS2($$:lhs, cl:rhs) { R_flush($lhs); E_insn("sar"); E_reg($lhs); E(",cl\n"); }
 
 // --- 32-bit arithmetic ----------------------------------------------------
 
@@ -812,15 +863,15 @@ gen r32 := NOT4($$)
 	E_nl();
 }
 
-gen dxax := MUL4(dxax, bxcx) { E_callhelper("_mul4"); }
-gen dxax := DIVU4(dxax, bxcx) { E_callhelper("_divremu4"); }
-gen bxcx := REMU4(dxax, bxcx) { E_callhelper("_divremu4"); }
-gen dxax := DIVS4(dxax, bxcx) { E_callhelper("_divrems4"); }
-gen bxcx := REMS4(dxax, bxcx) { E_callhelper("_divrems4"); }
+gen dxax := MUL4(dxax, bxcx) uses all { E_callhelper("_mul4"); }
+gen dxax := DIVU4(dxax, bxcx) uses all { E_callhelper("_divremu4"); }
+gen bxcx := REMU4(dxax, bxcx) uses all { E_callhelper("_divremu4"); }
+gen dxax := DIVS4(dxax, bxcx) uses all { E_callhelper("_divrems4"); }
+gen bxcx := REMS4(dxax, bxcx) uses all { E_callhelper("_divrems4"); }
 
-gen dxax := LSHIFT4(dxax, cl) { E_callhelper("_lsl4"); }
-gen dxax := RSHIFTS4(dxax, cl) { E_callhelper("_asr4"); }
-gen dxax := RSHIFTU4(dxax, cl) { E_callhelper("_lsr4"); }
+gen dxax := LSHIFT4(dxax, cl) uses all { E_callhelper("_lsl4"); }
+gen dxax := RSHIFTS4(dxax, cl) uses all { E_callhelper("_asr4"); }
+gen dxax := RSHIFTU4(dxax, cl) uses all { E_callhelper("_lsr4"); }
 
 // --- Conditionals ---------------------------------------------------------
 
