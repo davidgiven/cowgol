@@ -311,6 +311,9 @@
 
 	sub E_jump_noflush(insn: string, label: LabelRef) is
 		E_tab();
+		$ifdef ARCH_RT11
+		E_b8('J');
+		$endif
 		E(insn);
 		E_tab();
 		E_labelref(label);
@@ -515,7 +518,11 @@
 
 	sub E_cmpeq4(src: RegId, dest: RegId) is
 		E_alu2_noflush("CMP", hireg(src), hireg(dest));
+		$ifdef ARCH_RT11
+		E("\tbne\t.+4\n");
+		$else
 		E("\tbne\t$+4\n");
+		$endif
 		E_alu2_noflush("CMP", loreg(src), loreg(dest));
 	end sub;
 
@@ -898,12 +905,20 @@
 		var i: uint16 := 0;
 
 		EmitterOpenStream(current_subr);
+		$ifdef ARCH_RT11
+		E("\t.even\n");
+		$else
 		E("\tdseg\n");
+		$endif
 
 		E_b8(COO_ESCAPE_THISCOO);
 		E_b8('z');
 		E_u16(sid);
+		$ifdef ARCH_RT11
+		E(":\n\t.byte\t");
+		$else
 		E(":\n\tdb\t");
+		$endif
 
 		loop
 			var c := [data];
@@ -915,13 +930,19 @@
 
 			E_u8(c);
 			if (i % 16) == 0 then
+				$ifdef ARCH_RT11
+				E("\n\t.byte\t");
+				$else
 				E("\n\tdb\t");
+				$endif
 			else
 				E_comma();
 			end if;
 		end loop;
 		E("0\n");
+		$ifndef ARCH_RT11
 		E("\tcseg\n");
+		$endif
 		EmitterCloseStream();
 
 		E_b8(COO_ESCAPE_THISCOO);
@@ -1040,7 +1061,12 @@ gen STARTSUB() uses all
 	E_b8(0);
 	E_nl();
 
+	$ifdef ARCH_RT11
+	E("\t.enabl\tlsb\n");
+	E("\t.even\n");
+	$else
 	E("\talign 2\n");
+	$endif
 	E_b8(COO_ESCAPE_THISSUB);
 	E(":\n");
 
@@ -1154,7 +1180,11 @@ gen RETURN() uses all
 	if current_subr.num_output_parameters == 0 then
 		E_ret();
 	else
+		$ifdef ARCH_RT11
+		E("\tJBR\tend_");
+		$else
 		E("\tBR\tend_");
+		$endif
 		E_subref(current_subr);
 		E_nl();
 	end if;
@@ -1559,35 +1589,53 @@ gen r16 := STRING():s
 gen STARTINIT():s
 {
 	EmitterOpenStream(current_subr);
+	$ifdef ARCH_RT11
+	E("\t.even\n");
+	$else
 	E("\tdseg\n");
 	E("\talign 2\n");
+	$endif
 	E_symref(&$s.sym, 0);
 	E(":\n");
 }
 
 gen ENDINIT()
 {
+	$ifndef ARCH_RT11
 	E("\tcseg\n");
+	$endif
 	EmitterCloseStream();
 }
 
 gen INIT1():c
 {
+	$ifdef ARCH_RT11
+	E("\t.byte\t");
+	$else
 	E("\tdb\t");
+	$endif
 	E_u8($c.value as uint8);
 	E_nl();
 }
 
 gen INIT2():c
 {
+	$ifdef ARCH_RT11
+	E("\t.word\t");
+	$else
 	E("\tdw\t");
+	$endif
 	E_u16($c.value as uint16);
 	E_nl();
 }
 
 gen INIT4():c
 {
+	$ifdef ARCH_RT11
+	E("\t.word\t");
+	$else
 	E("\tdw\t");
+	$endif
 	E_u16($c.value as uint16);
 	E_comma();
 	E_u16((($c.value as uint32) >> 16) as uint16);
@@ -1596,21 +1644,33 @@ gen INIT4():c
 
 gen INITADDRESS():a
 {
+	$ifdef ARCH_RT11
+	E("\t.word\t");
+	$else
 	E("\tdw\t");
+	$endif
 	E_symref(&$a.sym, $a.off);
 	E_nl();
 }
 
 gen INITSUBREF():a
 {
+	$ifdef ARCH_RT11
+	E("\t.word\t");
+	$else
 	E("\tdw\t");
+	$endif
 	E_subref($a.subr);
 	E_nl();
 }
 
 gen INITSTRING():s
 {
+	$ifdef ARCH_RT11
+	E("\t.word\t");
+	$else
 	E("\tdw\t");
+	$endif
 	E_string($s.text);
 	E_nl();
 }

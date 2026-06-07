@@ -116,6 +116,7 @@ sub FCBOpenIn(fcb: [FCB], filename: [uint8]): (errno: uint8) is
 	var dxcb := &fcb.dxcb;
 	errno := 0;
 	_fcb_init(fcb);
+	fcb.readonly := FCB_FLAG_READONLY;
 
 	@asm "mov", filename, ", r1";
 	@asm "mov", dxcb, ", r4";
@@ -134,6 +135,7 @@ end sub;
 
 sub FCBOpenUp(fcb: [FCB], filename: [uint8]): (errno: uint8) is
 	errno := FCBOpenIn(fcb, filename);
+	fcb.readonly := 0;
 end sub;
 
 sub FCBOpenOut(fcb: [FCB], filename: [uint8]): (errno: uint8) is

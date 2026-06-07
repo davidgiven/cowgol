@@ -1,0 +1,44 @@
+# XXX not ported yet
+
+var argv: uint8[81];
+var argv_pointer: [uint8] := &argv[0];
+
+sub ArgvInit() is
+    var carry: uint8 := 0;
+    var prompt: [uint8] := "DCL>";
+    var tmp: uint8[81];
+    var ptr: [uint8];
+
+    @asm ".gtlin", argv_pointer, ",", prompt;
+    @asm "adcb", carry;
+
+    print("error: "); print_i32(carry as uint32); print_nl();
+    print("csi args: "); print(argv_pointer); print_nl();
+    ptr := argv_pointer + StrLen(argv_pointer);
+
+    # undo CSI conversion: "a b c" -> "b c=a"
+    loop
+        ptr := @prev ptr;
+        var c := [ptr];
+        if (c == '=') then break; end if;
+        if ptr == argv_pointer then return; end if;
+    end loop;
+
+    print("tmp: "); print(ptr); print_nl();
+    print("tmp: "); print_char([ptr + 1]); print_nl();
+
+    # found '=' char
+    [ptr] := 0;
+    CopyString(ptr + 1, &tmp[0]);
+    tmp[StrLen(ptr + 1) as uint8] := ' ';
+    CopyString(argv_pointer, &tmp[StrLen(ptr + 1) as uint8 + 1]);
+    CopyString(&tmp[0], argv_pointer);
+    print("unix args: "); print(argv_pointer); print_nl();
+end sub;
+
+# Returns null is there's no next argument.
+sub ArgvNext(): (arg: [uint8]) is
+    arg := argv_pointer;
+end sub;
+
+# vim: ts=4 sw=4 et
