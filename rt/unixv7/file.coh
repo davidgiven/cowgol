@@ -139,10 +139,15 @@ sub FCBClose(fcb: [FCB]): (errno: uint8) is
     FCBFlush(fcb);
 
     var fd := fcb.fd;
+    errno := 0;
     @asm "mov ", fd, ", r0";
     @asm "trap 6";
-    @asm "neg r0";
-    @asm "mov r0, ", errno;
+    @asm "adcb ", errno;
+    @asm "mov r0, ", fd;
+
+    if errno != 0 then
+        errno := fd as uint8;
+    end if;
 end sub;
 
 sub FCBExt(fcb: [FCB]): (len: uint32) is
