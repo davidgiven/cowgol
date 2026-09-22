@@ -1,0 +1,47 @@
+typedef StdioType is int16;
+
+sub stdio_pread(fcb: [FCB], dma: [uint8], len: FCBIndexType, pos: uint32): (amount: StdioType) is
+    var fd := fcb.fd;
+    var i: int16;
+    var errno: int16 := 0;
+
+    amount := -1;
+    @asm "mov #0087h, -(sp)"; # ret
+    @asm "mov #0, -(sp)"; # whence
+    @asm "mov", pos, "+0, -(sp)"; # pos lo
+    @asm "mov", pos, "+2, -(sp)"; # pos hi
+    @asm "mov #8913h, -(sp)"; # lseek
+    @asm "mov", fd, ", r0";
+    @asm "call @sp";
+    @asm "adc", errno;
+    @asm "add #10, sp";
+
+    if errno != 0 then
+        fcb.flags := fcb.flags | FCB_FLAG_ERROR;
+        return;
+    end if;
+
+    # amount is signed
+    if len > 16384 then
+        len := 16384;
+    end if;
+
+    @asm "mov #0087h, -(sp)"; # ret
+    @asm "mov", len, ", -(sp)";
+    @asm "mov", dma, ", -(sp)";
+    @asm "mov #8903h, -(sp)"; # read
+    @asm "mov", fd, ", r0";
+    @asm "call @sp";
+    @asm "adc", errno;
+    @asm "add #8, sp";
+    @asm "mov r0,", i;
+
+    if errno != 0 then
+        fcb.flags := fcb.flags | FCB_FLAG_ERROR;
+    else
+        amount := i;
+    end if;
+end sub;
+
+# vim: ts=4 sw=4 et
+

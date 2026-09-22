@@ -1,0 +1,44 @@
+typedef StdioType is int16;
+
+sub stdio_pread(fcb: [FCB], dma: [uint8], len: FCBIndexType, pos: uint32): (amount: StdioType) is
+    var fd := fcb.fd;
+    var failed: uint8 := 0;
+
+    amount := -1;
+    @asm "mov bx, [", fd, "]";
+    @asm "mov cx, [", pos, "+2]";
+    @asm "mov dx, [", pos, "+0]";
+    @asm "mov ax, 0x4200";
+    @asm "int 0x21";
+    @asm "mov [", amount, "], ax";
+    @asm "rcl byte [", failed, "], 1";
+
+    if failed != 0 then
+        fcb.flags := fcb.flags | FCB_FLAG_ERROR;
+        fcb.errno := amount as FCBIndexType;
+        return;
+    end if;
+
+    # amount is signed
+    if len > 16384 then
+        len := 16384;
+    end if;
+
+    amount := -1;
+    @asm "mov bx, [", fd, "]";
+    @asm "mov cx, [", len, "]";
+    @asm "mov dx, [", dma, "]";
+    @asm "mov ah, 0x3f"; # read file
+    @asm "int 0x21";
+    @asm "mov [", amount, "], ax";
+    @asm "rcl byte [", failed, "], 1";
+
+    if failed != 0 then
+        fcb.flags := fcb.flags | FCB_FLAG_ERROR;
+        fcb.errno := amount as FCBIndexType;
+        amount := -1;
+    end if;
+end sub;
+
+# vim: ts=4 sw=4 et
+
