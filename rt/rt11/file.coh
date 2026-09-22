@@ -1,0 +1,221 @@
+const FCB_BUFFER_SIZE := 512;
+typedef FCBIndexType is uint16;
+
+var usrerr: [uint8] := 0o52;
+var channels: [FCB][4];
+
+channels[0] := nil;
+channels[1] := nil;
+channels[2] := nil;
+channels[3] := nil;
+
+record RawFCB is
+    # RT-11 area
+    chan: uint8;
+    code: uint8; # filled by macro
+    blk: uint16;
+    buf: uint16;
+    wcnt: uint16;
+    last: uint16; # crtn in .readc/writc
+end record;
+
+include "fileio.coh";
+
+@impl sub FCBRawRead is
+    var carry: uint8 := 0;
+    var rtbuf := &fcb.buffer;
+    var chan := fcb.chan;
+
+    amount := 0;
+    if len == 0 then
+        return;
+    elseif len != FCB_BUFFER_SIZE or (pos % FCB_BUFFER_SIZE) != 0 then # FIXME
+        fcb.flags := fcb.flags | FCB_FLAG_ERROR;
+        return;
+    end if;
+
+    fcb.blk := (pos >> 9) as uint16;
+
+    @asm ".readw", fcb, ",", chan, ",", rtbuf, ", #256";
+    @asm "adcb", carry;
+
+    if carry != 0 then
+        if [usrerr] == 0 then return; end if; # ignore reads past EOF
+        fcb.flags := fcb.flags | FCB_FLAG_ERROR;
+    else
+        amount := len;
+    end if;
+end sub;
+
+@impl sub FCBRawWrite is
+    var carry: uint8 := 0;
+    var rtbuf := &fcb.buffer;
+    var chan := fcb.chan;
+
+    if len == 0 then
+        return;
+    elseif len > FCB_BUFFER_SIZE or (pos % FCB_BUFFER_SIZE) != 0 then # FIXME
+        fcb.flags := fcb.flags | FCB_FLAG_ERROR;
+        return;
+    end if;
+
+    fcb.blk := (pos >> 9) as uint16;
+    len := (len + 1) >> 1;
+    @asm ".writw", fcb, ",", chan, ",", rtbuf, ",", len;
+    @asm "adcb", carry;
+
+    if carry == 0 then
+        fcb.flags := fcb.flags | FCB_FLAG_ERROR;
+    end if;
+end sub;
+
+sub file_i_channel_find(fcb: [FCB]): (ret: uint8) is
+    var i: uint8 := 0;
+    while i < @sizeof channels loop
+#       if channels[i] == fcb then
+#           ret := i;
+#           return;
+        if channels[i] == nil then
+            channels[i] := fcb;
+            ret := i;
+            return;
+        end if;
+        i := i + 1;
+    end loop;
+    ret := i;
+end sub;
+
+sub file_i_channel_free(chan: uint8) is
+    var i: uint8 := 0;
+    while i < @sizeof channels loop
+        if i == chan then
+            channels[i] := nil;
+            return;
+        end if;
+        i := i + 1;
+    end loop;
+end sub;
+
+# ok
+sub FCBOpenIn(fcb: [FCB], filename: [uint8]): (errno: uint8) is
+    _fcb_init(fcb);
+    fcb.readonly := FCB_FLAG_READONLY;
+
+    var carry: uint8 := 0;
+    var rtbuf := &fcb.buffer;
+    var rad50 := rtbuf + 30;
+    var defext: uint16[] := {0, 0, 0, 0};
+    var chan := file_i_channel_find(fcb);
+
+    if chan == @sizeof channels then
+        errno := 100;
+        return;
+    end if;
+    fcb.chan := chan;
+
+    # parse ASCII filename into RAD50 rtbuf
+
+    errno := 0;
+    @asm "mov sp, r5";
+    @asm ".csisp", rtbuf, ",", defext, ",", filename;
+    @asm "adcb", carry;
+    @asm "mov r5, sp";
+
+    if carry != 0 then
+        errno := [usrerr] + 1;
+        return;
+    end if;
+
+    @asm ".looku", fcb, ",", chan, ",", rad50;
+    @asm "adcb", carry;
+
+    if carry != 0 then
+        errno := [usrerr] + 1;
+        return;
+    end if;
+end sub;
+
+sub FCBOpenUp(fcb: [FCB], filename: [uint8]): (errno: uint8) is
+    (errno) := FCBOpenIn(fcb, filename);
+    fcb.readonly := 0;
+end sub;
+
+# ok?
+sub FCBOpenOut(fcb: [FCB], filename: [uint8]): (errno: uint8) is
+    _fcb_init(fcb);
+
+    var carry: uint8 := 0;
+    var rtbuf := &fcb.buffer;
+    var rad50 := rtbuf + 30;
+    var defext: uint16[] := {0, 0, 0, 0};
+    var chan := file_i_channel_find(fcb);
+
+    if chan == @sizeof channels then
+        errno := 100;
+        return;
+    end if;
+    fcb.chan := chan;
+
+    # parse ASCII filename into RAD50 rtbuf
+
+    errno := 0;
+    @asm "mov sp, r5";
+    @asm ".csisp", rtbuf, ",", defext, ",", filename;
+    @asm "adcb", carry;
+    @asm "mov r5, sp";
+
+    if carry != 0 then
+        errno := [usrerr] + 1;
+        return;
+    end if
+
+    @asm ".enter", fcb, ",", chan, ",", rad50, ", #0";
+    @asm "adcb", carry;
+
+    if carry != 0 then
+        errno := [usrerr] + 1;
+        return;
+    end if
+end sub;
+
+# ok?
+sub FCBClose(fcb: [FCB]): (errno: uint8) is
+    FCBFlush(fcb);
+
+    var chan := fcb.chan;
+    var carry: uint8 := 0;
+    errno := 0;
+    @asm ".close", chan;
+    @asm "adcb", carry;
+
+    if carry != 0 then
+        errno := [usrerr] + 1;
+        return;
+    else
+        file_i_channel_free(fcb.chan);
+    end if
+end sub;
+
+# ok
+sub FCBExt(fcb: [FCB]): (len: uint32) is
+    var carry: uint8 := 0;
+    var rtbuf := &fcb.buffer;
+    var chan := fcb.chan;
+
+    FCBFlush(fcb);
+
+    @asm ".cstat", fcb, ",", chan, ",", rtbuf;
+    @asm "adcb", carry;
+
+    if carry == 0 then
+        # 4 = length of file
+        # 6 = highest relative block written
+        len := [&fcb.buffer[4] as [uint16]] as uint32 << 9;
+    else
+        len := ~0;
+    end if;
+end sub;
+
+include "common-file.coh";
+
+# vim: ts=4 sw=4 et

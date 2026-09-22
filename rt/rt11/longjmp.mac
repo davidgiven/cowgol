@@ -1,0 +1,271 @@
+	.nlist
+
+	.macro	ret
+	return
+	.endm
+
+	.macro	jbr, label
+	; forward jump?
+	.if gt label-.
+		.if gt label-.-254
+			jmp	label
+		.iff
+			br	label
+			nop
+		.endc
+	.iff
+	; backward jump?
+		.if gt .-label-256
+			jmp	label
+		.iff
+			br	label
+			nop
+		.endc
+	.endc
+	.endm
+
+	.macro	jbeq, label
+	; forward jump?
+	.if gt label-.
+		.if gt label-.-254
+			bne	.+6
+			jmp	label
+		.iff
+			beq	label
+			nop
+			nop
+		.endc
+	.iff
+	; backward jump?
+		.if gt .-label-256
+			bne	.+6
+			jmp	label
+		.iff
+			beq	label
+			nop
+			nop
+		.endc
+	.endc
+	.endm
+
+	.macro	jbne, label
+	; forward jump?
+	.if gt label-.
+		.if gt label-.-254
+			beq	.+6
+			jmp	label
+		.iff
+			bne	label
+			nop
+			nop
+		.endc
+	.iff
+	; backward jump?
+		.if gt .-label-256
+			beq	.+6
+			jmp	label
+		.iff
+			bne	label
+			nop
+			nop
+		.endc
+	.endc
+	.endm
+
+
+	.macro	jbge, label
+	; forward jump?
+	.if gt label-.
+		.if gt label-.-254
+			blt	.+6
+			jmp	label
+		.iff
+			bge	label
+			nop
+			nop
+		.endc
+	.iff
+	; backward jump?
+		.if gt .-label-256
+			blt	.+6
+			jmp	label
+		.iff
+			bge	label
+			nop
+			nop
+		.endc
+	.endc
+	.endm
+
+	.macro	jblt, label
+	; forward jump?
+	.if gt label-.
+		.if gt label-.-254
+			bge	.+6
+			jmp	label
+		.iff
+			blt	label
+			nop
+			nop
+		.endc
+	.iff
+	; backward jump?
+		.if gt .-label-256
+			bge	.+6
+			jmp	label
+		.iff
+			blt	label
+			nop
+			nop
+		.endc
+	.endc
+	.endm
+
+
+	.macro	jblo, label
+	; forward jump?
+	.if gt label-.
+		.if gt label-.-254
+			bhis	.+6
+			jmp	label
+		.iff
+			blo	label
+			nop
+			nop
+		.endc
+	.iff
+	; backward jump?
+		.if gt .-label-256
+			bhis	.+6
+			jmp	label
+		.iff
+			blo	label
+			nop
+			nop
+		.endc
+	.endc
+	.endm
+
+	.macro	jbhis, label
+	; forward jump?
+	.if gt label-.
+		.if gt label-.-254
+			blo	.+6
+			jmp	label
+		.iff
+			bhis	label
+			nop
+			nop
+		.endc
+	.iff
+	; backward jump?
+		.if gt .-label-256
+			blo	.+6
+			jmp	label
+		.iff
+			bhis	label
+			nop
+			nop
+		.endc
+	.endc
+	.endm
+
+
+	.macro	jbgt, label
+	; forward jump?
+	.if gt label-.
+		.if gt label-.-254
+			ble	.+6
+			jmp	label
+		.iff
+			bgt	label
+			nop
+			nop
+		.endc
+	.iff
+	; backward jump?
+		.if gt .-label-256
+			ble	.+6
+			jmp	label
+		.iff
+			bgt	label
+			nop
+			nop
+		.endc
+	.endc
+	.endm
+
+	.macro	jble, label
+	; forward jump?
+	.if gt label-.
+		.if gt label-.-254
+			bgt	.+6
+			jmp	label
+		.iff
+			ble	label
+			nop
+			nop
+		.endc
+	.iff
+	; backward jump?
+		.if gt .-label-256
+			bgt	.+6
+			jmp	label
+		.iff
+			ble	label
+			nop
+			nop
+		.endc
+	.endc
+	.endm
+
+
+	.macro	jblos, label
+	; forward jump?
+	.if gt label-.
+		.if gt label-.-254
+			bhi	.+6
+			jmp	label
+		.iff
+			blos	label
+			nop
+			nop
+		.endc
+	.iff
+	; backward jump?
+		.if gt .-label-256
+			bhi	.+6
+			jmp	label
+		.iff
+			blos	label
+			nop
+			nop
+		.endc
+	.endc
+	.endm
+
+	.macro	jbhi, label
+	; forward jump?
+	.if gt label-.
+		.if gt label-.-254
+			blos	.+6
+			jmp	label
+		.iff
+			bhi	label
+			nop
+			nop
+		.endc
+	.iff
+	; backward jump?
+		.if gt .-label-256
+			blos	.+6
+			jmp	label
+		.iff
+			bhi	label
+			nop
+			nop
+		.endc
+	.endc
+	.endm
+
+	.list
