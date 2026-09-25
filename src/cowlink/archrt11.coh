@@ -24,9 +24,10 @@ sub ArchEmitWSRef(wid: uint8, address: Size) is
 end sub;
 
 sub ArchEmitHeader(coo: [Coo]) is
+	E("; Assemble with macro11 -yus -ysl 16 -rt11 -m .../SYSMAC.SML\n\n");
 	E("\t.mcall\t.serr, .herr, .exit, .qset, .mrkt, .cmkt, .print, .ttyou\n");
 	E("\t.mcall\t.csisp, .looku, .cstat, .enter, .close, .readw, .writw\n");
-	E("\t.mcall\t.setto, .gval, .mfps, .mtps, .readc\n");
+	E("\t.mcall\t.setto, .gval, .mfps, .mtps, .readc, .ttyin, .gtlin\n");
 	E("\t.radix\t10\n\n");
 	E("start:\n");
 	E("\t.serr\n");

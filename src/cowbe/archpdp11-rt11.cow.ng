@@ -1,0 +1,3 @@
+$define ARCH_RT11
+$include "archpdp11.cow.ng"
+

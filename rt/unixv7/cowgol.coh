@@ -1,6 +1,6 @@
 var LOMEM: [uint8];
 var HIMEM: [uint8];
- 
+
 # NB: apout ignores brk()
 sub _find_himem() is
 	@asm "mov #0087h, -(sp)"; # ret
@@ -46,27 +46,21 @@ end sub;
 
 sub MemSet(buf: [uint8], byte: uint8, len: uint16) is
 	var bufend := buf + len;
-	loop
-		if buf == bufend then
-			return;
-		end if;
+	while buf != bufend loop
 		[buf] := byte;
-		buf := buf + 1;
+		buf := @next buf;
 	end loop;
 end sub;
 
 sub print_oct_i16(value: uint16) is
-    var i: uint8 := 5;
+	var i: uint8 := 5;
 	print_char(((value >> 15) + '0') as uint8);
-    loop
-        var digit := (((value >> 12) & 7) + '0') as uint8;
-        print_char(digit);
-        value := value << 3;
-        i := i - 1;
-        if i == 0 then
-            break;
-        end if;
-    end loop;
+	value := value << 1;
+	while i > 0 loop
+		print_char(((value >> 13) + '0') as uint8);
+		value := value << 3;
+		i := i - 1;
+	end loop;
 end sub;
 
 include "common.coh";
