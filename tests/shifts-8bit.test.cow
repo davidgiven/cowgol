@@ -7,11 +7,19 @@ var one: uint8 := 1;
 var two: uint8 := 2;
 var onetwoeight: uint8 := 0x80;
 
+const ONE := 1;
+const TWO := 2;
+const NINE := 9;
+
 sub lshift() is
 	print("one<<zero == 1"); if one<<zero == 1 then yes(); else no(); end if;
 	print("one<<one == 2"); if one<<one == 2 then yes(); else no(); end if;
 	print("one<<two == 4"); if one<<two == 4 then yes(); else no(); end if;
+	print("one<<ONE == 2"); if one<<ONE == 2 then yes(); else no(); end if;
+	print("one<<TWO == 4"); if one<<TWO == 4 then yes(); else no(); end if;
 	print("onetwoeight<<one == 0"); if onetwoeight<<one == 0 then yes(); else no(); end if;
+	print("onetwoeight<<ONE == 0"); if onetwoeight<<ONE == 0 then yes(); else no(); end if;
+	print("onetwoeight<<NINE == 0"); if onetwoeight<<NINE == 0 then yes(); else no(); end if;
 end sub;
 lshift();
 
@@ -19,6 +27,8 @@ sub rshiftu() is
 	print("onetwoeight>>zero == 128"); if onetwoeight>>zero == 128 then yes(); else no(); end if;
 	print("onetwoeight>>one == 64"); if onetwoeight>>one == 64 then yes(); else no(); end if;
 	print("onetwoeight>>two == 32"); if onetwoeight>>two == 32 then yes(); else no(); end if;
+	print("onetwoeight>>ONE == 64"); if onetwoeight>>ONE == 64 then yes(); else no(); end if;
+	print("onetwoeight>>TWO == 32"); if onetwoeight>>TWO == 32 then yes(); else no(); end if;
 end sub;
 rshiftu();
 
@@ -26,6 +36,8 @@ sub rshifts() is
 	print("mbig>>zero == 0x80"); if mbig>>zero == 0x80 then yes(); else no(); end if;
 	print("mbig>>one == 0xc0"); if mbig>>one == 0xc0 then yes(); else no(); end if;
 	print("mbig>>two == 0xe0"); if mbig>>two == 0xe0 then yes(); else no(); end if;
+	print("mbig>>ONE == 0xc0"); if mbig>>ONE == 0xc0 then yes(); else no(); end if;
+	print("mbig>>TWO == 0xe0"); if mbig>>TWO == 0xe0 then yes(); else no(); end if;
 end sub;
 rshifts();
 
