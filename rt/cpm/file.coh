@@ -1,4 +1,4 @@
-# vim: ts=4 sw=4 et
+# vim: ts=4 sw=4 noet
 
 record CpmFCB is
 	dr: uint8;

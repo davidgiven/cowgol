@@ -1,0 +1,131 @@
+typedef StdioType is int16;
+
+# if pos or len are not block-aligned, do multiple reads and use FCB buffer to copy
+
+sub stdio_pread(fcb: [FCB], dma: [uint8], len: FCBIndexType, pos: uint32): (amount: StdioType) is
+    var cpmfcb := &fcb.cpm;
+    var cpmdma := &fcb.buffer[0];
+    var blocks: FCBIndexType;
+    var tail: FCBIndexType := 0;
+    var failed: uint8 := 0;
+
+    amount := 0;
+    if len == 0 then return; end if;
+
+    if dma + len >= HIMEM then
+        len := HIMEM - dma;
+    end if;
+
+    # amount is signed
+    if len > 16384 then
+        len := 16384;
+    end if;
+
+    #
+    # 3 phases:
+    #
+    # 1: read short block ('head') if pos is not block aligned and copy to dma
+    # 2: read blocks starting at block-aligned pos, adjust len
+    # 3: read short block ('tail') if len is not block aligned and copy to dma
+    #
+
+    if (pos % FCB_BUFFER_SIZE) != 0 then
+        fcb.cpm.r := (pos >> 7) as uint16;
+
+        @asm "mvi c, 26"; # SET DMA
+        @asm "lhld", cpmdma;
+        @asm "xchg";
+        @asm "call 5";
+
+        @asm "mvi c, 33"; # READ RANDOM
+        @asm "lhld", cpmfcb;
+        @asm "xchg";
+        @asm "call 5";
+        @asm "sta", failed;
+
+        if failed > 1 then
+            amount := -1;
+            fcb.flags := fcb.flags | FCB_FLAG_ERROR;
+            return;
+        elseif failed == 1 then # EOF
+            return;
+        end if;
+        tail := (pos as FCBIndexType % FCB_BUFFER_SIZE);
+        if len <= (FCB_BUFFER_SIZE - tail) then
+            MemCopy(&fcb.buffer[tail as uint8], len, dma);
+            amount := len as int16;
+            return;
+        else
+            amount := FCB_BUFFER_SIZE - tail as int16;
+            MemCopy(&fcb.buffer[tail as uint8], amount as uint16, dma);
+            pos := pos + amount as uint32;
+            dma := dma + amount as uint16;
+            len := len - amount as uint16;
+        end if;
+    end if;
+
+    # pos is now block aligned
+    if (pos % FCB_BUFFER_SIZE) != 0 then return; end if;
+
+    blocks := len / FCB_BUFFER_SIZE;
+
+    while blocks > 0 loop
+        fcb.cpm.r := (pos >> 7) as uint16;
+
+        @asm "mvi c, 26"; # SET DMA
+        @asm "lhld", dma;
+        @asm "xchg";
+        @asm "call 5";
+
+        @asm "mvi c, 33"; # READ RANDOM
+        @asm "lhld", cpmfcb;
+        @asm "xchg";
+        @asm "call 5";
+        @asm "sta", failed;
+
+        if failed > 1 then
+            fcb.flags := fcb.flags | FCB_FLAG_ERROR;
+            return;
+        elseif failed == 1 then # EOF
+            return;
+        end if;
+
+        blocks := blocks - 1;
+        amount := amount + FCB_BUFFER_SIZE;
+        dma := dma + FCB_BUFFER_SIZE;
+        pos := pos + FCB_BUFFER_SIZE;
+        len := len - FCB_BUFFER_SIZE;
+    end loop;
+
+    # read tail if needed
+
+    if len != 0 then
+        fcb.cpm.r := (pos >> 7) as uint16;
+
+        @asm "mvi c, 26"; # SET DMA
+        @asm "lhld", cpmdma;
+        @asm "xchg";
+        @asm "call 5";
+
+        @asm "mvi c, 33"; # READ RANDOM
+        @asm "lhld", cpmfcb;
+        @asm "xchg";
+        @asm "call 5";
+        @asm "sta", failed;
+
+        if failed > 1 then
+            fcb.flags := fcb.flags | FCB_FLAG_ERROR;
+            return;
+        elseif failed == 1 then # EOF
+            return;
+        end if;
+
+        MemCopy(&fcb.buffer[0], len, dma);
+        amount := amount + len as StdioType;
+        return;
+    end if;
+
+end sub;
+
+# vim: ts=4 sw=4 et
+
