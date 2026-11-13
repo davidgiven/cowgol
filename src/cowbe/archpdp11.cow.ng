@@ -126,10 +126,10 @@
 	end sub;
 
 	sub E_symref_cache_write(sym: [Symbol], off: Size) is
-		var cache := RegCacheFindAddress(sym, off);
+		var cache := FindFirst(RegCacheFindAddress(sym, off));
 		if cache != 0 then
 			E_openp();
-			E_reg(FindFirst(cache));
+			E_reg(cache);
 			E_closep();
 			return;
 		end if;
@@ -157,8 +157,7 @@
 	end sub;
 
 	sub E_ash32(value: int8, reg: RegId) is
-		E_tab();
-		E("ASH");
+		E("\tASH");
 		if (reg & REGCLASS_R32) != 0 then
 			E_b8('C');
 		end if;
@@ -179,6 +178,16 @@
 	sub E_push4(src: RegId) is
 		E_push(loreg(src));
 		E_push(hireg(src));
+	end sub;
+
+	sub E_pushc(value: Arith) is
+		if (value == 0) then
+			E("\tCLR\t-(SP)\n");
+		else
+			E_insn16("MOV");
+			E_imm(value);
+			E(", -(SP)\n");
+		end if;
 	end sub;
 
 	sub E_pop(dest: RegId) is
@@ -293,6 +302,12 @@
 		E_nl();
 	end sub;
 
+	sub E_storepop1(sym: [Symbol], off: Size) is
+		E("\tMOVB\t(SP)+, ");
+		E_symref_cache_write(sym, off);
+		E_nl();
+	end sub;
+
 	sub E_storeix(reg: RegId, ptr: RegId, off: Arith) is
 		E_mov(reg);
 		E_reg(reg);
@@ -316,7 +331,7 @@
 		E(")\n");
 	end sub;
 
-	sub E_storeixc(value: Arith, ptr: RegId, off: Arith, byte: uint8) is
+	sub E_storeixc(value: Arith, ptr: RegId, off: Arith, byte: RegId) is
 		# flush any values loaded from ptr
 		var q := RegCacheGet(ptr);
 		if q != nil and q.state == CACHE_SLOT_WSREF then
@@ -324,17 +339,9 @@
 		end if;
 
 		if value == 0 then
-			if byte == 0 then
-				E_insn16("CLR");
-			else
-				E_insn16("CLRB");
-			end if;
+			E_insn("CLR", byte);
 		else
-			if byte == 0 then
-				E_insn16("MOV");
-			else
-				E_insn16("MOVB");
-			end if;
+			E_mov(byte);
 			# from c2
 			if (value == off) then
 				E("(PC)");
@@ -458,23 +465,12 @@
 		E_nl();
 	end sub;
 
-	sub E_xor(src: RegId, dest: RegId) is
-		R_flush(dest);
-		E_insn16("XOR");
-		E_reg(src);
-		E_comma();
-		E_reg(dest);
-		E_nl();
-		if src == dest then
-			RegCacheLeavesConstant(dest, 0);
-		end if;
-	end sub;
-
 	sub E_add(src: RegId, dest: RegId) is
 		E_alu2w("ADD", src, dest);
 	end sub;
 
 	sub E_adc(dest: RegId) is
+		R_flush(dest);
 		E_insn("ADC", dest);
 		E_reg(dest);
 		E_nl();
@@ -490,18 +486,21 @@
 		E_nl();
 	end sub;
 
-	sub E_and(src: RegId, dest: RegId) is
-		E_not(src);
-		E_alu2("BIC", src, dest);
-		E_not(src);
-	end sub;
-
 	sub E_bic(src: RegId, dest: RegId) is
 		E_alu2("BIC", src, dest);
 	end sub;
 
 	sub E_or(src: RegId, dest: RegId) is
 		E_alu2("BIS", src, dest);
+	end sub;
+
+	sub E_xor(src: RegId, dest: RegId) is
+		E_alu2w("XOR", src, dest);
+	end sub;
+
+	sub E_and(src: RegId, dest: RegId) is
+		E_not(src);
+		E_bic(src, dest);
 	end sub;
 
 	sub E_alu2ii(insn: string, reg: RegId, ptr: RegId, sym: [Symbol], off: Size) is
@@ -581,6 +580,7 @@
 		end if;
 	end sub;
 
+	# frontend does not emit SUB with constant
 	sub E_subi(value: Arith, dest: RegId) is
 		case value is
 			when 1: E_dec(dest);
@@ -600,7 +600,7 @@
 	end sub;
 
 	sub E_andi(value: Arith, dest: RegId) is
-		E_alu2i("BIC", value ^ 0xffff, dest);
+		E_alu2i("BIC", ~value, dest);
 	end sub;
 
 	sub E_ori(value: Arith, dest: RegId) is
@@ -716,25 +716,17 @@
 	sub E_sar1(amount: RegId, value: RegId) is
 		R_flush(amount|value);
 		E_neg(amount);
-		E_insn16("ASH");
-		E_reg(amount);
-		E_comma();
-		E_reg(value);
-		E_nl();
+		E_alu2w("ASH", amount, value);
 		E_sxtb(value);
 	end sub;
 
 	sub E_sar(amount: RegId, value: RegId) is
 		R_flush(amount|value);
 		E_neg(amount);
-		E_insn16("ASH");
-		E_reg(amount);
-		E_comma();
-		E_reg(value);
-		E_nl();
+		E_alu2w("ASH", amount, value);
 	end sub;
 
-	# ASH is signed, so this needs work
+	# FIXME ASH is signed, so this needs work
 	sub E_shr(amount: RegId, value: RegId) is
 		R_flush(amount|value);
 
@@ -765,16 +757,12 @@
 		E_alu2("BIC", REG_R5, value);
 	end sub;
 
-	# ASH is signed, and this is unsigned
+	# FIXME ASH is signed, and this is unsigned
 	sub E_shr1(value: RegId, reg: RegId) is
 		R_flush(value);
-		E_andi(255, hireg(reg));
+		E_uxtb(hireg(reg));
 		E_neg(value);
-		E_insn16("ASH");
-		E_reg(value);
-		E_comma();
-		E_reg(reg);
-		E_nl();
+		E_alu2w("ASH", value, reg);
 	end sub;
 
 	# ASH is signed, and this is unsigned
@@ -822,12 +810,7 @@
 	end sub;
 
 	sub E_shl4(value: RegId, reg: RegId) is
-		R_flush(reg);
-		E_insn16("ASHC");
-		E_reg(value);
-		E_comma();
-		E_reg(reg);
-		E_nl();
+		E_alu2w("ASHC", value, reg);
 	end sub;
 
 	sub E_shli4(value: uint8, reg: RegId) is
@@ -846,53 +829,33 @@
 	sub E_sari(value: uint8, reg: RegId) is
 		R_flush(reg);
 		if (value == 1) then
-			E_insn("ASR", reg);
-			E_reg(reg);
-			E_nl();
+			E_alu1("ASR", reg);
 		else
 			E_ash32(-value as int8, reg);
 		end if;
 	end sub;
 
 	sub E_shr4(amount: RegId, value: RegId) is
-		R_flush(amount);
 		# load mask
-
 		E_clr(REG_R5);
-		E_insn16("mov #8000h, r4\n");
+		E("\tmov #8000h, r4\n");
 
 		E_neg(amount);
-
-		E_insn16("ASHC");
-		E_reg(amount);
-		E_comma();
-		E_reg(value);
-		E_nl();
+		E_alu2w("ASHC", amount, value);
 
 		E_inc(amount);
-
-		E_insn16("ASHC");
-		E_reg(amount);
-		E_comma();
-		E_reg(REG_R4);
-		E_nl();
+		E_alu2w("ASHC", amount, REG_R4);
 
 		E_alu2("BIC", REG_R4, hireg(value));
 		E_alu2("BIC", REG_R5, loreg(value));
 	end sub;
 
 	sub E_sar4(amount: RegId, value: RegId) is
-		R_flush(amount|value);
 		E_neg(amount);
-		E_insn16("ASHC");
-		E_reg(amount);
-		E_comma();
-		E_reg(value);
-		E_nl();
+		E_alu2w("ASHC", amount, value);
 	end sub;
 
 	sub E_sari4(value: uint8, reg: RegId) is
-		R_flush(reg);
 		if value > 15 then
 			E_move(hireg(reg), loreg(reg));
 			E_sxt(hireg(reg));
@@ -918,12 +881,7 @@
 	end sub;
 
 	sub E_mul(dest: RegId, src: RegId) is
-		R_flush(dest);
-		E_insn16("MUL");
-		E_reg(src);
-		E_comma();
-		E_reg(dest);
-		E_nl();
+		E_alu2w("MUL", src, dest);
 	end sub;
 
 	sub E_muli(dest: RegId, value: Arith) is
@@ -952,12 +910,7 @@
 	end sub;
 
 	sub E_div(rhs: RegId, lhs: RegId) is
-		R_flush(lhs);
-		E_insn16("DIV");
-		E_reg(rhs);
-		E_comma();
-		E_reg(lhs);
-		E_nl();
+		E_alu2w("DIV", rhs, lhs);
 	end sub;
 
 	sub E_loadconst(reg: RegId, value: Arith) is
@@ -1016,7 +969,7 @@
 				E_clr(dest);
 				E_or(src, dest);
 			else
-				E_andi(255, dest);
+				E_uxtb(dest);
 			end if;
 		elseif hireg(src) != dest then
 			E_move(src, loreg(dest));
@@ -1104,7 +1057,6 @@
 		E_nl();
 	end sub;
 
-	# Note that this *destroys* the source register.
 	sub ArchEmitMove(src: RegId, dest: RegId) is
 		if src == 0 then
 			if (dest & REGCLASS_R32) == 0 then
@@ -1135,7 +1087,7 @@
 	end sub;
 %}
 
-wordsize uint32; // XXX
+wordsize uint16;
 
 register r0 r1 r2 r3 r4 r5;
 register r0b r1b r2b r3b r4b r5b;
@@ -1234,9 +1186,10 @@ gen STARTSUB() uses all
 			when 1:
 				if count != lastparam then
 					pop_return_address();
-					E_pop(REG_R0);
+					E_storepop1(param as [Symbol], 0);
+				else
+					E_store(REG_R0B, param as [Symbol], 0);
 				end if;
-				E_store(REG_R0B, param as [Symbol], 0);
 
 			when 2:
 				if count != lastparam then
@@ -1361,8 +1314,11 @@ gen param := ARG1(param, r8:lhs)  { E_push($lhs); }
 gen param := ARG2(param, r16:lhs) { E_push($lhs); }
 gen param := ARG4(param, r32:lhs) { E_push4($lhs); }
 
-gen param := ARG1(param, DEREF1(ADDRESS(&sym is not_cached):a)) { E_insn16("movb"); E_symref(&$a.sym, $a.off); E(", -(SP)\n"); }
-gen param := ARG2(param, DEREF2(ADDRESS(&sym is not_cached):a)) { E_insn16("mov");  E_symref(&$a.sym, $a.off); E(", -(SP)\n"); }
+gen param := ARG1(param, CONSTANT():v)  { E_pushc($v.value); }
+gen param := ARG2(param, CONSTANT():v)  { E_pushc($v.value); }
+
+gen param := ARG1(param, DEREF1(ADDRESS():a)) { E_insn16("movb"); E_symref_cache_read(&$a.sym, $a.off, 0); E(", -(SP)\n"); }
+gen param := ARG2(param, DEREF2(ADDRESS():a)) { E_insn16("mov");  E_symref_cache_read(&$a.sym, $a.off, 0); E(", -(SP)\n"); }
 
 gen r0b  := POPARG1(remaining==0);
 gen r0   := POPARG2(remaining==0);
@@ -1381,7 +1337,7 @@ gen r8|r16 := CONSTANT():c
 
 gen r32 := CONSTANT():c
 {
-	var cache := RegCacheFindConstant($c.value as uint32);
+	var cache := RegCacheFindConstant($c.value as Word);
 	if (cache & $$) != 0 then
 		# Value already in the right register.
 		return;
@@ -1389,14 +1345,14 @@ gen r32 := CONSTANT():c
 
 	E_loadconst(loreg($$), $c.value & 0xffff);
 	E_loadconst(hireg($$), ($c.value>>16));
-	RegCacheLeavesConstant($$, $c.value as uint32);
+	RegCacheLeavesConstant($$, $c.value as Word);
 }
 
 
 // Casts
 
 gen r16 := CAST12(r8:val):c   { E_ext($val, $$, $c.sext); }
-gen r8  := CAST21(r16:val):c  { if ($val != hireg($$)) then E_move($val, hireg($$)); end if; }
+gen r8  := CAST21(r16:val):c  { if ($val != hireg($$)) then E_move($val, $$); end if; }
 
 gen r32 := CAST14(r8:val):c   { E_ext($val, loreg($$), $c.sext); if ($c.sext != 0) then E_sxt(hireg($$)); else E_clr(hireg($$)); end if; }
 gen r8  := CAST41(r32:val)    { E_move(loreg($val), $$); }
@@ -1460,15 +1416,15 @@ gen r16 := SUBREF():a         { E_loadsubref($$, $a.subr); }
 
 // --- Stores ---------------------------------------------------------------
 
-gen STORE1(CONSTANT():v, DEREF1(r16:rhs)) { E_storeixc($v.value, $rhs, 0, 1); }
-gen STORE1(CONSTANT():v, DEREF1(ADD2(r16:rhs, CONSTANT():c))) { E_storeixc($v.value, $rhs, $c.value, 1); }
+gen STORE1(CONSTANT():v, DEREF1(r16:rhs)) { E_storeixc($v.value, $rhs, 0, REGCLASS_R8); }
+gen STORE1(CONSTANT():v, DEREF1(ADD2(r16:rhs, CONSTANT():c))) { E_storeixc($v.value, $rhs, $c.value, REGCLASS_R8); }
 gen STORE1(r8:lhs, DEREF1(r16:rhs))       { E_storeix($lhs, $rhs, 0); }
 gen STORE1(r8:lhs, DEREF1(ADDRESS():a))   { E_store($lhs, &$a.sym, $a.off); }
 gen STORE1(r8:lhs, DEREF1(ADD2(r16:rhs, CONSTANT():c))) { E_storeix($lhs, $rhs, $c.value); }
 gen STORE1(r8:lhs, DEREF1(ADD2(ADDRESS():a, r16:rhs))) { E_storeii($lhs, $rhs, &$a.sym, $a.off as uint16, 1); }
 
-gen STORE2(CONSTANT():v, DEREF2(r16:rhs)) { E_storeixc($v.value, $rhs, 0, 0); }
-gen STORE2(CONSTANT():v, DEREF2(ADD2(r16:rhs, CONSTANT():c))) { E_storeixc($v.value, $rhs, $c.value, 0); }
+gen STORE2(CONSTANT():v, DEREF2(r16:rhs)) { E_storeixc($v.value, $rhs, 0, REGCLASS_R16); }
+gen STORE2(CONSTANT():v, DEREF2(ADD2(r16:rhs, CONSTANT():c))) { E_storeixc($v.value, $rhs, $c.value, REGCLASS_R16); }
 gen STORE2(r16:lhs, DEREF2(r16:rhs))      { E_storeix($lhs, $rhs, 0); }
 gen STORE2(r16:lhs, DEREF2(ADDRESS():a))  { E_store($lhs, &$a.sym, $a.off); }
 gen STORE2(r16:lhs, DEREF2(ADD2(r16:rhs, CONSTANT():c))) { E_storeix($lhs, $rhs, $c.value); }
@@ -1476,8 +1432,8 @@ gen STORE2(r16:lhs, DEREF2(ADD2(ADDRESS():a, r16:rhs))) { E_storeii($lhs, $rhs, 
 
 gen STORE4(CONSTANT():v, DEREF4(r16:rhs))
 {
-	E_storeixc($v.value & 0xffff, $rhs, 0, 0);
-	E_storeixc($v.value >> 16, $rhs, 2, 0);
+	E_storeixc($v.value & 0xffff, $rhs, 0, REGCLASS_R16);
+	E_storeixc($v.value >> 16, $rhs, 2, REGCLASS_R16);
 }
 gen STORE4(r32:val, DEREF4(r16:rhs))
 {
@@ -1613,9 +1569,9 @@ gen r1  := REMU2(r1, r16n01:rhs)                 { E_clr(REG_R0); E_div($rhs, RE
 gen r2r3 := DIVU4(r2r3, r0r1) uses r4r5          { E_callhelper("_divremu4"); }
 gen r4r5 := REMU4(r2r3, r0r1)                    { E_callhelper("_divremu4"); }
 
-gen r0b := DIVS1(r1b, r8n01:rhs)                 { E_sxtb($rhs); E_sxtb(REG_R1); E_sxt(REG_R0); E_div($rhs, REG_R0); }
-gen r1b := REMS1(r1b, r8n01:rhs)                 { E_sxtb($rhs); E_sxtb(REG_R1); E_sxt(REG_R0); E_div($rhs, REG_R0); }
-gen r0  := DIVS2(r1, r16n01:rhs)                 { E_tst(REG_R1); E_sxt(REG_R0); E_div($rhs, REG_R0); }
+gen r0b := DIVS1(r1b, r8n01:rhs)                 { E_sxtb($rhs); E_sxtb(REG_R1B); E_sxt(REG_R0); E_div($rhs, REG_R0); }
+gen r1b := REMS1(r1b, r8n01:rhs)                 { E_sxtb($rhs); E_sxtb(REG_R1B); E_sxt(REG_R0); E_div($rhs, REG_R0); }
+gen r0  := DIVS2(r1, r16n01:rhs) uses r1         { E_tst(REG_R1); E_sxt(REG_R0); E_div($rhs, REG_R0); }
 gen r1  := REMS2(r1, r16n01:rhs)                 { E_tst(REG_R1); E_sxt(REG_R0); E_div($rhs, REG_R0); }
 gen r2r3 := DIVS4(r2r3, r0r1) uses r4r5          { E_callhelper("_divrems4"); }
 gen r4r5 := REMS4(r2r3, r0r1)                    { E_callhelper("_divrems4"); }
