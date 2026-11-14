@@ -40,6 +40,7 @@
 
 	sub E_label(label: LabelRef) is
 		R_flushall();
+		RegCacheRevert(label);
 		E_labelref(label);
 		E(":\n");
 	end sub;
@@ -370,6 +371,11 @@
 		E_tab();
 		E_labelref(label);
 		E_nl();
+	end sub;
+
+	sub E_jump_checkpoint(insn: string, label: LabelRef) is
+		E_jump_noflush(insn, label);
+		RegCacheCheckpoint(label);
 	end sub;
 
 	sub E_jump(insn: string, label: LabelRef) is
@@ -1606,10 +1612,10 @@ gen r32   := RSHIFTS4($$:lhs, CONSTANT():c)      { E_sari4($c.value as uint8, $l
 %{
 	sub CmpJumps(trueinsn: string, falseinsn: string, node: [Node]) is
 		if node.beq.truelabel != node.beq.fallthrough then
-			E_jump(trueinsn, node.beq.truelabel);
+			E_jump_checkpoint(trueinsn, node.beq.truelabel);
 		end if;
 		if node.beq.falselabel != node.beq.fallthrough then
-			E_jump(falseinsn, node.beq.falselabel);
+			E_jump_checkpoint(falseinsn, node.beq.falselabel);
 		end if;
 	end sub;
 
@@ -1708,19 +1714,19 @@ gen STARTCASE4(r4r5) uses all;
 gen WHENCASE1():c uses all
 {
 	E_cmpi($c.value & 0xff, REG_R5B);
-	E_jump("bne", $c.falselabel);
+	E_jump_checkpoint("bne", $c.falselabel);
 }
 
 gen WHENCASE2():c uses all
 {
 	E_cmpi($c.value & 0xffff, REG_R5);
-	E_jump("bne", $c.falselabel);
+	E_jump_checkpoint("bne", $c.falselabel);
 }
 
 gen WHENCASE4():c uses all
 {
 	E_cmpi4($c.value, REG_R4R5);
-	E_jump("bne", $c.falselabel);
+	E_jump_checkpoint("bne", $c.falselabel);
 }
 
 gen ENDCASE1();

@@ -14,9 +14,24 @@ record CacheSlot is
 end record;
 
 var register_cache: CacheSlot[CACHE_SIZE];
+var cache_checkpoint: CacheSlot[CACHE_SIZE];
+var cache_checkpoint_label: LabelRef;
 
 sub RegCacheReset() is
 	MemZero(&register_cache[0] as [uint8], @bytesof register_cache);
+	MemZero(&cache_checkpoint[0] as [uint8], @bytesof cache_checkpoint);
+	cache_checkpoint_label := 0;
+end sub;
+
+sub RegCacheCheckpoint(label: LabelRef) is
+	MemCopy(&register_cache[0] as [uint8], @bytesof register_cache, &cache_checkpoint[0] as [uint8]);
+	cache_checkpoint_label := label;
+end sub;
+
+sub RegCacheRevert(label: LabelRef) is
+	if (label == cache_checkpoint_label) then
+		MemCopy(&cache_checkpoint[0] as [uint8], @bytesof register_cache, &register_cache[0] as [uint8]);
+	end if;
 end sub;
 
 sub RegCacheFlush(reg: RegId) is
